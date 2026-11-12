@@ -2,6 +2,7 @@
 import {G,VERSION,weaponDef,count,quickUse,place,upgrade,repair,demolish,canPlace,canUpgrade,buildCost,buildUnlocked,repairCost,maxHp,inBuildArea,freeSlots} from '../sim/core.js';
 import * as World from '../sim/world.js';
 import {story,goalProgress,goalText,contractReady} from '../sim/quests.js';
+import {autoPlan} from '../sim/actors.js';
 import {ITEMS} from '../data/items.js';
 import {OBJ,BUILD_CATS} from '../data/objects.js';
 import {TIDE_KINDS,WEATHER} from '../data/events.js';
@@ -34,6 +35,9 @@ function init(a){
   $('build').addEventListener('click',e=>{const el=e.target.closest('[data-b]');if(!el)return;const[k,v]=el.dataset.b.split(':');
     if(k==='tool'){if(v==='done')return buildClose();if(v==='rot'){B.rot=(B.rot+1)%4;return}B.tool=v}else if(k==='cat'){B.cat=v;const first=pieces()[0];if(first)B.kind=first.id;B.tool='place'}else if(k==='kind'){B.kind=v;B.tool='place'}
     renderBuild();sfx('ui_tap')});
+  // the mouse wheel moves the build bar sideways, and wheel or keys over a sheet scroll it rather than the game
+  $('bpieces').addEventListener('wheel',e=>{e.preventDefault();$('bpieces').scrollLeft+=e.deltaY||e.deltaX},{passive:false});
+  addEventListener('keydown',e=>{if(!cur)return;const pb=$('pb'),k=e.code;if(k==='PageDown'||k==='PageUp'||k==='ArrowDown'||k==='ArrowUp'||k==='Home'||k==='End'){e.preventDefault();pb.scrollTop=k==='Home'?0:k==='End'?pb.scrollHeight:pb.scrollTop+(k==='PageDown'?1:k==='PageUp'?-1:k==='ArrowDown'?.18:-.18)*pb.clientHeight}});
   bus.emitEq=()=>{G.ev.push(['eq'])};bus.zoom=f=>View.setZoom(View.zoom*f);
   MapScreen.init();
 }
@@ -54,14 +58,17 @@ function title(){
   $('t-new').onclick=()=>{if(has){$('t-confirm').hidden=false}else go(()=>api.newGame())};
   $('t-yes').onclick=()=>go(()=>api.newGame());$('t-no').onclick=()=>{$('t-confirm').hidden=true};
 }
-function start(){$('title').hidden=true;$('hud').hidden=false;$('touch').style.visibility='';needHud=true;zone();const S=G.S;if(S.q.i===0&&S.t<7*60+2){setTimeout(()=>{if(G.mode==='play'&&!cur)open('journal')},900);hints=[[4,'Walk up to anything ringed in gold and press E (or the Use button) to gather or search it'],[16,'F toggles auto-gather: you walk and collect by yourself until the pack is full'],[40,'I opens your pack. C crafts by hand. Tap the food and water bars to eat and drink'],[90,'When you are ready to explore, walk to any edge of the clearing']]}}
+function start(){$('title').hidden=true;$('hud').hidden=false;$('touch').style.visibility='';needHud=true;zone();const S=G.S;if(S.q.i===0&&S.t<7*60+2&&!window.__noIntro){setTimeout(()=>{if(G.mode==='play'&&!cur)open('journal')},900);hints=[[4,'Walk up to anything ringed in gold and press E (or the Use button) to gather or search it'],[16,'F toggles auto-gather: you walk and collect by yourself until the pack is full'],[40,'I opens your pack. C crafts by hand. Tap the food and water bars to eat and drink'],[90,'When you are ready to explore, walk to any edge of the clearing']]}}
 function zone(){
-  if(!G.S)return;$('map').hidden=true;$('hud').hidden=false;buildClose();
+  if(!G.S)return;$('map').hidden=true;$('hud').hidden=false;buildClose();buttons();const Z=G.Z,S=G.S;
+  if(Z)banner(Z.name,Z.home?'Day '+dayOf(S.t):'Level '+Z.lvl+(Z.cold?' · freezing':'')+(Z.tox?' · toxic air':'')+(Z.dark?' · dark':''));
+  needHud=true;
+}
+/** The row of buttons top right: depends on where you are and what is waiting for you. */
+function buttons(){
   const Z=G.Z,home=Z&&Z.home,S=G.S,pile=Object.keys(S.home.pile).length;
   const b=(h,gl,key,tip,dot)=>`<button class="ib" data-h="${h}" title="${tip}">${gimg(gl)}<kbd>${key}</kbd>${dot?`<span class="dot">${dot}</span>`:''}</button>`;
   $('btns').innerHTML=b('inv','backpack_open','I','Pack')+b('craft','wrench','C','Craft')+(home?b('build','hammer_build','B','Build'):'')+b('journal','book','J','Journal',S.p.sp||'')+(home?b('camp','people','L','Camp',pile?'!':''):'')+b('menu','gear','P','Menu');
-  if(Z)banner(Z.name,Z.home?'Day '+dayOf(S.t):'Level '+Z.lvl+(Z.cold?' · freezing':'')+(Z.tox?' · toxic air':'')+(Z.dark?' · dark':''));
-  needHud=true;
 }
 
 // ---------------------------------------------------------------- feedback
@@ -74,9 +81,9 @@ function floatNum(x,y,dmg,crit,isPl){const fl=$('float');if(fl.children.length>4
 function onEvent(e){
   const t=e[0],S=G.S;
   if(t==='toast')toast(e[1],e[2]);else if(t==='loot'){feed(e[1],e[2]);needHud=true}else if(t==='hit')floatNum(e[1],e[2],e[3],e[4],e[5]);
-  else if(t==='jobDone'){const o=G.Z&&G.Z.obj[e[1]];if(o)toast(OBJ[o.k].n+': ready to collect','good')}
+  else if(t==='jobDone'){const o=G.Z&&G.Z.obj[e[1]];if(o)toast(OBJ[o.k].n+(o.out?': finished, but your pack is full. Collect it from the station':': finished'),o.out?'bad':'good')}
   else if(t==='ui'){const n=e[1],a=e[2];
-    if(n==='levelup'){banner('Level '+a,'Perk point earned');G.ev.push(['fx','level',G.Z?G.Z.pl.x:0,G.Z?G.Z.pl.y:0]);const fresh=Object.values(OBJ).filter(o=>o.cost&&o.lv===a&&!o.bp).length;if(fresh)toast(fresh+' new thing'+(fresh>1?'s':'')+' to build','good');zone0()}
+    if(n==='levelup'){banner('Level '+a,'Perk point earned');G.ev.push(['fx','level',G.Z?G.Z.pl.x:0,G.Z?G.Z.pl.y:0]);const fresh=Object.values(OBJ).filter(o=>o.cost&&o.lv===a&&!o.bp).length;if(fresh)toast(fresh+' new thing'+(fresh>1?'s':'')+' to build','good');buttons();if(G.build)renderBuild()}
     else if(n==='questDone'){const q=STORY.find(q=>q.id===a),nx=story(S);banner('Done',q?q.t:'');if(nx)setTimeout(()=>toast('New in your journal: '+nx.t,'info'),1800);questT=0}
     else if(n==='ach'){const A=ACHIEVEMENTS.find(x=>x.id===a);toast('Achievement: '+A.n,'good')}
     else if(n==='map'){closeQuiet();MapScreen.open()}
@@ -89,7 +96,6 @@ function onEvent(e){
     else if(PANELS[n])open(n,a);
     else if(OBJ[G.Z&&G.Z.obj[a]&&G.Z.obj[a].k])open('info',a)}
 }
-const zone0=()=>{const k=cur;zone();if(k)$('hud').hidden=false};
 
 // ---------------------------------------------------------------- sheets
 function open(name,arg){
@@ -117,7 +123,7 @@ function hot(k){
   else if(k==='build'){if(G.build)buildClose();else if(Z&&Z.home&&!S.tide.live)buildOpen();else toast(S.tide.live?'Not during a tide':'You can only build at home','info')}
   else if(G.mode!=='play'||!Z)return;
   else if(k==='swap'){S.p.active=S.p.active==='w1'?'w2':'w1';bus.emitEq();sfx('equip');needHud=true}
-  else if(k==='auto'){G.auto=!G.auto;if(Z.pl)Z.pl.auto=null;toast(G.auto?'Auto-gather on':'Auto-gather off','info');needHud=true}
+  else if(k==='auto'){G.auto=!G.auto;if(Z.pl)Z.pl.auto=null;if(G.auto){const pl=autoPlan(Z);toast('Auto-gather on'+(pl.using.length?': using '+pl.using.join(', ').toLowerCase():': by hand only'),'info');if(pl.skipping.length)toast('Skipping '+pl.skipping.slice(0,3).join(', '),'bad')}else toast('Auto-gather off','info');needHud=true}
   else if(k==='rotate'){B.rot=(B.rot+1)%4}
   else if(k==='leave'){if(Z.exit)World.leaveZone();else toast('Walk to the edge of the area to leave','info')}
   else if(k.startsWith('q_')){quickUse(S,k.slice(2));needHud=true}
@@ -168,6 +174,7 @@ const setBar=(el,v,max,warn)=>{el.firstElementChild.style.width=Math.max(0,Math.
 function frame(dt){
   const S=G.S,Z=G.Z;if(!S||!Z)return;const p=Z.pl,ds=G.ds;
   if(deathT>0){deathT-=dt;if(deathT<=0)open('death')}
+  if(cur&&PANELS[cur].tick&&PANELS[cur].tick(curArg,dt||1/60)){const keep=$('pb').scrollTop;refresh();$('pb').scrollTop=keep}
   if(hints.length){hintT+=dt;if(hintT>=hints[0][0]){toast(hints.shift()[1],'info')}}
   if(G.build)buildFrame();
   hudT-=dt;if(hudT>0&&!needHud)return;hudT=.1;needHud=false;
@@ -188,7 +195,7 @@ function frame(dt){
   let wh='';for(const s of['w1','w2']){const e=S.p.eq[s],it=e&&ITEMS[e.id];wh+=`<button class="ws ${S.p.active===s?'on':''}" data-w="${s}" title="${it?esc(it.n):'Fists'}">${it?img(e.id):gimg('sword_cross','#6a6a5a')}${it&&it.ammo?`<u class="num">${count(S,it.ammo)}</u>`:it&&e.n?`<u class="num">${e.n}</u>`:''}${it&&it.dur&&e.d!==undefined?`<s><i style="width:${Math.round(e.d/it.dur*100)}%"></i></s>`:''}</button>`}
   wh+=`<button class="ib ${G.auto?'on':''}" id="auto" data-w="auto" title="Auto-gather (F)"><b>AUTO</b></button>`;
   if($('weap')._h!==wh){$('weap')._h=wh;$('weap').innerHTML=wh;const w=weaponDef(S);$('b-atk').innerHTML=w.id==='fist'?gimg('sword_cross'):img(S.p.eq[S.p.active].id)}
-  questT-=.1;if(questT<=0){questT=1;const q=story(S);let qh='';if(q){qh=`<div class="h">${esc(q.t)}</div>`+q.goals.map(g=>{const[c,n]=goalProgress(S,g);return`<div class="${c>=n?'ok':''}"><span>${esc(goalText(g))}</span><span class="num">${n>1?c+'/'+n:c>=n?'✓':''}</span></div>`}).join('')}
+  questT-=.1;if(questT<=0){questT=1;{const k=(S.p.sp>0)+'|'+Object.keys(S.home.pile).length+'|'+(Z.home?1:0);if(buttons._k!==k){buttons._k=k;buttons()}}const q=story(S);let qh='';if(q){qh=`<div class="h">${esc(q.t)}</div>`+q.goals.map(g=>{const[c,n]=goalProgress(S,g);return`<div class="${c>=n?'ok':''}"><span>${esc(goalText(g))}</span><span class="num">${n>1?c+'/'+n:c>=n?'✓':''}</span></div>`}).join('')}
     const rdy=S.q.contracts.filter(c=>contractReady(S,c)).length;if(rdy)qh+=`<div class="ok"><span>${rdy} contract${rdy>1?'s':''} ready to hand in</span><span></span></div>`;
     if($('quest')._h!==qh){$('quest')._h=qh;$('quest').innerHTML=qh;$('quest').hidden=!qh}}
   miniT-=.1;if(miniT<=0){miniT=.25;minimap(Z,p)}

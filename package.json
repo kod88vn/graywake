@@ -1,17 +1,21 @@
 {
   "name": "graywake",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "Graywake: a top-down 3D survival game for the browser. Build a homestead, scavenge the valley, hold the line against the tide. No build step, no purchases.",
   "type": "module",
-  "engines": { "node": ">=22" },
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "start": "node tools/serve.mjs",
     "check": "node tools/check.mjs",
-    "test": "node tools/check.mjs && node tests/sim.mjs && node tests/smoke.mjs",
+    "test": "node tools/check.mjs && node tests/sim.mjs && node tests/smoke.mjs && node tests/play.mjs && node tests/monkey.mjs 30",
     "test:sim": "node tests/sim.mjs",
     "test:smoke": "node tests/smoke.mjs",
     "shots": "node tests/shots.mjs",
-    "gallery": "node tests/gallery.mjs"
+    "gallery": "node tests/gallery.mjs",
+    "test:play": "node tests/play.mjs",
+    "test:monkey": "node tests/monkey.mjs"
   }
 }

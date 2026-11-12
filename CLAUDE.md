@@ -9,7 +9,8 @@ The setting, names, creatures, map and art are original. It is a game in the bas
 ```sh
 npm start            # dev server on :8090 (also reachable from a phone on the LAN)
 npm run check        # 1 s static checks: run after every data edit
-npm test             # check + headless sim + browser smoke, about a minute (needs Chrome)
+npm test             # check + headless sim + smoke + real-input play-through + monkey, about 5 minutes (needs Chrome)
+npm run test:play    # play-through by real key presses and clicks: run after any interface or input change
 npm run test:sim     # headless simulation only (Node, no browser)
 npm run shots        # 22 screenshots to .out/shots/ — look at them after art, lighting or UI changes
 npm run gallery      # every model on a tile to .out/shots/gallery-*.png — look after touching js/view/props.js
@@ -26,7 +27,7 @@ node tests/audio.mjs # level table for every sound and music scene
   - `actors.js` player, creature AI, projectiles, traps, turrets, interaction, auto-gather. `step(dt)`.
   - `world.js` clock, survival, weather, tides, travel, events, survivors, trade, sleep, death, save format. `tick(dt)`.
   - `quests.js` story, contracts, achievements.
-- `js/view/` three.js: `geo.js` (model builder), `props.js` (world and hand models), `rigs.js` (characters), `render.js` (scene, instancing, lights, particles, weather).
+- `js/view/` three.js: `geo.js` (model builder), `props.js` (world and hand models), `rigs.js` (characters), `scenery.js` (procedural textures, ground clutter, wind materials), `render.js` (scene, instancing, lights, particles, decals, weather).
 - `js/ui/` DOM interface: `ui.js` (HUD, build mode, title), `panels.js` (every sheet), `map.js`, `icons.js`, `dom.js`.
 - `js/audio.js` procedural sound and music (`Snd`). `js/input.js`. `js/main.js` boot and loop.
 - `index.html` is a **fragment** (the artifact host wraps it). Never add doctype, html or body tags. Never open it as a file; use `npm start`.
@@ -41,6 +42,8 @@ Guides: `docs/ARCHITECTURE.md`, `docs/CONTENT_GUIDE.md`, `docs/BALANCE.md`, `doc
 - **One object per tile** (`Z.obj[i]`), plus an optional floor (`Z.fl[i]`). After changing a tile call `Z.touch(i)` (path fields and the renderer both listen); for floors `emit('floor', i)`.
 - **Bit shifts on `hash()` results use `>>>`**, never `>>`: the hash is unsigned and `>>` turns the top half negative (this once produced `undefined` model ids).
 - **Every id is checked.** `npm run check` fails on an unknown item, object, creature, loot family, model, icon glyph or sound, and on any item that cannot be obtained. Run it after touching `js/data/`.
+- **Feedback must be visible where the player is looking.** Toasts, the pickup feed and banners sit above sheets (`z-index` in `index.html`); a sheet must fit the screen and scroll inside `#pb`. An action that cannot complete (full pack, missing tool) refuses with a message and takes nothing.
+- **The simulation runs in real time at any frame rate** (`main.js` splits slow frames into steps). Never cap `dt` in a way that slows the game down.
 - **The game sells nothing:** no purchases, energy, real-time waits or ads. Time only passes while you play or travel.
 - **No dependencies and no build step** without discussing it first.
 

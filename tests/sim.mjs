@@ -49,7 +49,7 @@ safe('build',()=>{
   const S=G.S,Z=G.Z;cx=Math.floor(Z.w/2);cy=Math.floor(Z.h/2);S.p.eq.pack={id:'pack_exped',d:999};S.p.lvl=Math.max(S.p.lvl,5);G.ds=derive(S);S.p.inv=S.p.inv.filter(s=>s&&ITEMS[s.id].tool);
   for(const[id,n]of[['log',200],['stone',200],['stick',100],['rope',40],['fiber',60],['rags',20],['plank',200],['nails',200],['clay',60],['iron_ore',40],['charcoal',40],['raw_meat',6],['dirty_water',4]])give(S,id,n);
   for(let y=cy-6;y<=cy+6;y++)for(let x=cx-6;x<=cx+6;x++){const i=y*Z.w+x;if(Z.obj[i]){Z.obj[i]=null}}Z.navDirty=true;
-  Z.pl.x=cx+.5;Z.pl.y=cy+.5;
+  Z.pl.x=cx+.5;Z.pl.y=cy+.5;Z.actors=Z.actors.filter(a=>a.pl); // wandering deer may not stand where we build
   T.ok(place(S,'campfire',cx+2,cy),'place campfire');T.ok(place(S,'workbench',cx+2,cy+1),'place workbench');T.ok(place(S,'box_small',cx+2,cy-1),'place box');T.ok(place(S,'bed_roll',cx-2,cy),'place bedroll');
   T.ok(canPlace(S,'furnace',cx,cy)!==null,'level-gated building is refused at level '+S.p.lvl);
   let walls=0;for(let x=cx-4;x<=cx+4;x++)for(const y of[cy-4,cy+4])if(place(S,'wall_stick',x,y))walls++;for(let y=cy-3;y<=cy+3;y++)for(const x of[cx-4,cx+4])if(place(S,(y===cy&&x===cx+4)?'door_stick':'wall_stick',x,y))walls++;
@@ -68,7 +68,7 @@ safe('build',()=>{
 });
 // ---- combat
 safe('combat',()=>{
-  const S=G.S,Z=G.Z;give(S,'spear',1);const si=S.p.inv.findIndex(s=>s&&s.id==='spear');T.ok(equip(S,si),'equip spear');
+  const S=G.S,Z=G.Z;give(S,'spear',1);const si=S.p.inv.findIndex(s=>s&&s.id==='spear');T.ok(si<0?S.p.eq.w1&&S.p.eq.w1.id==='spear':equip(S,si,'w1'),'equip spear');S.p.active='w1';
   const e=spawnActor(Z,'shambler',cx+.5,cy+2.5,1);const hp0=e.hp;G.inp.attack=true;run(6,god);G.inp.attack=false;
   T.ok(e.dead||e.hp<hp0,'melee hits a husk next to the player ('+(e.dead?'dead':e.hp+'/'+hp0)+')');
   give(S,'bow',1);give(S,'arrow',40);equip(S,S.p.inv.findIndex(s=>s&&s.id==='bow'),'w2');S.p.active='w2';

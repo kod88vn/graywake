@@ -83,7 +83,8 @@ Enemies share one Dijkstra field toward the player (`playerField`), recomputed w
 - Characters are small jointed rigs (`rigs.js`) with their own material for hit flash and fading; the player's rig is rebuilt from equipment on `eq`.
 - Projectiles, drops, health bars, particles and weather are each one instanced mesh.
 - Light: a sun with a shadow map that follows the camera, a hemisphere light, a light on the player after dark, and four pooled point lights assigned to the nearest fires and lamps.
-- Quality (`low`, `med`, `high`, `auto`) sets pixel ratio and shadow size; `auto` steps down if the frame rate stays under 27 for five seconds.
+- Set dressing lives in `scenery.js`: a grain texture multiplied over the ground's vertex colours, per-biome clutter (instanced, hidden tile by tile as you build over it), and Lambert materials patched with a vertex-shader sway for trees, bushes and grass. Stains are an instanced ring buffer of flat discs; glows are camera-facing additive quads.
+- Quality (`low`, `med`, `high`, `auto`) sets pixel ratio, shadow size and clutter density; `auto` steps down if the frame rate stays under 26 for three seconds.
 
 ## Save data
 

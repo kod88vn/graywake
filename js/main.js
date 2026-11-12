@@ -35,10 +35,11 @@ function drain(){
 }
 let last=0,sceneT=0;
 function loop(ts){
-  requestAnimationFrame(loop);const dt=Math.min(.05,(ts-last)/1000||0);last=ts;
+  requestAnimationFrame(loop);const dt=Math.min(.25,(ts-last)/1000||0);last=ts;
   Input.frame();
   if(G.mode==='play'&&G.Z){
-    if(!G.paused)World.tick(dt);
+    // the simulation keeps real time whatever the frame rate: a slow frame is split into steps of at most 1/30 s
+    if(!G.paused){const n=Math.max(1,Math.ceil(dt*30)),h=dt/n;for(let i=0;i<n&&G.Z&&!G.paused&&G.mode==='play';i++)World.tick(h)}
     drain();
     if(G.Z&&G.mode==='play'){View.frame(G.paused?0:dt);UI.frame(dt)}
   }else drain();

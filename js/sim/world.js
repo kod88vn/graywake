@@ -270,12 +270,17 @@ function rollWeather(S){
   let x=rnd()*tot,id='clear';for(const r of rows){x-=r[1];if(x<=0){id=r[0];break}}
   S.weather={id,until:S.t+240+rnd()*360};if(id==='storm'&&G.Z)sfx('thunder');
 }
+function runJobs(S,o,i,m,atHome){
+  let left=m;while(left>0&&o.q.length){const job=o.q[0],r=RECIPES[job.id];const use=Math.min(left,job.left);job.left-=use;left-=use;
+    if(job.left<=0){produce(S,r,o);job.n--;if(job.n>0)job.left=r.t;else o.q.shift();if(atHome){emit('obj',i);if(!o.q.length)emit('jobDone',i)}}}
+}
+/** Keep one station working while its sheet is open and the rest of the world is paused. */
+export function benchTick(i,dt){const S=G.S,Z=G.Z,o=Z&&Z.obj[i];if(o&&o.q&&o.q.length)runJobs(S,o,i,dt*MIN_PER_SEC,true)}
 function processHome(S,m){
   const H=S.home,obj=H.obj,Wd=weather(S),atHome=G.Z&&G.Z.home,farmers=S.surv.filter(s=>s.job==='farm').reduce((a,s)=>a+(s.trait==='green'?1.5:1),0);
   let scare=null;
   for(let i=0;i<obj.length;i++){const o=obj[i];if(!o)continue;const d=OBJ[o.k];if(!d)continue;
-    if(o.q&&o.q.length){let left=m;while(left>0&&o.q.length){const job=o.q[0],r=RECIPES[job.id];const use=Math.min(left,job.left);job.left-=use;left-=use;
-      if(job.left<=0){produce(S,r,o);job.n--;if(job.n>0)job.left=r.t;else o.q.shift();if(atHome){emit('obj',i);if(!o.q.length)emit('jobDone',i)}}}}
+    if(o.q&&o.q.length)runJobs(S,o,i,m,atHome);
     if(d.special==='garden'&&o.seed){
       if(scare===null){scare=[];obj.forEach((s,j)=>{if(s&&OBJ[s.k]&&OBJ[s.k].special==='scarecrow')scare.push(j)})}
       let mult=(Wd.crop||1)+farmers*.3;if(scare.some(j=>Math.abs(j%HOME_W-i%HOME_W)<=3&&Math.abs(Math.floor(j/HOME_W)-Math.floor(i/HOME_W))<=3))mult+=.25;

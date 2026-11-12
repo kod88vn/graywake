@@ -65,7 +65,7 @@ export async function launch({width=1280,height=720,pathName='/',quiet=false,mob
       async eval(expression){const r=await send('Runtime.evaluate',{expression,awaitPromise:true,returnByValue:true,userGesture:true});
         if(r.exceptionDetails)throw new Error('page: '+(r.exceptionDetails.exception&&r.exceptionDetails.exception.description||r.exceptionDetails.text));return r.result.value},
       async click(x,y){await send('Input.dispatchMouseEvent',{type:'mouseMoved',x,y});for(const type of['mousePressed','mouseReleased'])await send('Input.dispatchMouseEvent',{type,x,y,button:'left',clickCount:1});await sleep(60)},
-      async tap(sel){const p=await page.eval(`(()=>{const e=document.querySelector(${JSON.stringify(sel)});if(!e)return null;const r=e.getBoundingClientRect();return[r.left+r.width/2,r.top+r.height/2]})()`);
+      async tap(sel){const p=await page.eval(`(()=>{const e=document.querySelector(${JSON.stringify(sel)});if(!e)return null;if(e.scrollIntoView)e.scrollIntoView({block:'center',inline:'center'});const r=e.getBoundingClientRect();return[r.left+r.width/2,r.top+r.height/2]})()`);
         if(!p)throw new Error('tap: no element for '+sel);await page.click(p[0],p[1])},
       async key(key,ms=60){const code=key.length===1?'Key'+key.toUpperCase():key;await send('Input.dispatchKeyEvent',{type:'keyDown',key,code});await sleep(ms);await send('Input.dispatchKeyEvent',{type:'keyUp',key,code})},
       async shot(name){const r=await send('Page.captureScreenshot',{format:'png'}),dir=path.join(OUT,'shots');fs.mkdirSync(dir,{recursive:true});const f=path.join(dir,name+'.png');fs.writeFileSync(f,Buffer.from(r.data,'base64'));return f}

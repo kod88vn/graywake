@@ -64,16 +64,20 @@ function recipeRow(r,at,tier){
   let lock='';if(!vis)lock=r.bp?'Schematic needed':'Level '+r.lv;else if(higher){const up=Object.values(OBJ).find(o=>o.station===r.s&&o.sl===r.sl);lock='Needs '+(up?up.n:'a better station')}
   const why=lock?lock:canCraft(s,r,1,at),home=!!(G.Z&&G.Z.home);let max=99;for(const k in r.i)max=Math.min(max,Math.floor(count(s,k,home)/r.i[k]));if(r.fx)max=Math.min(max,1);
   const ic=r.fx?gimg('cart','#8a8f6a'):img(r.o);
-  return`<div class="rec ${why?'off':''}">${ic}<div><b>${esc(name)}${r.q>1?' × '+r.q:''}</b> <small>${r.t?fmtMin(r.t):''}${lock?' · '+lock:''}</small>${chips(r.i)}${r.fx?`<small>${esc(VEHICLES[r.fx.veh].d)}</small>`:it.d&&!why?'':''}</div>
+  return`<div class="rec ${why?'off':''}">${ic}<div><b>${esc(name)}${r.q>1?' × '+r.q:''}</b> <small>${r.t?fmtMin(r.t):''}${lock?' · '+lock:''}${!r.fx&&count(s,r.o,home)?' · you have '+count(s,r.o,home):''}</small>${chips(r.i)}${r.fx?`<small>${esc(VEHICLES[r.fx.veh].d)}</small>`:it.d&&!why?'':''}</div>
     <div class="row" style="flex-wrap:nowrap">${why?`<small style="color:var(--dim);max-width:110px;text-align:right">${lock?'':esc(why)}</small>`:btn('Make','make',`data-r="${r.id}" data-n="1"`,'go')+(max>=2?btn('×'+Math.min(max,r.t?10:max>20?20:max),'make',`data-r="${r.id}" data-n="${Math.min(max,r.t?10:max>20?20:max)}"`):'')}</div></div>`;
 }
 PANELS.craft={title:a=>a!=null&&G.Z&&G.Z.obj[a]?OBJ[G.Z.obj[a].k].n:'Crafting',live:true,
+  open(a){if(a!=null&&G.Z&&G.Z.obj[a]&&G.Z.obj[a].out)collectStation(S(),a)},
+  /** Called every frame while the sheet is open: the station keeps working. Returns true when the sheet should be redrawn. */
+  tick(a,dt){const o=a!=null&&G.Z?G.Z.obj[a]:null;if(!o||!o.q||!o.q.length)return false;const n=o.q.length,units=o.q[0].n;World.benchTick(a,dt);
+    if(!o.q.length||o.q.length!==n||o.q[0].n!==units)return true;const j=o.q[0],r=RECIPES[j.id],p=$('jobp'),t=$('jobt');if(p)p.style.width=Math.round((1-j.left/r.t)*100)+'%';if(t)t.textContent=fmtMin(j.left+(j.n-1)*r.t)+' left';return false},
   tabs(a){const o=a!=null&&G.Z&&G.Z.obj[a];return o&&OBJ[o.k].station?[['st',STATION_NAMES[OBJ[o.k].station]],['hand','By hand']]:[['hand','By hand']]},
   render(a,tab){
     const s=S(),o=a!=null&&G.Z?G.Z.obj[a]:null,d=o?OBJ[o.k]:null,st=tab==='st'&&d?d.station:'hand',tier=tab==='st'&&d?d.sl:9;let h='';
     if(tab==='st'&&o){
-      if(o.out){h+=sec('Ready',btn('Collect all','collect','','go'))+`<div class="grid" style="margin-bottom:10px">${Object.entries(o.out).map(([id,n])=>slot({id,n})).join('')}</div>`}
-      if(o.q&&o.q.length){h+=sec('Working')+`<div class="list" style="margin-bottom:10px">${o.q.map((j,qi)=>{const r=RECIPES[j.id];return`<div class="rec">${img(r.o)}<div><b>${esc(ITEMS[r.o].n)} × ${j.n*r.q}</b><div class="prog"><i style="width:${qi?0:Math.round((1-j.left/r.t)*100)}%"></i></div><small>${qi?'queued':fmtMin(j.left+(j.n-1)*r.t)+' left'}</small></div>${btn('Cancel','cancel',`data-q="${qi}"`)}</div>`}).join('')}</div>`}
+      if(o.out){h+=sec('Waiting in the tray: your pack was full',btn('Collect all','collect','','go'))+`<div class="grid" style="margin-bottom:10px">${Object.entries(o.out).map(([id,n])=>slot({id,n})).join('')}</div>`}
+      if(o.q&&o.q.length){h+=sec('Working','goes to your pack when done')+`<div class="list" style="margin-bottom:10px">${o.q.map((j,qi)=>{const r=RECIPES[j.id];return`<div class="rec">${img(r.o)}<div><b>${esc(ITEMS[r.o].n)} × ${j.n*r.q}</b><div class="prog"><i ${qi?'':'id="jobp"'} style="width:${qi?0:Math.round((1-j.left/r.t)*100)}%"></i></div><small ${qi?'':'id="jobt"'}>${qi?'queued':fmtMin(j.left+(j.n-1)*r.t)+' left'}</small></div>${btn('Cancel','cancel',`data-q="${qi}"`)}</div>`}).join('')}</div>`}
       if(d.up)h+=`<p style="color:var(--dim);font-size:12px;margin:0 0 8px">Upgrade this to a ${esc(OBJ[d.up].n)} in build mode for more recipes.</p>`;
     }
     const rows=RECIPE_LIST.filter(r=>r.s===st&&(recipeVisible(s,r)||r.lv<=s.p.lvl+5)).map(r=>({r,k:(recipeVisible(s,r)&&!(r.s!=='hand'&&r.sl>tier))?(canCraft(s,r,1,tab==='st'?a:null)?1:0):2})).sort((x,y)=>x.k-y.k||x.r.lv-y.r.lv);
@@ -90,19 +94,19 @@ PANELS.station={can(i){setTimeout(()=>UI().open('craft',i),0);return false}};
 PANELS.loot={title:i=>G.Z&&G.Z.obj[i]?OBJ[G.Z.obj[i].k].n:'Container',live:true,
   open(i){const o=G.Z.obj[i];if(o&&!o.inv){if(OBJ[o.k].store)o.inv=[];else openLoot(G.Z,i)}},
   render(i){
-    const s=S(),o=G.Z.obj[i];if(!o)return'';const d=OBJ[o.k],store=!!d.store,cap=store?d.store:Math.max(6,o.inv.length),pc=slotCount(s);
-    let a='',b='';for(let k=0;k<cap;k++)a+=slot(o.inv[k],`data-a="take" data-i="${k}"`);for(let k=0;k<pc;k++)b+=slot(s.p.inv[k],store?`data-a="put" data-i="${k}"`:'');
+    const s=S(),o=G.Z.obj[i];if(!o)return'';const d=OBJ[o.k],store=!!d.store,cap=store?d.store:Math.max(8,o.inv.length),pc=slotCount(s);
+    let a='',b='';for(let k=0;k<cap;k++)a+=slot(o.inv[k],`data-a="take" data-i="${k}"`);for(let k=0;k<pc;k++)b+=slot(s.p.inv[k],`data-a="put" data-i="${k}"`);
     return`<div class="cols"><div>${sec(esc(d.n)+(store?' '+o.inv.filter(Boolean).length+' / '+cap:''),btn('Take all','all','','go')+(store?' '+btn('Sort','sortc'):''))}<div class="grid">${a}</div></div>
-      <div>${sec('Your pack '+s.p.inv.filter(Boolean).length+' / '+pc,store?btn('Stow materials','stow'):'')}<div class="grid">${b}</div>${store?'<p style="color:var(--dim);font-size:12px">Tap an item to move the whole stack. Crafting and building at home draw from every box.</p>':''}</div></div>`;
+      <div>${sec('Your pack '+s.p.inv.filter(Boolean).length+' / '+pc,store?btn('Stow materials','stow'):'')}<div class="grid">${b}</div><p style="color:var(--dim);font-size:12px">Tap an item on either side to move the whole stack across.${store?' Crafting and building at home draw from every storage box.':G.Z.home?' Anything you leave in here stays here.':' Anything you leave here is gone when you leave the area.'}</p></div></div>`;
   },
   act(a,d){
-    const s=S(),Z=G.Z,i=curLoot,o=Z.obj[i];if(!o)return;const dd=OBJ[o.k],cap=dd.store||999;
+    const s=S(),Z=G.Z,i=curLoot,o=Z.obj[i];if(!o)return;const dd=OBJ[o.k],cap=dd.store||Math.max(8,o.inv.length);
     if(a==='take'){const it=o.inv[+d.i];if(!it)return;const left=addTo(s.p.inv,slotCount(s),it.id,it.n,it.d);if(left===it.n){UI().toast('Pack full','bad');return}s.codex.it[it.id]=1;if(left>0)it.n=left;else o.inv[+d.i]=null;sfxq('pickup')}
     else if(a==='put'){const it=s.p.inv[+d.i];if(!it)return;const left=addTo(o.inv,cap,it.id,it.n,it.d);if(left===it.n){UI().toast('No room in there','bad');return}if(left>0)it.n=left;else s.p.inv[+d.i]=null;sfxq('pickup')}
     else if(a==='all'){if(dd.store){for(let k=0;k<o.inv.length;k++){const it=o.inv[k];if(!it)continue;const left=addTo(s.p.inv,slotCount(s),it.id,it.n,it.d);if(left>0)it.n=left;else o.inv[k]=null}}else lootAll(Z,i);sfxq('pickup')}
     else if(a==='stow'){for(let k=0;k<s.p.inv.length;k++){const it=s.p.inv[k];if(!it||!['mat','seed','ammo'].includes(ITEMS[it.id].t))continue;const left=addTo(o.inv,cap,it.id,it.n,it.d);if(left>0)it.n=left;else s.p.inv[k]=null}sfxq('pickup')}
     else if(a==='sortc'){sortInv(o.inv,cap)}
-    if(!dd.store&&o.inv&&!o.inv.some(Boolean)){UI().close();return false}
+    if(a==='all'&&!dd.store&&o.inv&&!o.inv.some(Boolean)){UI().close();return false}
   },
   close(i){if(G.Z&&G.Z.obj[i]&&!OBJ[G.Z.obj[i].k].store)checkEmpty(G.Z,i)}};
 let curLoot=null;{const P=PANELS.loot,r0=P.render;P.render=i=>{curLoot=i;return r0(i)}}

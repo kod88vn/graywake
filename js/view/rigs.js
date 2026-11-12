@@ -14,7 +14,9 @@ export function humanoid(o){
   const mat=new THREE.MeshLambertMaterial({vertexColors:true}),root=new THREE.Group(),body=new THREE.Group();root.add(body);
   const fat=o.fat||1,skin=o.skin||'#c09a7a',top=o.top||'#6a7a5a',legs=o.legs||'#3a3f4a',boots=o.boots||shade(legs,.6),sleeves=o.sleeves||top;
   const P={};
-  P.torso=part(mat,g=>{g.box(.36*fat,.42,.22*fat,top,0,.21,0);g.box(.37*fat,.07,.23*fat,shade(legs,.8),0,.035,0);
+  P.torso=part(mat,g=>{g.box(.36*fat,.42,.22*fat,top,0,.21,0);g.box(.37*fat,.07,.23*fat,shade(legs,.8),0,.035,0);g.box(.07,.05,.02,'#8a7a4a',0,.04,.115*fat);g.box(.14,.07,.14,skin,0,.44,0);
+    if(!o.husk&&!o.vest){g.box(.3*fat,.05,.24*fat,shade(top,1.18),0,.4,0);g.box(.04,.3,.02,shade(top,.72),0,.22,.112*fat)}
+    if(o.gore){const gc='#5a1412';g.box(.16,.14,.02,gc,-.06*fat,.26,.113*fat);if(o.gore>1)g.box(.02,.16,.12,gc,.181*fat,.2,0);if(o.gore>2){g.box(.2,.1,.02,shade(gc,.7),.04,.12,-.113*fat);g.box(.12*fat,.06,.23*fat,skin,.1,.07,0)}g.box(.1,.05,.225*fat,shade(top,.6),-.1,.1,0)}
     if(o.vest){const s=o.vestStyle;if(s==='plate'){g.box(.39*fat,.3,.26*fat,o.vest,0,.25,0);g.box(.2*fat,.16,.28*fat,shade(o.vest,1.2),0,.27,0);g.box(.13,.06,.24,shade(o.vest,.8),-.2*fat,.4,0);g.box(.13,.06,.24,shade(o.vest,.8),.2*fat,.4,0)}
       else if(s==='jacket'){g.box(.385*fat,.4,.245*fat,o.vest,0,.22,0);g.box(.05,.36,.02,shade(o.vest,.7),0,.22,.125*fat);g.box(.3*fat,.06,.26*fat,shade(o.vest,1.15),0,.41,0)}
       else{g.box(.38*fat,.32,.24*fat,o.vest,0,.24,0);g.box(.1,.34,.25*fat,top,0,.24,0)}}
@@ -27,10 +29,11 @@ export function humanoid(o){
       else if(st==='visor'){g.box(.28,.2,.28,o.helm,0,.18,0);g.box(.24,.1,.03,'#9fd0e8',0,.13,.14);g.box(.3,.04,.3,shade(o.helm,.8),0,.09,0)}
       else if(st==='mask'){g.box(.27,.27,.27,o.helm,0,.13,0);g.box(.18,.08,.03,'#2a3030',0,.15,.137);g.cyl(.05,.05,.08,'#3a3a3a',0,.05,.16,8,Math.PI/2)}
       else{g.box(.28,.13,.28,o.helm,0,.22,0);g.box(.3,.04,.3,shade(o.helm,.8),0,.16,0)}}
-    else if(o.hair)g.box(.26,.09,.26,o.hair,0,.22,-.01);
+    else if(o.hair){g.box(.26,.09,.26,o.hair,0,.22,-.01);if(o.hairStyle===1)g.box(.26,.14,.08,o.hair,0,.13,-.1);else if(o.hairStyle===2){g.box(.27,.2,.1,o.hair,0,.1,-.1);g.box(.05,.14,.2,o.hair,-.115,.13,-.02);g.box(.05,.14,.2,o.hair,.115,.13,-.02)}else g.box(.2,.03,.06,o.hair,0,.2,.12)}
+    if(o.husk){g.box(.14,.045,.02,'#2a1210',0,.045,.122);if(o.gore)g.box(.1,.1,.02,'#5a1412',.07,.17,.122)}else g.box(.05,.03,.02,shade(hc,.8),0,.09,.122);
     if(o.mask&&!o.helm)g.box(.25,.1,.04,o.mask,0,.07,.11)});
   P.head.position.y=.86;body.add(P.head);
-  const arm=side=>{const m=part(mat,g=>{g.box(.11,.26,.12,o.vestStyle==='jacket'&&o.vest?o.vest:sleeves,0,-.11,0);g.box(.1,.16,.11,skin,0,-.31,0)});m.position.set(side*(.18*fat+.065),.8,0);body.add(m);return m};
+  const arm=side=>{const m=part(mat,g=>{g.box(.11,.26,.12,o.vestStyle==='jacket'&&o.vest?o.vest:sleeves,0,-.11,0);g.box(.1,.16,.11,skin,0,-.31,0);g.box(.11,.07,.12,shade(skin,.86),0,-.405,.005);if(o.gore>1&&side<0)g.box(.105,.08,.115,'#5a1412',0,-.3,0)});m.position.set(side*(.18*fat+.065),.8,0);body.add(m);return m};
   P.armL=arm(-1);P.armR=arm(1);
   const leg=side=>{const m=part(mat,g=>{g.box(.14,.3,.16,legs,0,-.15,0);g.box(.15,.13,.19,boots,0,-.355,.015)});m.position.set(side*.095,.42,0);body.add(m);return m};
   P.legL=leg(-1);P.legR=leg(1);
@@ -70,14 +73,17 @@ export function blob(o){
 /** Build the rig for a creature definition's `rig` field, or for a survivor (seeded by id). */
 export function rigFor(def,seed=0){
   const[type,o]=def.rig;if(type==='quad')return quadruped(o);if(type==='blob')return blob(o);
-  if(type==='human'&&def.ai==='follow'){const h=(n)=>((seed*2654435761>>>0)>>n)%7;return humanoid({skin:SKIN[h(3)%SKIN.length],top:TOPS[h(7)%TOPS.length],legs:['#3a3f4a','#4a4032','#2e3a2e','#4a4a5a'][h(11)%4],hair:HAIR[h(15)%HAIR.length]})}
-  const r=humanoid({...o,husk:type==='husk'||type==='crawler',vestStyle:o.vest?'plate':null,helmStyle:o.helm?'helm':null,hair:type==='human'?'#2a2018':null});
+  if(type==='human'&&def.ai==='follow'){const h=(n)=>((seed*2654435761>>>0)>>n)%7;return humanoid({skin:SKIN[h(3)%SKIN.length],top:TOPS[h(7)%TOPS.length],legs:['#3a3f4a','#4a4032','#2e3a2e','#4a4a5a'][h(11)%4],hair:HAIR[h(15)%HAIR.length],hairStyle:h(5)%3})}
+  let oo=o;if(o.vary){const h=n=>(((seed*2654435761)>>>0)>>>n)%1000/1000,ZT=['#5a4a3a','#4a5a6a','#6a3a3a','#3a4a3a','#7a7a6a','#2e3a44','#6a5a7a','#8a6a3a','#4a4a4a'],ZL=['#3a3f4a','#4a4032','#2e2e36','#4a4a5a','#3a3028'];
+    oo={...o,top:h(3)<.75?ZT[Math.floor(h(7)*ZT.length)]:o.top,legs:ZL[Math.floor(h(11)*ZL.length)],scale:(o.scale||1)*(.92+h(5)*.16),fat:(o.fat||1)*(.92+h(13)*.22),hair:h(9)<.55?HAIR[Math.floor(h(15)*HAIR.length)]:null,hairStyle:Math.floor(h(17)*3),gore:1+Math.floor(h(19)*3),lean:(o.lean||0)+h(21)*.14}}
+  else if(type==='husk'||type==='crawler')oo={...o,gore:o.helm?1:2};
+  const r=humanoid({...oo,husk:type==='husk'||type==='crawler',vestStyle:oo.vest?'plate':null,helmStyle:oo.helm?'helm':null,hair:type==='human'?'#2a2018':oo.hair,hairStyle:oo.hairStyle});
   if(type==='crawler'){r.type='crawler';r.h=.5}return r;
 }
 /** The player's rig, dressed from what is equipped. */
 export function playerRig(eq){
   const look=s=>eq[s]&&ITEMS[eq[s].id]?ITEMS[eq[s].id].look||{}:null,head=look('head'),bodyL=look('body'),legs=look('legs'),feet=look('feet'),pack=look('pack');
-  return humanoid({skin:'#c9a07c',top:'#7a6a52',legs:legs?legs.c:'#3f4652',boots:feet?feet.c:'#2a2622',hair:'#3a2a1c',helm:head?head.c:null,helmStyle:head?head.s||'helm':null,vest:bodyL?bodyL.c:null,vestStyle:bodyL?bodyL.s||'vest':null,pack:pack?pack.c:null});
+  return humanoid({skin:'#c9a07c',top:'#7a6a52',legs:legs?legs.c:'#3f4652',boots:feet?feet.c:'#2a2622',hair:'#3a2a1c',hairStyle:1,helm:head?head.c:null,helmStyle:head?head.s||'helm':null,vest:bodyL?bodyL.c:null,vestStyle:bodyL?bodyL.s||'vest':null,pack:pack?pack.c:null});
 }
 
 const lerpA=(a,b,t)=>a+(b-a)*Math.min(1,t);
@@ -107,12 +113,13 @@ export function pose(rig,s){
   if(s.stun){P.head.rotation.z=Math.sin(s.t*14)*.25;lean+=.2}
   if(s.roll>0){rig.body.rotation.x=s.roll*Math.PI*2;rig.body.position.y=.25;fade(rig,s);return}
   P.armL.rotation.x=lerpA(P.armL.rotation.x,aL,k*1.6);P.armR.rotation.x=lerpA(P.armR.rotation.x,aR,s.atk>=0||s.act?1:k*1.6);P.armR.rotation.z=lerpA(P.armR.rotation.z,-aRz,k);
+  if(!moving&&!crawl){const br=Math.sin(s.t*1.8+rig.ph);bodyY+=br*.008;P.torso.scale.z=1+br*.02;if(!rig.husk)P.head.rotation.y=Math.sin(s.t*.6+rig.ph)*.18}else if(!rig.husk)P.head.rotation.y=0;
   rig.body.rotation.x=lerpA(rig.body.rotation.x,lean,k);rig.body.rotation.y=lerpA(rig.body.rotation.y,twist,k*2);rig.body.position.y=lerpA(rig.body.position.y,bodyY,k*2);
   fade(rig,s);
 }
 function fade(rig,s){
   const m=rig.mat,fl=s.flash>0?1:0;if(m._fl!==fl){m._fl=fl;m.emissive.setRGB(fl*.55,fl*.5,fl*.45)}
-  let op=s.vis===undefined?1:s.vis;if(s.dead&&s.deadT>1.4)op*=Math.max(0,1-(s.deadT-1.4)/.8);
+  let op=s.vis===undefined?1:s.vis;if(s.dead&&s.deadT>8.6)op*=Math.max(0,1-(s.deadT-8.6)/1.3);
   const tr=op<.99;if(m.transparent!==tr){m.transparent=tr;m.needsUpdate=true}m.opacity=op;
 }
 export function disposeRig(rig){rig.mat.dispose();rig.root.traverse(o=>{if(o.isMesh&&!handCacheHas(o.geometry))o.geometry.dispose()})}

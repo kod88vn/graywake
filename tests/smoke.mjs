@@ -8,7 +8,7 @@ try{
   await page.sleep(800);
   T.ok(await ev(`!!window.GW`),'page boots');
   T.ok(await ev(`!document.getElementById('title').hidden`),'title screen shows');
-  await ev(`localStorage.clear();GW.api.newGame()`);await page.sleep(1500);
+  await ev(`window.__noIntro=true;localStorage.clear();GW.api.newGame()`);await page.sleep(1500);
   T.ok(await ev(`GW.G.mode==='play'&&!!GW.G.Z&&GW.G.Z.home`),'new game reaches the homestead');
   T.ok(await ev(`document.getElementById('cv').width>100`),'canvas has a size');
   await ev(`GW.UI.close()`);await page.sleep(300);
@@ -16,7 +16,7 @@ try{
     if(p==='journal')for(const t of['contracts','perks','records']){await page.tap(`#tabs [data-t="${t}"]`);await page.sleep(80)}
     await ev(`GW.UI.close()`)}
   // play a little: walk, auto-gather
-  await ev(`GW.G.auto=true`);await page.sleep(6000);
+  await ev(`GW.G.auto=true`);for(let i=0;i<40&&!(await ev(`GW.G.S.p.inv.filter(Boolean).length>2`));i++)await page.sleep(500);
   T.ok(await ev(`GW.G.S.p.inv.filter(Boolean).length>2`),'auto-gather collects in the live game');
   await ev(`GW.UI.hot('build')`);await page.sleep(200);T.ok(await ev(`!document.getElementById('build').hidden`),'build bar opens');await ev(`GW.UI.hot('build')`);
   // leave, look at the map, travel

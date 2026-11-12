@@ -1,5 +1,37 @@
 # Changelog
 
+## 0.2.0 — 2026-11-12
+
+Fixes from the first play session, and a graphics pass.
+
+**Fixed**
+- Crafting looked like it ate your materials. Three causes: messages and the pickup feed were drawn behind open sheets; with a full pack the new item was dropped at your feet; station jobs went to a tray on the station and their timer froze while the sheet was open. Now: messages show above sheets ("Made 1 × Stone Hatchet"), a full pack refuses the craft and keeps your materials, finished station jobs go straight to your pack (the tray is only used when the pack is full or you are away), and the station keeps working with a moving bar while its sheet is open.
+- Long lists could not be scrolled: a sheet grew taller than the screen instead of scrolling inside itself. Sheets now stay on screen and scroll with the wheel, touch, Page Up/Down and the arrow keys. The wheel also moves the build bar sideways.
+- You can put things back into any container (the starter crate, a locker in the field), not only storage boxes you built.
+- Gaining a level while building closed build mode and replaced the level-up banner.
+- At low frame rates the whole game ran in slow motion, so key presses seemed to do nothing. The simulation now keeps real time at any frame rate.
+- Gathering with a full pack spilled the yield on the ground. It now refuses with a message, and auto-gather skips what you cannot carry.
+- A home event could pop up in the minute before a tide.
+
+**Changed**
+- Auto-gather shows the right tool in your hand for each job, prefers the job that matches the tool you are holding, and says on start which tools it is using and what it is skipping for lack of one.
+- The first weapon or tool you get goes straight into an empty hand.
+- Starting pack is 18 slots (was 14). Recipes show how many of the result you already have.
+- Tides start smaller and ramp more gently; armour counts for more; melee hits stagger; a tide-strength setting.
+
+**Graphics**
+- Textured ground with plank seams, tile grout, road markings and worn patches.
+- Grass, ferns, leaf litter, twigs, pebbles, city litter, snow lumps and spore growths scattered per biome; grass and trees sway in the wind, harder in storms.
+- Rippling water with highlights; cloud shadows drifting over the ground; filmic tone mapping.
+- Glow around fires, lamps, loose loot, muzzle flashes and explosions; smoke and embers from every fire.
+- Fireflies at night, falling leaves by day, blowing dust, drifting ash and spores; rain splashes and lightning.
+- Blood and scorch marks that stay; bodies lie where they fell for a while.
+- Husks vary in build, clothes, hair and wounds; everyone has hands, a neck and a belt; idle breathing; a swing arc on melee attacks; dust under running feet.
+
+**Tooling**
+- `npm run test:play`: a play-through driven by real key presses and clicks (gather, loot, craft, build, store, cook, eat, sleep, travel, fight, save, reload).
+- `npm run test:monkey`: thousands of random clicks on every button in every sheet, checking for errors and corrupted state.
+
 ## 0.1.0 — 2026-11-12
 
 First version.

@@ -3,7 +3,7 @@
 import {ITEMS} from '../data/items.js';
 import {OBJ} from '../data/objects.js';
 import {ENEMIES,scale} from '../data/enemies.js';
-import {G,emit,toast,sfx,stat,statMax,derive,perk,weaponDef,weaponItem,count,take,give,addTo,slotCount,freeSlots,wear,findTool,wearTool,dropAt,addXp,maxHp,FIST} from './core.js';
+import {G,emit,toast,sfx,stat,statMax,derive,perk,weaponDef,weaponItem,count,take,give,addTo,slotCount,freeSlots,roomFor,wear,findTool,wearTool,dropAt,addXp,maxHp,FIST} from './core.js';
 import {collide,los,shotBlock,blockAt,playerField,field,stepOn,rollLoot,freeNear,atExit} from './zone.js';
 import {noteKill} from './quests.js';
 import {clamp,dist,angDiff,rnd,TAU} from './util.js';
@@ -230,7 +230,8 @@ export function interact(Z,target){
   if(t.type==='drop'){pickDrop(Z,t.drop,true);return true}
   const o=Z.obj[t.i],d=OBJ[o.k];
   if(t.type==='gather'){const tool=toolFor(Z,t.i);if(!tool)return false;const tier=tool.it?tool.it.tier:1;
-    p.act={type:'gather',i:t.i,t:0,dur:(d.node.tool?.62:.5)/(1+(tier-d.node.tier)*.15)/(d.node.tool==='axe'?1+perk('wood')*.5:1),tool:d.node.tool};return true}
+    if(!d.node.give.some(g=>roomFor(S,g[0],1))){if(!G.auto||!p.fullT||Z.time-p.fullT>4){toast('Pack full: store or drop something first','bad');sfx('error')}p.fullT=Z.time;return false}
+    p.act={type:'gather',i:t.i,t:0,dur:(d.node.tool?.62:.5)/(1+(tier-d.node.tier)*.15)/(d.node.tool==='axe'?1+perk('wood')*.5:1),tool:d.node.tool,mdl:tool.it?tool.it.mdl:''};return true}
   if(t.type==='loot'){
     if(d.lock&&!o.unlocked&&!o.inv){
       if(d.lock==='pry'){const tool=findTool(S,'pry');if(!tool){toast('Needs a crowbar','bad');sfx('error');return false}wearTool(S,tool,3);o.unlocked=1;sfx('break',t.x,t.y,{vol:.6});noise(Z,t.x,t.y,8)}
@@ -300,12 +301,20 @@ function collectProd(Z,i){
 }
 
 // ---------------------------------------------------------------- player: auto-gather
+const JOB_NAMES={axe:'trees',pick:'rock and ore',rod:'fishing holes',wrench:'wrecks and machines'};
+/** What auto-gather will and will not do here, given the tools carried: {using:[tool names], skipping:[[job, tool needed]]}. */
+export function autoPlan(Z){
+  const S=G.S,using=new Set(),skip=new Map();
+  for(const o of Z.obj){if(!o)continue;const n=OBJ[o.k].node;if(!n||!n.tool)continue;const t=findTool(S,n.tool,n.tier);
+    if(t)using.add(t.it.n);else if(!findTool(S,n.tool,0))skip.set(n.tool,JOB_NAMES[n.tool]+' (no '+TOOL_NAMES[n.tool]+')');else if(!skip.has(n.tool))skip.set(n.tool+n.tier,OBJ[o.k].n.toLowerCase()+' (needs '+(TIER_NAMES[n.tier]||'a better')+' '+TOOL_NAMES[n.tool]+')')}
+  return{using:[...using],skipping:[...skip.values()]};
+}
 function autoTarget(Z,p){
-  const S=G.S,f=field(Z,Math.floor(p.x),Math.floor(p.y),true,90),W=Z.w;let best=-1,bd=80;
+  const S=G.S,f=field(Z,Math.floor(p.x),Math.floor(p.y),true,90),W=Z.w,held=weaponDef(S).tool||null;let best=-1,bd=80;
   const near=i=>{let m=Infinity;const x=i%W,y=(i-x)/W;for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){const nx=x+dx,ny=y+dy;if(nx<0||ny<0||nx>=W||ny>=Z.h)continue;const v=f[ny*W+nx];if(v<m)m=v}return m};
   for(let i=0;i<Z.obj.length;i++){const o=Z.obj[i];if(!o)continue;const d=OBJ[o.k];let ok=false;
-    if(d.node){ok=!d.node.tool||!!findTool(S,d.node.tool,d.node.tier)}else if(d.loot&&!o.empty&&!Z.home){ok=!d.lock||o.unlocked||!!o.inv}
-    if(!ok)continue;const v=near(i);if(v<bd){bd=v;best=i}}
+    if(d.node){ok=(!d.node.tool||!!findTool(S,d.node.tool,d.node.tier))&&d.node.give.some(g=>roomFor(S,g[0],1))}else if(d.loot&&!o.empty&&!Z.home){ok=!d.lock||o.unlocked||!!o.inv}
+    if(!ok)continue;let v=near(i);if(held&&d.node&&d.node.tool===held)v-=6;if(v<bd){bd=v;best=i}}
   for(const dr of Z.drops){if(dr.full&&Z.time-dr.full<20)continue;const v=f[Math.floor(dr.y)*W+Math.floor(dr.x)];if(v<bd){bd=v;best=-2;p.autoDrop=dr}}
   if(best===-1)return null;
   if(best===-2)return{drop:p.autoDrop,f:field(Z,Math.floor(p.autoDrop.x),Math.floor(p.autoDrop.y),true,120)};
@@ -500,10 +509,11 @@ export function step(dt){
   const p=Z.pl,night=G.night,sightMul=(G.sight||1)*(Z.dark?.8:1);
   stepPlayer(Z,dt);
   const flow=p&&!p.dead?playerField(Z):null;
-  const A=Z.actors;
+  const A=Z.actors;let nDead=0;
   for(let i=A.length-1;i>=0;i--){const e=A[i];if(e.pl)continue;
-    if(e.dead){e.deadT+=dt;if(e.deadT>2.2)A.splice(i,1);continue}
+    if(e.dead){e.deadT+=dt;if(e.deadT>(e.team===1?10:2.5)||(e.deadT>2.5&&Z.corpses>22))A.splice(i,1);else nDead++;continue}
     if(e.team===0)stepAlly(Z,e,dt,p);else stepEnemy(Z,e,dt,p,flow,night,sightMul)}
+  Z.corpses=nDead;
   // keep bodies apart
   for(let i=0;i<A.length;i++){const a=A[i];if(a.dead||a.st==='pounce')continue;for(let j=i+1;j<A.length;j++){const b=A[j];if(b.dead||b.st==='pounce')continue;const dx=b.x-a.x,dy=b.y-a.y,rr=a.r+b.r;if(Math.abs(dx)>rr||Math.abs(dy)>rr)continue;const d=Math.hypot(dx,dy);if(d>=rr||d<1e-4)continue;
     const push=(rr-d)*.5,nx=dx/d,ny=dy/d,wa=a.pl?.25:a.def&&(a.def.boss||a.def.rooted)?0:1,wb=b.pl?.25:b.def&&(b.def.boss||b.def.rooted)?0:1,tot=wa+wb||1;

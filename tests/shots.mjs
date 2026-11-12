@@ -18,7 +18,7 @@ const BASE=`(()=>{const{G,World}=GW,S=G.S,Z=G.Z,cx=Math.floor(Z.w/2),cy=Math.flo
   S.veh=3;World.goHome(false);G.Z.pl.x=cx+.5;G.Z.pl.y=cy+2.5;G.ev.push(['zone'])})()`;
 try{
   await page.sleep(900);await snap('01-title');
-  await ev(`localStorage.clear();GW.api.newGame()`);await page.sleep(1600);await snap('02-journal-first');
+  await ev(`localStorage.clear();GW.api.newGame()`);for(let i=0;i<60&&!(await ev(`GW.UI.panel==='journal'`));i++)await page.sleep(200);await snap('02-journal-first');
   await ev(`GW.UI.close()`);await page.sleep(600);await snap('03-home-start');
   await ev(BASE);await page.sleep(900);await ev(`GW.UI.close()`);await page.sleep(400);await snap('04-base-day');
   await ev(`(()=>{const S=GW.G.S;S.p.eq.w1={id:'fire_axe',d:200};S.p.eq.head={id:'riot_helm',d:100};S.p.eq.body={id:'leather_jacket',d:100};S.p.eq.legs={id:'scrap_greaves',d:100};S.p.eq.pack={id:'pack_hiker'};GW.G.ev.push(['eq']);for(const[id,n]of[['log',30],['plank',40],['stone',22],['iron_bar',9],['cooked_meat',4],['water',5],['bandage',3],['bow',1],['arrow',30],['medkit',2],['seed_potato',4],['rope',8],['nails',60],['bp_shotgun',1],['machete',1]])GW.World.applyFx([['item',id,n]]);GW.G.ev.length=GW.G.ev.filter(e=>e[0]!=='loot').length})()`);

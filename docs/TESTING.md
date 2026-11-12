@@ -5,17 +5,20 @@
 | `npm run check` | 1 s | Static: every id used in one table exists in the table it points at; every item is obtainable; outcome chances sum to 1; every model, icon glyph and sound the game asks for is defined. |
 | `npm run test:sim` | 15 s | Plays the logic in Node with no renderer: gathering, crafting, building, combat, every location generated for three seeds and checked for reachability, every location played for 12 s with all enemies awake, every outcome of every text event, two live tides, ten days passing with away tides, sleep, death, save round-trip, contracts, trade. |
 | `npm run test:smoke` | 30 s | Boots the real page in headless Chrome, starts a game, opens every sheet, auto-gathers, opens build mode, leaves to the map, arrives at a location, saves and reloads. Fails on any page error. |
+| `npm run test:play` | 2-3 min | The same page driven only by real key presses and mouse clicks, the way a person plays: gather by hand, search and refill the starter crate, craft, chop, mine, auto-gather, build by clicking and dragging, store and stow, cook at the fire and receive the result, eat, equip, perks, sleep, walk out, pick a place on the map, travel, resolve a road event, fight with the mouse, dodge, come home, save, quit, continue. This is the test that catches "I pressed it and nothing happened". |
+| `npm run test:monkey` | 45 s | A furnished mid-game base, then random clicks on every button of every sheet, random hot-keys and build actions. Fails on any page error or broken state (NaN vitals, empty stacks, negative scrip). |
 | `npm run shots` | 2 min | Twenty-two screenshots into `.out/shots/`: title, first minute, a furnished base by day, dusk and night, sheets, build mode, six locations, the map, an event, and a phone layout. `node tests/shots.mjs 13` shoots only names containing `13`. |
 | `npm run gallery` | 1 min | Every model on a tile, lit like the game. `node tests/gallery.mjs props wall` filters. |
 | `node tests/audio.mjs` | 40 s | Renders every sound and music scene offline and prints peak and loudness against its group. |
 | `node tools/tidebot.mjs` | 1 min | A crude bot against tides 1-12; see `BALANCE.md`. |
 
-`npm test` runs the first three.
+`npm test` runs the first five.
 
 ## Limits
 
 - The simulation test is seeded by the clock. Run it two or three times after a gameplay change; a failure that appears once in five runs is still a failure.
-- Headless Chrome draws with a software rasteriser (about 20-30 frames a second on a laptop). It says nothing about frame rate on real hardware, and nothing at all about phones.
+- Calling a game function directly proves the function works, not that a player can reach it. The first version passed every test and still shipped with messages hidden behind sheets and lists that could not scroll. New interface work needs a step in `tests/play.mjs` that clicks it.
+- Headless Chrome draws with a software rasteriser (about 6 frames a second with the current effects). It says nothing about frame rate on real hardware, and nothing at all about phones.
 - Screenshots are stills. They do not show animation, camera feel or readability in motion.
 - The audio test measures level, clipping and length. It cannot tell whether anything sounds right.
 - No test measures whether the game is fun, fair or the right length.

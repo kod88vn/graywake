@@ -6,7 +6,7 @@ import {RECIPES,VEHICLES} from '../data/recipes.js';
 import {PERK,xpFor,MAX_LEVEL} from '../data/progress.js';
 import {clamp,rnd} from './util.js';
 
-export const VERSION='0.1.0';
+export const VERSION='0.2.0';
 export const SAVE_V=1;
 export const HOME_W=46,HOME_H=46,EXIT_RING=2,NO_BUILD=4;
 export const MIN_PER_SEC=1.5;            // game minutes per real second: a day is 16 real minutes
@@ -53,7 +53,7 @@ export function derive(S){
     cold:Math.min(1,cold+(sf.cold||0)),tox:Math.min(.95,tox+(sf.tox||0)),
     spd:4.2*(1+spd+(sf.spd||0)+(w.spdMove||0)+buffSum(p,'speed')-weak*.5),
     maxHp:100+(pk.hp||0)+buffSum(p,'vigor'),
-    slots:14+pack+(pk.slots||0)+veh.slots,
+    slots:18+pack+(pk.slots||0)+veh.slots,
     melee:(1+(pk.melee||0)+(sf.melee||0))*(1-weak),ranged:(1+(pk.ranged||0)+(sf.ranged||0))*(1-weak),
     haste:1+(pk.haste||0)+buffSum(p,'haste'),
     taken:(1-(pk.resist||0))*(1-(sf.resist||0))*(1-Math.min(.6,buffSum(p,'resist'))),
@@ -78,6 +78,8 @@ export function addTo(inv,cap,id,n,d){
   return n;
 }
 export function removeFrom(inv,id,n){for(let i=inv.length-1;i>=0&&n>0;i--){const s=inv[i];if(s&&s.id===id){const k=Math.min(n,s.n);s.n-=k;n-=k;if(s.n<=0)inv[i]=null}}return n}
+/** Would n of an item fit in the pack right now? */
+export function roomFor(S,id,n){const it=ITEMS[id],cap=slotCount(S);let room=0;for(let i=0;i<cap;i++){const s=S.p.inv[i];if(!s)room+=it.st;else if(s.id===id&&it.st>1)room+=it.st-s.n;if(room>=n)return true}return room>=n}
 export const freeSlots=S=>{const cap=slotCount(S);let n=0;for(let i=0;i<cap;i++)if(!S.p.inv[i])n++;return n};
 /** Give the player items. Whatever does not fit is dropped at their feet (or lost on the map). Returns the number that fit. */
 export function give(S,id,n=1,d,quiet){
@@ -85,6 +87,8 @@ export function give(S,id,n=1,d,quiet){
   const left=addTo(S.p.inv,slotCount(S),id,n,d),got=n-left;
   S.codex.it[id]=1;
   if(got>0&&!quiet)emit('loot',id,got);
+  // first weapon or tool goes straight into an empty hand
+  if(got>0&&!S.p.eq.w1&&['melee','gun','tool'].includes(ITEMS[id].t)){const i=S.p.inv.findIndex(s=>s&&s.id===id);if(i>=0){S.p.eq.w1={id,d:S.p.inv[i].d};S.p.inv[i]=null;S.p.active='w1';G.ds=derive(S);emit('eq')}}
   if(left>0){if(G.Z&&G.Z.pl){dropAt(G.Z,G.Z.pl.x,G.Z.pl.y,[{id,n:left,d}]);if(!quiet)toast('Pack full: '+ITEMS[id].n+' dropped','bad')}else if(!quiet)toast('Pack full: '+ITEMS[id].n+' left behind','bad')}
   return got;
 }
@@ -170,6 +174,7 @@ export function canCraft(S,r,n=1,at){
   if(!recipeVisible(S,r))return'Locked';if(!stationOk(r,at))return'Wrong station';
   const home=!!(G.Z&&G.Z.home);for(const k in r.i)if(count(S,k,home)<r.i[k]*n)return'Missing '+ITEMS[k].n;
   if(r.fx&&r.fx.veh&&S.veh>=r.fx.veh)return'Already built';
+  if(!r.fx&&!(r.t>0&&at!=null)&&!roomFor(S,r.o,r.q*n)){let frees=false;for(const k in r.i){let c=0;for(const s of S.p.inv)if(s&&s.id===k)c+=s.n;if(c>0&&c<=r.i[k]*n)frees=true}if(!frees)return'Pack full: make room first'}
   return null;
 }
 export function craft(S,rid,n=1,at){
@@ -178,7 +183,7 @@ export function craft(S,rid,n=1,at){
   for(const k in r.i){let need=r.i[k]*n;if(thrift>0&&!r.fx){let saved=0;for(let j=0;j<need;j++)if(rnd()<thrift)saved++;need-=saved}if(need>0)take(S,k,need,home)}
   if(r.t>0&&at!=null){const o=G.Z.obj[at];(o.q=o.q||[]).push({id:rid,n,left:r.t});sfx('craft');emit('obj',at);return true}
   for(let j=0;j<n;j++)produce(S,r,null);
-  sfx('craft');return true;
+  sfx('craft');if(!r.fx)toast('Made '+(r.q*n>1?r.q*n+' × ':'')+ITEMS[r.o].n,'good');return true;
 }
 /** Finish one unit of a recipe: into the station's output tray when `o` is given, otherwise straight to the player. */
 export function produce(S,r,o){
@@ -186,7 +191,10 @@ export function produce(S,r,o){
   const it=ITEMS[r.o];let q=r.q;
   if(['campfire','medic','chem'].includes(r.s)&&rnd()<perk('double'))q*=2;
   if(it.t==='ammo')q=Math.round(q*(1+perk('ammo')));
-  if(o){o.out=o.out||{};o.out[r.o]=(o.out[r.o]||0)+q}else give(S,r.o,q);
+  if(o){ // a station job: hand it to you if you are at home with room, otherwise it waits in the station's tray
+    let left=q;if(G.Z&&G.Z.home&&G.Z.pl&&!G.Z.pl.dead){left=addTo(S.p.inv,slotCount(S),r.o,q);if(q-left>0)emit('loot',r.o,q-left)}
+    if(left>0){o.out=o.out||{};o.out[r.o]=(o.out[r.o]||0)+left}}
+  else give(S,r.o,q);
   stat('crafted',q);stat('c_'+r.o,q);S.codex.it[r.o]=1;
   if(!S.flags['made_'+r.id]){S.flags['made_'+r.id]=1;addXp(S,8+r.lv*3)}else addXp(S,1+Math.floor(r.lv/4));
 }
