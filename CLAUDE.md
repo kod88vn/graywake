@@ -54,4 +54,4 @@ Guides: `docs/ARCHITECTURE.md`, `docs/CONTENT_GUIDE.md`, `docs/BALANCE.md`, `doc
 
 ## Publishing
 
-`index.html` is the page; every file under `js/` and `vendor/three.module.min.js` are supporting files at the same relative paths; root is this repository. Commit before publishing. Publish to the same artifact URL once one exists (record it here), so players keep their saves.
+The game is a private Claude artifact at `https://claude.ai/artifact/NM8HYatScUazqswpDnonAM`. Republish to that same URL so saves survive: page `index.html`, supporting files every file under `js/` plus `vendor/three.module.min.js` at the same relative paths, root this repository. Commit before publishing. The artifact host has not been checked by a person yet: if module scripts fail to load there, the fallback is bundling `js/` into one classic script.
