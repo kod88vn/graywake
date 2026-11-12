@@ -1,0 +1,45 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Graywake item icons</title>
+<style>
+html,body{margin:0;background:#151712;color:#e8e2d0;font:12px/1.25 system-ui,sans-serif}
+body{padding:12px 16px 40px}
+h1{font-size:16px;margin:0 0 6px}h2{font-size:13px;margin:16px 0 6px;color:#e0a020;text-transform:uppercase;letter-spacing:.08em;border-bottom:1px solid #3a3f33;padding-bottom:3px}
+h2 small{color:#8a8f7c;font-weight:400;text-transform:none;letter-spacing:0}
+#err{color:#ff8a7a;white-space:pre-wrap;margin:0 0 8px}#err:empty{display:none}
+.grid{display:flex;flex-wrap:wrap;gap:6px 4px}
+.cell{width:78px;text-align:center}
+.slot{display:inline-block;background:#23261f;border:1px solid #3a3f33;border-radius:4px;line-height:0}
+.slot canvas{display:block}
+.cell .nm{font-size:10px;color:#d8d2c0;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cell .id{font-size:9px;color:#7c8070;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.row32{display:flex;flex-wrap:wrap;gap:3px;margin-top:8px}
+</style></head><body>
+<h1>Graywake item icons</h1><pre id="err"></pre><div id="out"></div>
+<script type="module">
+// Icon sheet. Every item's icon at 64px (grouped by item type) plus a 32px row per group for a legibility check,
+// then every glyph in GLYPHS with its default colour. ?q=substring filters by id / glyph / name. ?big=1 draws at 128px.
+window.ICON_ERRORS=[];window.ICONS_READY=false;
+const errBox=document.getElementById('err'),fail=m=>{window.ICON_ERRORS.push(String(m));errBox.textContent=window.ICON_ERRORS.join('\n')};
+addEventListener('error',e=>fail(e.message||e.error));addEventListener('unhandledrejection',e=>fail(e.reason&&e.reason.message||e.reason));
+try{
+  const [{GLYPHS,GLYPH_COLORS,drawIcon,iconURL,iconFor},{ITEMS}]=await Promise.all([import('../js/ui/icons.js'),import('../js/data/items.js')]);
+  const qs=new URLSearchParams(location.search),q=(qs.get('q')||'').toLowerCase(),BIG=qs.get('big')?128:64,dpr=Math.max(1,Math.round(devicePixelRatio||1)),out=document.getElementById('out');
+  const el=(tag,cls,txt)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(txt!=null)e.textContent=txt;return e};
+  function slot(label,glyph,a,b,px){const s=el('div','slot'),cv=el('canvas');cv.width=cv.height=px*dpr;cv.style.width=cv.style.height=px+'px';cv.title=label+' ['+glyph+']';
+    try{if(!GLYPHS[glyph])fail(label+': no glyph "'+glyph+'"');drawIcon(cv.getContext('2d'),glyph,a,b,px*dpr)}catch(e){fail(label+' ['+glyph+']: '+(e&&e.message||e))}
+    s.appendChild(cv);return s}
+  function group(title,rows){if(!rows.length)return;const h=el('h2',null,title+' ');h.appendChild(el('small',null,'('+rows.length+')'));out.appendChild(h);
+    const g=el('div','grid'),r=el('div','row32');
+    for(const [id,name,glyph,a,b] of rows){const c=el('div','cell');c.style.width=(BIG+14)+'px';c.appendChild(slot(id,glyph,a,b,BIG));c.appendChild(el('div','nm',name));c.appendChild(el('div','id',id===glyph?id:id+' · '+glyph));g.appendChild(c);r.appendChild(slot(id,glyph,a,b,32))}
+    out.appendChild(g);out.appendChild(r)}
+  const hit=(...s)=>!q||s.some(x=>String(x).toLowerCase().includes(q));
+  const byType={};
+  for(const id in ITEMS){const it=ITEMS[id],ic=it.ic||[];if(!hit(id,it.n,ic[0]))continue;(byType[it.t]=byType[it.t]||[]).push([id,it.n||id,ic[0],ic[1],ic[2]])}
+  for(const t in byType)group(t,byType[t]);
+  group('all glyphs, default colours',Object.keys(GLYPHS).filter(g=>hit(g)).map(g=>[g,g,g,GLYPH_COLORS[g],undefined]));
+  // the URL helpers must work for every item and must not throw for unknown ids / glyphs
+  for(const id in ITEMS){const u=iconURL(id,32);if(typeof u!=='string'||!u.startsWith('data:image/png'))fail('iconURL('+id+') returned '+String(u).slice(0,30))}
+  for(const u of[iconURL('no_such_item'),iconFor('no_such_glyph','#888'),iconFor('star')])if(typeof u!=='string'||!u.startsWith('data:image/png'))fail('fallback URL is not a PNG');
+  window.ICON_INFO={items:Object.keys(ITEMS).length,glyphs:Object.keys(GLYPHS).length,used:[...new Set(Object.values(ITEMS).map(i=>i.ic[0]))].length};
+}catch(e){fail(e&&e.stack||e)}
+window.ICONS_READY=true;
+</script></body></html>

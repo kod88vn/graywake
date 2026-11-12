@@ -1,0 +1,57 @@
+# Graywake — orientation for coding sessions
+
+Single-player top-down 3D survival game for the browser (desktop and phone). Build a homestead, scavenge the map, hold the base against "tides". Plain ES modules, no build step, no npm dependencies. three.js r160 is vendored in `vendor/`. All models, icons and audio are generated in code.
+
+The setting, names, creatures, map and art are original. It is a game in the base-building survival genre; do not turn it into a copy of any existing game's names, characters, levels or look.
+
+## Commands
+
+```sh
+npm start            # dev server on :8090 (also reachable from a phone on the LAN)
+npm run check        # 1 s static checks: run after every data edit
+npm test             # check + headless sim + browser smoke, about a minute (needs Chrome)
+npm run test:sim     # headless simulation only (Node, no browser)
+npm run shots        # 22 screenshots to .out/shots/ — look at them after art, lighting or UI changes
+npm run gallery      # every model on a tile to .out/shots/gallery-*.png — look after touching js/view/props.js
+node tests/audio.mjs # level table for every sound and music scene
+```
+
+## Map
+
+- `js/data/` content tables, pure data, importable in Node. Adding content is usually a row here.
+  - `items.js` `objects.js` (everything that stands on a tile: nature, containers, scenery, buildables) `recipes.js` `enemies.js` `world.js` (regions, locations, sites, buildings, loot) `events.js` (text events, weather, tides) `progress.js` (story, contracts, perks, achievements, survivors, trade).
+- `js/sim/` the game, pure logic: no DOM, no three.js. Runs headless in Node.
+  - `core.js` shared context `G`, save shape, inventory, derived stats, crafting, building.
+  - `zone.js` zone generation, collision, line of sight, path fields, loot rolls.
+  - `actors.js` player, creature AI, projectiles, traps, turrets, interaction, auto-gather. `step(dt)`.
+  - `world.js` clock, survival, weather, tides, travel, events, survivors, trade, sleep, death, save format. `tick(dt)`.
+  - `quests.js` story, contracts, achievements.
+- `js/view/` three.js: `geo.js` (model builder), `props.js` (world and hand models), `rigs.js` (characters), `render.js` (scene, instancing, lights, particles, weather).
+- `js/ui/` DOM interface: `ui.js` (HUD, build mode, title), `panels.js` (every sheet), `map.js`, `icons.js`, `dom.js`.
+- `js/audio.js` procedural sound and music (`Snd`). `js/input.js`. `js/main.js` boot and loop.
+- `index.html` is a **fragment** (the artifact host wraps it). Never add doctype, html or body tags. Never open it as a file; use `npm start`.
+
+Guides: `docs/ARCHITECTURE.md`, `docs/CONTENT_GUIDE.md`, `docs/BALANCE.md`, `docs/TESTING.md`.
+
+## Rules that are easy to break
+
+- **`js/sim/` and `js/data/` must stay pure.** No `document`, `window`, three.js or `Snd` in them. The sim tells the outside world things only by `emit(...)` onto `G.ev`; `main.js` drains that queue to the renderer, interface and audio. The headless test depends on this.
+- **Saves must survive updates.** Any change to the save shape needs a `SAVE_V` bump in `core.js` and a step in `MIGRATE` in `world.js`. New fields with defaults in `blankState()` are filled in automatically on load. Removing an item or object id that saves may reference needs a migration too (unknown ids are dropped on load, not crashed on).
+- **Coordinates:** sim `(x, y)` is world `(X, Z)`; tiles are 1 unit; a sim angle `a` is `rotation.y = π/2 − a`. Models stand on `y=0`, face `+Z`, fit a 1×1 tile.
+- **One object per tile** (`Z.obj[i]`), plus an optional floor (`Z.fl[i]`). After changing a tile call `Z.touch(i)` (path fields and the renderer both listen); for floors `emit('floor', i)`.
+- **Bit shifts on `hash()` results use `>>>`**, never `>>`: the hash is unsigned and `>>` turns the top half negative (this once produced `undefined` model ids).
+- **Every id is checked.** `npm run check` fails on an unknown item, object, creature, loot family, model, icon glyph or sound, and on any item that cannot be obtained. Run it after touching `js/data/`.
+- **The game sells nothing:** no purchases, energy, real-time waits or ads. Time only passes while you play or travel.
+- **No dependencies and no build step** without discussing it first.
+
+## Verifying a change
+
+1. `npm run check`.
+2. Gameplay: `npm run test:sim` (it is seeded by the clock, so run it two or three times). For tide or combat numbers also run the bot in `docs/BALANCE.md`.
+3. Art, lighting, interface: `npm run shots` (and `npm run gallery` for models) and read the images. Stills do not show motion: say so.
+4. Audio: `node tests/audio.mjs`. Say plainly that it has not been listened to unless a person has.
+5. Headless Chrome uses a software rasteriser. Nothing here measures real frame rate, phone performance, feel or fun. Say so when reporting.
+
+## Publishing
+
+`index.html` is the page; every file under `js/` and `vendor/three.module.min.js` are supporting files at the same relative paths; root is this repository. Commit before publishing. Publish to the same artifact URL once one exists (record it here), so players keep their saves.

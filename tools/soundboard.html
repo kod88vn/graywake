@@ -1,0 +1,68 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Graywake soundboard</title>
+<style>
+html,body{margin:0;background:#171a17;color:#e8e2d0;font:14px/1.4 system-ui,sans-serif}
+main{max-width:980px;margin:0 auto;padding:16px}
+h1{font-size:18px;margin:0 0 4px}h2{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#9aa08c;margin:18px 0 6px}
+p{margin:0 0 10px;color:#9aa08c}
+.row{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center}
+.grid{display:flex;flex-wrap:wrap;gap:6px}
+button{background:#2a2f29;color:#e8e2d0;border:1px solid #454c41;border-radius:4px;padding:7px 10px;font:inherit;cursor:pointer;min-width:44px}
+button:hover{background:#353b33}button:active{background:#e0a020;color:#171a17}
+select,input[type=range]{accent-color:#e0a020}select{background:#2a2f29;color:inherit;border:1px solid #454c41;border-radius:4px;padding:5px;font:inherit}
+label{display:inline-flex;gap:6px;align-items:center;white-space:nowrap}output{display:inline-block;min-width:2.6em;color:#e0a020;font-variant-numeric:tabular-nums}
+#state{color:#e0a020}
+</style></head><body><main>
+<h1>Graywake soundboard</h1>
+<p>Everything here is synthesised by <code>js/audio.js</code>. Audio starts on the first click. Context: <span id="state">not started</span></p>
+
+<h2>Mixer</h2>
+<div class="row">
+  <button id="start">Start audio</button>
+  <label><input type="checkbox" id="sfxOn" checked> sfx + ambience</label>
+  <label><input type="checkbox" id="musicOn" checked> music</label>
+  <label>volume <input type="range" id="vol" min="0" max="1" step="0.01" value="1"><output id="volO">1.00</output></label>
+  <button id="duck">duck(2)</button><button id="susp">suspend()</button><button id="res">resume()</button>
+</div>
+
+<h2>Scene</h2>
+<div class="row">
+  <label>biome <select id="biome"></select></label>
+  <label>weather <select id="weather"></select></label>
+  <label><input type="checkbox" id="night"> night</label>
+  <label>danger <input type="range" id="danger" min="0" max="1" step="0.05" value="0"><output id="dangerO">0.00</output></label>
+</div>
+
+<h2>One-shot options</h2>
+<div class="row">
+  <label>vol <input type="range" id="oVol" min="0" max="1" step="0.05" value="1"><output id="oVolO">1.00</output></label>
+  <label>pan <input type="range" id="oPan" min="-1" max="1" step="0.1" value="0"><output id="oPanO">0.00</output></label>
+  <label>pitch <input type="range" id="oPitch" min="0.5" max="2" step="0.05" value="1"><output id="oPitchO">1.00</output></label>
+  <label>dist <input type="range" id="oDist" min="0" max="24" step="1" value="0"><output id="oDistO">0.00</output></label>
+  <label><input type="checkbox" id="vary"> vary pitch ±8% per click</label>
+</div>
+<div id="groups"></div>
+</main>
+<script type="module">
+import {Snd} from '../js/audio.js';
+window.Snd=Snd;
+const $=id=>document.getElementById(id),num=id=>+$(id).value;
+const fill=(id,list)=>{for(const v of list){const o=document.createElement('option');o.textContent=o.value=v;$(id).append(o)}};
+fill('biome',['menu','map','forest','dust','city','frost','gray','interior']);fill('weather',['clear','rain','storm','fog','heat','snow','spores']);
+const scene=()=>Snd.scene({biome:$('biome').value,weather:$('weather').value,night:$('night').checked,danger:num('danger')});
+const start=()=>{const ok=Snd.init();$('state').textContent=ok?'running':'unavailable in this browser';scene();return ok};
+for(const id of['vol','danger','oVol','oPan','oPitch','oDist'])$(id).addEventListener('input',()=>{$(id+'O').textContent=num(id).toFixed(2)});
+for(const id of['biome','weather','night','danger'])$(id).addEventListener('input',()=>{start()});
+$('start').onclick=start;
+$('sfxOn').onchange=e=>Snd.setSfx(e.target.checked);$('musicOn').onchange=e=>Snd.setMusic(e.target.checked);
+$('vol').addEventListener('input',()=>Snd.setVolume(num('vol')));
+$('duck').onclick=()=>Snd.duck(2);$('susp').onclick=()=>{Snd.suspend();$('state').textContent='suspended'};$('res').onclick=()=>{Snd.resume();$('state').textContent='running'};
+// one section per group, one button per name
+const groups={};for(const n of Snd.NAMES)(groups[Snd.info(n).group]=groups[Snd.info(n).group]||[]).push(n);
+for(const g in groups){
+  const h=document.createElement('h2');h.textContent=g;const d=document.createElement('div');d.className='grid';
+  for(const n of groups[g]){const b=document.createElement('button');b.textContent=n;b.dataset.sfx=n;
+    b.onclick=()=>{start();Snd.sfx(n,{vol:num('oVol'),pan:num('oPan'),dist:num('oDist'),pitch:num('oPitch')*($('vary').checked?.92+Math.random()*.16:1)})};d.append(b)}
+  $('groups').append(h,d);
+}
+window.SOUNDBOARD={ready:true};
+</script></body></html>
