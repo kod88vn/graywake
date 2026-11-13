@@ -365,6 +365,19 @@ safe('radio leads',()=>{
     World.leaveZone();G.Z=null;World.arrive(st.id);T.ok(!G.Z.obj.some(o=>o&&o.k==='deathbag'),'and an emptied pack is not there on the next visit');S.p.inv=keepInv}
   G.Z=null;World.arrive('home');S.sites=[];
 });
+safe('road',()=>{
+  // a fight on the road is pitched to whoever it meets, says how bad it is before they choose, and a pack lost there can be fetched
+  const S=World.newGame(4321);G.auto=false;S.p.lvl=11;give(S,'club',1);G.ds=derive(S);
+  const plan=World.ambushPlan(S,{wolf:4},5),raw=World.leadOdds(S,{en:{wolf:4},open:1},5);
+  T.ok(plan.skulls<=3&&plan.odds<raw&&plan.names.includes('Wol'),'four wolves at level 5 against a club become '+plan.names+' at level '+plan.lvl+' ('+plan.word+'; unpitched odds '+raw.toFixed(1)+')');
+  const f=World.optionFight(S,{l:'x',r:[[.5,'',[['food',-8]]],[.5,'',[['fight',{wolf:3}]]]]});T.ok(!!f&&!f.sure&&f.skulls>=1,'a choice that may end in a fight says so, with its threat');
+  G.pending={dest:'gas_stop'};World.applyFx([['fight',{wolf:4}]]);World.eventDone();T.ok(G.Z.id==='ambush'&&enemiesAlive(G.Z)>=1&&enemiesAlive(G.Z)<=4,'the fight that starts is the one that was described ('+enemiesAlive(G.Z)+' wolves)');
+  give(S,'log',7);G.Z.pl.dead=true;S.p.hp=0;World.respawn();const st=S.sites.find(x=>x.site==='fell');
+  T.ok(!!st&&st.bag.some(it=>it&&it.id==='log')&&G.Z.home&&count(S,'log')===0,'dying on the road puts the place on the map with the pack in it');
+  G.Z=null;World.arrive(st.id);const bi=G.Z.obj.findIndex(o=>o&&o.k==='deathbag');T.ok(bi>=0&&enemiesAlive(G.Z)===0,'going there finds the pack, and nothing waiting');
+  lootAll(G.Z,bi);G.Z.exit=true;World.leaveZone();T.ok(count(S,'log')===7&&!S.sites.some(x=>x.site==='fell'),'and once it is picked up the place is gone from the map');
+  G.Z=null;World.arrive('home');
+});
 safe('gear',()=>{
   const S=World.newGame(777);G.auto=false;const p=S.p;
   // what is gained goes on if nothing is there, and stays in the pack if something is

@@ -3,6 +3,7 @@
 // Auto mode, many times over, and sets what was promised (skulls) beside what happened (lived or died, how many came at once, toxin).
 // Auto mode is a plain fighter: it does not sneak, pull one at a time or run. Usage:
 //   node tools/leadbot.mjs path/to/save.json [site kind, e.g. lead_pharmacy] [runs]        (no save: a level 10 character with a flint spear)
+//   node tools/leadbot.mjs path/to/save.json --ambush [runs]     every fight a road event can start, as it would be pitched to that character
 import fs from 'node:fs';
 const R=new URL('../js/',import.meta.url).href;
 const {G,give,equip,derive,count}=await import(R+'sim/core.js');const World=await import(R+'sim/world.js');const {field,pathAim}=await import(R+'sim/zone.js');const {SITES}=await import(R+'data/world.js');
@@ -11,6 +12,17 @@ const[file,kind='lead_pharmacy',runs='20']=process.argv.slice(2),raw=file&&file!
 function start(){
   let S;if(raw){S=World.deserialize(raw);World.resume(S)}else{S=World.newGame(1000+Math.floor(Math.random()*1e6));S.p.lvl=10;give(S,'spear',1);equip(S,S.p.inv.findIndex(s=>s&&s.id==='spear'),'w1');give(S,'bandage',3)}
   G.ds=derive(S);let st=S.sites.find(s=>s.site===kind);if(!st)st=World.addLead(S,kind);return[S,st]}
+if(kind==='--ambush'){
+  // every fight an event can start on the road: what the player would be told (skulls) beside what happens when Auto mode stands and fights
+  const {EVENTS}=await import(R+'data/events.js');const tabs=new Map();for(const e of EVENTS)for(const o of e.o||[])for(const r of o.r||[])for(const fx of r[2]||[])if(fx[0]==='fight'&&fx[2]!=='home')tabs.set(JSON.stringify(fx[1]),fx[1]);
+  const N=+(process.argv[4]||12),by={};
+  for(const table of tabs.values()){let win=0,plan=null,hp=0;
+    for(let r=0;r<N;r++){const[S]=start();S.p.hp=G.ds.maxHp;G.pending={};World.applyFx([['fight',table]]);plan=World.ambushPlan(S,table,99);const top=World.optionFight(S,{r:[[1,'',[['fight',table]]]]});plan=top;World.eventDone();const Z=G.Z;let t=0;const dt=1/30;
+      while(t<150&&!Z.pl.dead&&G.Z===Z){G.auto=true;S.p.food=70;S.p.water=70;World.tick(dt);G.ev.length=0;t+=dt;if(!Z.actors.some(a=>a.team===1&&!a.dead&&a.def.ai!=='flee'))break}
+      if(!Z.pl.dead){win++;hp+=S.p.hp}}
+    (by[plan.skulls]=by[plan.skulls]||[]).push(win/N);console.log(`${JSON.stringify(table).padEnd(34)} → ${plan.names.padEnd(28)} level ${plan.lvl}  ${plan.skulls} skulls (${plan.word}, odds ${plan.odds.toFixed(2)})  lived ${win}/${N}${win?', health left '+Math.round(hp/win):''}`)}
+  for(const k in by)console.log(`${k} skulls: ${by[k].length} fights, lived ${Math.round(by[k].reduce((a,b)=>a+b,0)/by[k].length*100)}%`);
+  process.exit(0)}
 const out=[];let info=null;
 for(let r=0;r<+runs;r++){
   const[S,st]=start();if(!st){console.log('no such lead: '+kind);process.exit(1)}if(process.env.FULL)S.p.hp=G.ds.maxHp;

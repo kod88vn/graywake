@@ -22,6 +22,17 @@ A session with real progress and a handful of sharp reports is a good one. Progr
 - Eat and drink before the bars run low (`key 2`, `key 3`, or the pack). Dying loses your pack.
 - If a tool result ever says something that does not match what you did, believe the result, look again with a picture, and if the game really did something wrong, report it.
 
+## Stay alive
+
+A death costs the pack, half a day and half your health, and the developers count every one against the run. A playtester who dies learns nothing about what lies beyond. Getting out alive with nothing is a better result than dying with a full pack. So:
+
+- **Run before it is too late.** `flee` switches Auto off, runs to the nearest way out that is away from the enemy and leaves. Use it when health is under two fifths and the fight is not nearly won, when more come than you counted on, or when the medicine is gone. The session will run for you if you fall under a third with no medicine while you are thinking. A place you ran from usually stays on the map: come back stronger.
+- **Do not start a fight hurt.** Under three fifths health: rest five seconds out of sight, eat, drink, then go on.
+- **Match the danger to your gear, not to your level.** Count yourself *weak* if any of head, body, legs, feet is NOTHING, or the weapon is a club, a spear or worse, or you carry fewer than two bandages. Weak characters take only places and leads rated one or two skulls ("Easy pickings", "A fair fight"). Three skulls ("Dangerous") needs every slot filled, a weapon better than a spear in good condition and three bandages or more. Four and five skulls: never, until armour is above 25 and you hold a gun with ammunition or a machete or better. The rating is worked out from what you carry, so gear up, look at the map again, and go when it has dropped.
+- **Road events tell you the fight before you choose** ("A fight: 3 Wolves · Dangerous for you as you stand"). If it says Dangerous or worse, take the other choice. When weak, never "stand your ground".
+- **Pull a few at a time** (`attack` without hunt fights only what has noticed you), fight in doorways, and step back out of a building when a Bloater swells.
+- **Before leaving home:** health full, food and water above 70, weapon above half condition (a Repair Kit in the pack mends it), free pack slots, and check the map's warning about the tide.
+
 ## Dress and arm yourself
 
 A bare character takes every blow in full, and looks wrong to the people watching. Never set out with an empty slot you could fill.

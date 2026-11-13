@@ -124,6 +124,8 @@ export const SITES={
   heli:{n:'Downed Helicopter',dur:18,lay:'wild',d:'Military bird, nose-down in the trees. The crew are still strapped in.',props:{crate_mil:2,ammo_box:2,corpse:3,rubble:6,machine:2},en:{armored:5,shambler:5},ic:'gear',minDay:6},
   convoy:{n:'Stalled Convoy',dur:20,lay:'town',road:1,d:'Six trucks nose to tail. Whatever stopped them is probably still nearby.',props:{car_wreck:7,bus:2,crate:5,crate_mil:1,suitcase:4,barrel:3},en:{shambler:8,runner:4,bloater:2},ic:'cart',minDay:4},
   bandits:{n:'Raider Camp',dur:24,lay:'wild',d:'Smoke from a cookfire. A new crew moving into the valley. Hit them before they hit you.',props:{tent:4,barrel_fire:2,crate:4,crate_mil:1,footlocker:2,pallet:3},en:{raider:6,raider_gun:3},boss:'raider_boss',bossChance:.35,ic:'skull',minDay:8,fx:{horde:6}},
+  // where a road ambush brought the player down: nothing here but the pack they dropped (world.js puts it on the map and keeps it two days)
+  fell:{n:'Where You Fell',dur:48,lay:'wild',manual:1,d:'The stretch of road where they brought you down. Your pack is still lying there.',nodes:{grass_tall:8,rock:3,tree_pine:8},en:{},ic:'skull'},
   herd:{n:'Migrating Herd',dur:10,lay:'wild',d:'Deer moving through in numbers. So are the things that follow deer.',nodes:{grass_tall:14,bush_berry:8,herb_patch:5},en:{deer:8,rabbit:5,boar:3,wolf:3},ic:'paw'},
   meteor:{n:'Meteor Strike',dur:16,lay:'wild',d:'Something fell burning last night. The crater is full of ore that is not from here.',nodes:{rock_iron:8,rock_copper:5,rock_quartz:3,rock:8},props:{rubble:10},en:{shambler:6,brute:1},ic:'rock',minDay:5,rich:1},
   distress:{n:'Distress Call',dur:12,lay:'town',d:'A voice on the radio, whispering an address. Somebody is still alive in there.',props:{car_wreck:3,trashcan:2,crate:2},bld:[['house',2]],en:{shambler:6,runner:4},inn:{shambler:5},rescue:1,ic:'people',minDay:3},
@@ -199,7 +201,7 @@ finds:T([
 };
 /** The chance that an ordinary container of a loot family also holds one thing from `finds`. People kept clothes at home, a coat in the car,
  *  and the dead still wear what they died in. */
-export const FIND={corpse:.3,stash:.3,home:.22,car:.14,tool:.12,junk:.1,med:.04,food:.04,trash:.03};
+export const FIND={corpse:.4,stash:.35,home:.3,car:.22,tool:.16,junk:.15,med:.05,food:.05,trash:.05};
 // what a radio lead's strongroom holds: its whole point, so the rolls are generous
 Object.assign(LOOT,{
 lead_guns:T([['ammo_9',10,12,28],['ammo_rifle',6,8,18,2],['shell',7,6,14],['arrow',5,10,20,1,2],['xbolt',5,8,14,1,3],['bow',4,1,1,1,1],['crossbow',4,1,1,1,2],['pipe_pistol',6,1,1,1,2],['revolver',5,1,1,2,4],['shotgun',4,1,1,2,4],['rifle',3,1,1,3,5],['smg',2,1,1,3,5],['bp_shotgun',3,1,1,1,3],['bp_revolver',3,1,1,1,2],['repair_kit',4,1,2],['machete',3,1,1,1,2]]),

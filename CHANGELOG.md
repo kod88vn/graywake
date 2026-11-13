@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.9.10 — 2026-11-13
+
+The bot chose "Stand your ground" at a road event, met four level 5 wolves with a club, and was dead in six seconds. Its pack was gone for good.
+
+- **Fixed: road fights were a death sentence.** Measured with the bot's own character against every fight an event can start (`node tools/leadbot.mjs save.json --ambush`): it died every time in eight of nine. A fight on the road is now pitched to whoever it meets, the way leads are: its level comes down until it is a fair fight, and if even level 1 would be a massacre the pack is thinned. After: 20 fights, 12 runs each, all survived at two and three skulls.
+- **An event's choice says what fight it leads to before you choose**: "A fight: 3 Wolves · A fair fight for you as you stand", or "May come to a fight: ...".
+- **Fixed: a pack lost on the road was destroyed**, while the death screen promised it would wait. The spot now goes on the map as "Where You Fell" for two days with the pack in it, and nothing else there.
+- A creature that calls others in (the Shrieker) counts those in the threat.
+- Gear turns up a little more often in ordinary containers (cars 22%, crates 15%, the dead 40%).
+- Wear best: a weapon under 15% condition hardly counts.
+- The bot can `flee` (and the session runs for it when it is badly hurt with no medicine), is told to stop fighting under two fifths health, and has rules for matching danger to gear.
+
 ## 0.9.9 — 2026-11-13
 
 "The bot is almost always naked. It should know to wear the best gear. We also need more useful items for it to loot, weapons and gear included."

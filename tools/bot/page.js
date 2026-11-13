@@ -6,7 +6,7 @@ import {RECIPE_LIST} from '../js/data/recipes.js';
 import {OBJ} from '../js/data/objects.js';
 import {ITEMS} from '../js/data/items.js';
 import {interactInfo} from '../js/sim/actors.js';
-import {field,pathAim,walkClear,los,edgeCross} from '../js/sim/zone.js';
+import {field,pathAim,walkClear,los,edgeCross,atExit} from '../js/sim/zone.js';
 import {MapScreen} from '../js/ui/map.js';
 
 const $=id=>document.getElementById(id),vis=el=>!!el&&!el.hidden&&el.offsetParent!==null,txt=el=>el?el.innerText.replace(/\s+\n/g,'\n').replace(/[ \t]+/g,' ').trim():'';
@@ -107,7 +107,7 @@ B.observe=(full=false)=>{
     o.you.pack=(p.inv||[]).filter(Boolean).length;
     // what is worn, what in the pack would be better, and what could be made by hand this minute for a slot that is bare or poorly covered
     {const W=['head','body','legs','feet','hands'];o.you.wearing=W.map(k=>k+': '+(p.eq[k]&&ITEMS[p.eq[k].id]?ITEMS[p.eq[k].id].n:'NOTHING')).join(', ');o.you.armour=ds.arm||0;
-      o.you.better=betterGear(S).map(b=>ITEMS[b.id].n+' ('+(b.slot==='w1'||b.slot==='w2'?'weapon':b.slot)+(b.was?', better than your '+ITEMS[b.was].n:', you have nothing there')+')');
+      o.you.better=betterGear(S).map(b=>ITEMS[b.id].n+' ('+(b.slot==='w1'?'weapon in hand':b.slot==='w2'?'spare weapon':b.slot)+(b.was?', better than your '+ITEMS[b.was].n:', you have nothing there')+')');
       o.you.canMake=RECIPE_LIST.filter(r=>r.o&&ITEMS[r.o]&&W.includes(ITEMS[r.o].t)&&r.s==='hand'&&recipeVisible(S,r)&&!canCraft(S,r,1,null)&&gearScore(S,{id:r.o})>(p.eq[ITEMS[r.o].t]?gearScore(S,p.eq[ITEMS[r.o].t]):0)&&!p.inv.some(s=>s&&s.id===r.o)).map(r=>ITEMS[r.o].n).slice(0,5)}
     o.clock=[...$('clock').querySelector('.t').childNodes].map(n=>n.textContent.trim()).filter(Boolean).join(' · ')||null;o.tide=txt($('tide'))||null;o.quest=vis($('quest'))?txt($('quest')):null;o.buffs=txt($('buffs'))||null;
     if(vis($('boss')))o.boss=txt($('boss'));
@@ -121,9 +121,13 @@ B.observe=(full=false)=>{
 
 /** A cheap pulse while an action runs. */
 B.pulse=()=>{const S=G.S,Z=G.Z,p=Z&&Z.pl;let foe=99,alertN=0;if(Z&&p)for(const a of Z.actors){if(a.pl||a.dead||a.team!==1||a.def.ai==='flee'||!a.alert)continue;alertN++;const d=Math.hypot(a.x-p.x,a.y-p.y);if(d<foe)foe=d}
-  return{mode:G.mode,sheet:window.GW?GW.UI.panel:null,hp:S?S.p.hp:0,max:G.ds&&G.ds.maxHp||100,x:p?p.x:0,y:p?p.y:0,dead:!!(p&&p.dead),act:p&&p.act?p.act.type:null,atk:!!(p&&p.atk),foe:r1(foe),alertN,auto:!!G.auto,t:Z?Z.time:0,zone:Z?Z.id:null,fps:window.GW?GW.View.fps:0,msgs:B.msgs.length}};
+  return{mode:G.mode,sheet:window.GW?GW.UI.panel:null,hp:S?S.p.hp:0,max:G.ds&&G.ds.maxHp||100,x:p?p.x:0,y:p?p.y:0,dead:!!(p&&p.dead),act:p&&p.act?p.act.type:null,atk:!!(p&&p.atk),foe:r1(foe),alertN,auto:!!G.auto,exit:!!(Z&&Z.exit),home:!!(Z&&Z.home),meds:S?S.p.inv.reduce((n,s)=>n+(s&&ITEMS[s.id].t==='med'&&ITEMS[s.id].hp>0?s.n:0),0):0,t:Z?Z.time:0,zone:Z?Z.id:null,fps:window.GW?GW.View.fps:0,msgs:B.msgs.length}};
 
 // ---- walking by keys: which of the eight ways to press to get to a tile (or next to it, when something solid stands on it)
+/** Where to run to: the way out of this place that is nearest by foot and farthest from whatever is hostile. Null at home (there is nowhere further to run). */
+B.fleeTo=()=>{const Z=G.Z;if(!Z||Z.home||!Z.pl)return null;const p=Z.pl,f=field(Z,Math.floor(p.x),Math.floor(p.y),true,400),foes=Z.actors.filter(a=>a.team===1&&!a.dead&&a.def.ai!=='flee');let best=null,bs=1e9;
+  for(let y=0;y<Z.h;y++)for(let x=0;x<Z.w;x++){if(!atExit(Z,x,y))continue;const d=f[y*Z.w+x];if(!(d<400))continue;let near=12;for(const a of foes)near=Math.min(near,Math.hypot(a.x-x-.5,a.y-y-.5));const s=d-near*1.2;if(s<bs){bs=s;best={x,y,d:r1(d)}}}
+  return best};
 B.navTo=(tx,ty)=>{const Z=G.Z;if(!Z||tx<0||ty<0||tx>=Z.w||ty>=Z.h)return false;B.nav={tx,ty,f:field(Z,Math.floor(tx),Math.floor(ty),true,400),t:Z.time,zone:Z.id};return true};
 B.steer=()=>{const Z=G.Z,nv=B.nav;if(!Z||!nv||nv.zone!==Z.id)return{done:'lost'};const p=Z.pl,cx=Math.floor(nv.tx)+.5,cy=Math.floor(nv.ty)+.5,d=Math.hypot(cx-p.x,cy-p.y);
   const ti=Math.floor(nv.ty)*Z.w+Math.floor(nv.tx),o=Z.obj[ti],solid=o&&OBJ[o.k]&&OBJ[o.k].solid,usable=o&&!!interactInfo(Z,ti);

@@ -106,7 +106,8 @@ function startAmbush(table,home){
   const S=G.S;
   if(home&&G.Z&&G.Z.home){const Z=G.Z,side=Math.floor(rnd()*4);for(const k in table)for(let i=0;i<table[k];i++){const[x,y]=edgePoint(Z,side,10);spawnActor(Z,k,x,y,Z.lvl,ENEMIES[k]&&ENEMIES[k].ai==='flee'?{}:{alert:true,st:'chase',tide:true})}sfx('warning');return}
   const reg=G.pending&&G.pending.dest?destReg(S,G.pending.dest):regionHere(S),biome=['forest','forest','dust','city','frost','gray'][reg];
-  const lvl=Math.max(1,Math.round((LOCATIONS.filter(l=>l.reg===reg).reduce((a,l)=>Math.min(a,l.lvl),99)+S.p.lvl*.6)/1.6));
+  // pitched to the player as they stand, the same way the choice that led here described it
+  const plan=ambushPlan(S,table,ambushTop(S,reg)),lvl=plan.lvl;table=plan.table;
   const Z=genZone({id:'ambush',n:'Ambush',lay:'wild',biome,reg,lvl,size:[30,30],nodes:biome==='forest'?{tree_pine:14,rock:4,grass_tall:5}:biome==='dust'?{cactus:6,rock:6,tree_joshua:3}:biome==='city'?{car_hull:5}:biome==='frost'?{tree_snow:10,rock:5}:{tree_gray:8,bloom:4},props:biome==='city'?{car_wreck:4,rubble:5}:{}},hash(S.seed,Math.floor(S.t)));
   enterZone(Z,Z.spawn.x,Z.spawn.y-8);
   for(const k in table)for(let i=0;i<table[k];i++){const a=rnd()*TAU,[x,y]=freeNear(Z,clamp(Z.pl.x+Math.cos(a)*9,3,Z.w-3),clamp(Z.pl.y+Math.sin(a)*9,3,Z.h-3),3);spawnActor(Z,k,x,y,lvl,{alert:true,st:'chase'})}
@@ -204,12 +205,33 @@ export function leadOdds(S,def,lvl){
   for(const slot of['w1','w2']){const e=p.eq[slot],w=e&&ITEMS[e.id];if(!w)continue;let v=0;
     if(w.t==='gun')v=count(S,w.ammo)/(w.ammoPer||1)>=12?w.dmg*(w.pellets||1)*.7/w.spd*(ds.ranged||1):0;else if(w.t!=='throw')v=w.dmg/w.spd*(ds.melee||1)*(w.fx&&w.fx.cleave?1.3:1);
     if(w.dur&&e.d!==undefined&&e.d<w.dur*.15)v*=.4;if(v>dps)dps=v}
-  let hp=0,dmg=0,n=0;const add=(k,c)=>{const e=ENEMIES[k];if(!e)return;const sc=scale(k,lvl,S.mut||0);hp+=c*sc.hp/(1-(e.arm||0)*.8);dmg+=c*sc.dmg/e.cd*(e.proj?1.4:1);n+=c};
+  let hp=0,dmg=0,n=0;const add=(k,c)=>{const e=ENEMIES[k];if(!e||e.ai==='flee')return;const sc=scale(k,lvl,S.mut||0);hp+=c*sc.hp/(1-(e.arm||0)*.8);dmg+=c*sc.dmg/e.cd*(e.proj?1.4:1);n+=c;
+    if(e.call&&ENEMIES[e.call.kind]&&!ENEMIES[e.call.kind].call)add(e.call.kind,c*e.call.n)};   // one that calls others in gets a call off before it dies
   for(const t of[def.en,def.inn])for(const k in t||{})add(k,t[k]);if(def.boss)add(def.boss,1);if(!n)return 0;
   let heal=0;for(const it of p.inv)if(it&&ITEMS[it.id]&&ITEMS[it.id].t==='med'&&ITEMS[it.id].hp>0)heal+=ITEMS[it.id].hp*it.n;
   const mine=(ds.maxHp+Math.min(heal,ds.maxHp))/(1-Math.min(.8,ds.armRed||0));
-  // they come two or three at a time, and about a third of their blows land on someone who keeps moving
-  return hp/dps*(dmg/n*Math.min(2.5,n)*.33)/mine;
+  // in a building they come two or three at a time, and about a third of their blows land on someone who keeps moving;
+  // in the open (an ambush on the road) they all come at once, up to as many as can get round one person, and more of their blows land
+  const open=def.open;return hp/dps*(dmg/n*Math.min(open?AMBUSH.round:2.5,n)*(open?AMBUSH.land:.33))/mine;
+}
+/** Fights that events start on the road. Everything arrives awake and at once, so the same garrison is far deadlier than in a building:
+ *  `round` is how many can get at one person together, `land` the share of their blows that connect, `want` the odds an ambush is pitched to
+ *  (the top of two skulls) and `most` the odds above which it is thinned out (the top of three). Measured with tools/leadbot.mjs --ambush. */
+export const AMBUSH={round:5,land:.55,want:.8,most:1};
+/** What a road fight will actually be for this player as they stand: the creatures (thinned if even level 1 of them would be a massacre),
+ *  their level (no higher than the country's, lowered until the fight is a fair one) and the threat in skulls, to show before they choose. */
+export function ambushPlan(S,table,top){
+  const t={};for(const k in table)if(ENEMIES[k])t[k]=table[k];const odds=L=>leadOdds(S,{en:t,open:1},L);
+  let lvl=Math.max(1,top||1);while(lvl>1&&odds(lvl)>AMBUSH.want)lvl--;
+  for(let g=0;g<40&&odds(lvl)>AMBUSH.most;g++){const k=Object.keys(t).filter(k=>ENEMIES[k].ai!=='flee').sort((a,b)=>t[b]-t[a])[0];if(!k||Object.values(t).reduce((a,b)=>a+b,0)<=1)break;if(--t[k]<=0)delete t[k]}
+  const o=odds(lvl),sk=skullsFor(o);return{table:t,lvl,odds:o,skulls:sk,word:THREAT[sk],names:Object.keys(t).map(k=>t[k]+' '+ENEMIES[k].n+(t[k]>1?'s':'')).join(', ')};
+}
+/** The level road fights in a region would be at before they are pitched to the player. */
+const ambushTop=(S,reg)=>Math.max(1,Math.round((LOCATIONS.filter(l=>l.reg===reg).reduce((a,l)=>Math.min(a,l.lvl),99)+S.p.lvl*.6)/1.6));
+/** For an event's choice: the fight it leads to, if any, as it would be for this player ({names, skulls, word, sure}). */
+export function optionFight(S,o){
+  let worst=null,p=0;for(const r of o.r||[])for(const fx of r[2]||[])if(fx[0]==='fight'&&fx[2]!=='home'){const reg=G.pending&&G.pending.dest?destReg(S,G.pending.dest):regionHere(S),pl=ambushPlan(S,fx[1],ambushTop(S,reg));p+=r[0];if(!worst||pl.odds>worst.odds)worst=pl}
+  return worst?{...worst,sure:p>=.999}:null;
 }
 // Where the skulls fall, measured 2026-11-13 with a simulated player who clears the place in auto mode with three bandages (150 runs):
 // under 0.75 it always lived, 0.75 to 1 four times in five, 1 to 1.5 three in five, 1.5 to 2.2 one in four, above that almost never.
@@ -509,7 +531,10 @@ export function respawn(){
   if(Z){
     if(Z.home){if(S.tide.live){raidBase(S,.3,true);endTide(S,Z,false)}if(items.length){const[x,y]=freeNear(Z,Z.pl.x,Z.pl.y,3),i=Math.floor(y)*Z.w+Math.floor(x);if(!Z.obj[i])Z.obj[i]={k:'deathbag',r:0,v:0,inv:items}}}
     else if(LOC[Z.id]){const m=S.loc[Z.id]=S.loc[Z.id]||{n:1};m.bag=items;m.cool=0}
-    else if(Z.site){const st=S.sites.find(s=>s.id===Z.site);if(st){st.bag=(st.bag||[]).concat(items);st.until=Math.max(st.until,wake+18*60)}}   // you wake the next morning: it has to last past that
+    else if(Z.site){const st=S.sites.find(s=>s.id===Z.site);if(st){st.bag=(st.bag||[]).concat(items);st.until=Math.max(st.until,wake+18*60)}}
+    // brought down on the road: the spot goes on the map, halfway to where they were going, and the pack waits there two days
+    else if(items.length){const h=LOC.home,to=G.pending&&G.pending.dest?posXY(S,G.pending.dest):[h.x+40,h.y+20],old=S.sites.find(s=>s.site==='fell');
+      if(old){old.bag=(old.bag||[]).concat(items);old.until=wake+48*60}else S.sites.push({id:1000+(++S.siteN),site:'fell',x:clamp((h.x+to[0])/2,30,970),y:clamp((h.y+to[1])/2,25,615),until:wake+48*60,reg:1,lvl:1,bag:items})}   // you wake the next morning: it has to last past that
   }
   S.p.inv=[];compact(S);
   G.Z=null;G.pending=null;

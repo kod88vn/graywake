@@ -6,7 +6,7 @@ import {RECIPES,VEHICLES} from '../data/recipes.js';
 import {PERK,xpFor,MAX_LEVEL} from '../data/progress.js';
 import {clamp,rnd} from './util.js';
 
-export const VERSION='0.9.9';
+export const VERSION='0.9.10';
 export const SAVE_V=2;
 export const HOME_W=46,HOME_H=46,EXIT_RING=2,NO_BUILD=4;
 export const MIN_PER_SEC=1.5;            // game minutes per real second: a day is 16 real minutes
@@ -113,12 +113,13 @@ export function betterGear(S){
 }
 /** Put on and take in hand the best of everything carried. Returns the names of what changed. */
 export function wearBest(S){
-  const names=[];for(let guard=0;guard<12;guard++){const b=betterGear(S)[0];if(!b)break;if(!equip(S,b.i,b.slot))break;names.push(ITEMS[b.id].n)}
+  const names=[];for(let guard=0;guard<12;guard++){const b=betterGear(S)[0];if(!b)break;if(!equip(S,b.i,b.slot))break;names.push(b.id)}
   // the better of the two weapons goes in the hand, the other is the spare
-  {const p=S.p,a=p.eq.w1,b=p.eq.w2;if(b&&['melee','gun'].includes(ITEMS[b.id].t)&&gearScore(S,b)>(a&&['melee','gun'].includes(ITEMS[a.id].t)?gearScore(S,a):0)){p.eq.w1=b;p.eq.w2=a;p.active='w1';G.ds=derive(S);emit('eq');if(!names.length)names.push(ITEMS[b.id].n)}}
-  if(names.length){toast('Now using: '+names.join(', '),'good')}
+  {const p=S.p,a=p.eq.w1,b=p.eq.w2;if(b&&['melee','gun'].includes(ITEMS[b.id].t)&&gearScore(S,b)>(a&&['melee','gun'].includes(ITEMS[a.id].t)?gearScore(S,a):0)){p.eq.w1=b;p.eq.w2=a;p.active='w1';G.ds=derive(S);emit('eq');if(!names.length)names.push(b.id)}}
+  // say where each thing went: "in hand" and "spare" matter, a weapon taken as the spare is not the one being swung
+  if(names.length){const p=S.p,where=id=>p.eq.w1&&p.eq.w1.id===id?' in hand':p.eq.w2&&p.eq.w2.id===id?' as spare':' on';toast('Wear best: '+[...new Set(names)].map(id=>ITEMS[id].n+where(id)).join(', '),'good')}
   else toast('You already have your best on','info');
-  return names;
+  return names.map(id=>ITEMS[id].n);
 }
 export function give(S,id,n=1,d,quiet){
   if(!ITEMS[id]||n<=0)return 0;
