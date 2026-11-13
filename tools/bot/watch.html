@@ -99,7 +99,7 @@ function show(src,text){const d=$('dlg');d.querySelector('img').src=src;d.queryS
 const meter=(name,v,max,col)=>`<div class="v"><b>${name}<span>${v}${max?' / '+max:''}</span></b><div class="bar"><i style="width:${Math.max(0,Math.min(100,v/(max||100)*100))}%;background:var(${col})"></i></div></div>`;
 function render(){
   const s=S,st=$('state');
-  st.className='pill '+(s.chromeDead?'dead':s.paused?'paused':'live');st.lastElementChild.textContent=s.chromeDead?'browser gone':s.stopping?'stopping':s.paused?'paused by you':s.busy?'playing':'thinking';
+  st.className='pill '+(s.chromeDead?'dead':s.paused?'paused':'live');st.lastElementChild.textContent=s.chromeDead?'browser gone':s.stopping?'stopping':s.paused?'paused by you':s.busy?(/^wait/.test(s.busy.cmd)?'letting time pass (the bot chose to wait)':'playing'):'thinking';
   $('pause').textContent=s.paused?'Resume':'Pause';
   $('meta').textContent=`game ${s.version||''} at ${s.commit}${s.dirty?' + uncommitted':''} · ${s.pace==='live'?'real time':'world waits between moves'} · up ${Math.floor(s.uptime/60)} min · shift ${s.shift.n||0}${s.shift.total?', '+s.shift.left+' moves left':''}${s.shift.model?' · '+s.shift.model:''}`;
   const y=s.you;$('vitals').innerHTML=y?meter('Health',y.hp,y.maxHp,'--hp')+meter('Food',y.food,100,'--food')+meter('Water',y.water,100,'--water'):'<div class="empty">Not in a game yet.</div>';
