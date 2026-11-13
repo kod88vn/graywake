@@ -59,6 +59,11 @@ try{
     for(let i=1;i<=20;i++){await page.send('Input.dispatchMouseEvent',{type:'mouseMoved',x:x0+(x1-x0)*i/20,y:y0+(y1-y0)*i/20,button:'left',buttons:1});await page.sleep(30)}await page.send('Input.dispatchMouseEvent',{type:'mouseReleased',x:x1,y:y1,button:'left',clickCount:1})}
   const walls=await ev(`GW.G.Z.obj.filter(o=>o&&o.k==='wall_stick').length`);T.ok(walls>=4,'dragging paints a row of walls ('+walls+')');
   await click('[data-b="tool:remove"]');{const[x,y]=await tileXY(c[0]-2,c[1]+2);await page.click(x,y);await page.sleep(200)}T.ok(await ev(`GW.G.Z.obj.filter(o=>o&&o.k==='wall_stick').length`)===walls-1,'Remove takes a wall down');
+  // move and rotate with the tools
+  {const bi=(c[1]-1)*await ev(`GW.G.Z.w`)+c[0]+2,[bx,by]=await tileXY(c[0]+2,c[1]-1),[nx,ny]=await tileXY(c[0]+4,c[1]-2),ni=(c[1]-2)*await ev(`GW.G.Z.w`)+c[0]+4;
+    await ev(`GW.G.Z.obj[${ni}]=null`);await click('[data-b="tool:move"]');await page.click(bx,by);await page.sleep(200);await page.key('r');await page.sleep(100);await page.click(nx,ny);await page.sleep(250);
+    T.ok(await ev(`!GW.G.Z.obj[${bi}]&&!!GW.G.Z.obj[${ni}]&&GW.G.Z.obj[${ni}].k==='box_small'`),'Move: click a box, click a free tile, and it is there');T.ok(await ev(`GW.G.Z.obj[${ni}]&&GW.G.Z.obj[${ni}].r`)===1,'R while carrying turns it');
+    await click('[data-b="tool:turn"]');await page.click(nx,ny);await page.sleep(200);T.ok(await ev(`GW.G.Z.obj[${ni}]&&GW.G.Z.obj[${ni}].r`)===2,'Rotate: clicking a structure turns it');}
   await click('[data-b="tool:done"]');T.ok(await ev(`document.getElementById('build').hidden`),'Done leaves build mode');
   // ---- storage box: put, take, stow
   await use(['box_small']);T.ok(await until(`GW.UI.panel==='store'`,4000),'E on the box opens storage');

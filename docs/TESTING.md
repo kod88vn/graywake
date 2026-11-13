@@ -9,7 +9,7 @@
 | `npm run test:monkey` | 45 s | A furnished mid-game base, then random clicks on every button of every sheet, random hot-keys and build actions. Fails on any page error or broken state (NaN vitals, empty stacks, negative scrip). |
 | `npm run shots` | 2 min | Twenty-two screenshots into `.out/shots/`: title, first minute, a furnished base by day, dusk and night, sheets, build mode, six locations, the map, an event, and a phone layout. `node tests/shots.mjs 13` shoots only names containing `13`. |
 | `npm run gallery` | 1 min | Every model on a tile, lit like the game. `node tests/gallery.mjs props wall` filters. |
-| `tools/rigs.html` | by hand | Character sheet through the same cel shading and ink pass as the game. Open it from `npm start` at `/tools/rigs.html`; `?pose=walk|idle|attack|dead`, `&q=name,name`, `&surv=5` adds survivors, `&low=1&fov=17` a low close camera for faces. |
+| `tools/rigs.html` | by hand | Character sheet through the same cel shading and ink pass as the game. Open it from `npm start` at `/tools/rigs.html`; `?pose=walk|idle|attack|dead`, `&q=name,name`, `&surv=5` adds survivors, `&low=1&fov=17` a low close camera for faces, `&strip=walk|run|sneak|attack|chop|die|husk` ten successive moments of one motion. |
 | `node tests/audio.mjs` | 40 s | Renders every sound and music scene offline and prints peak and loudness against its group. |
 | `node tools/tidebot.mjs` | 1 min | A crude bot against tides 1-12; see `BALANCE.md`. |
 

@@ -256,7 +256,7 @@ function syncActors(dt){
       pose(r,{dt,t:time,mv:a.mv,atk:a.atk?a.atk.t/a.atk.dur:-1,act:a.act&&a.act.type==='gather'?a.act.t/a.act.dur*.5:0,gun,recoil:a.recoil,throwing:a.atkT>0?a.atkT:0,sneak:a.sneak,roll:a.roll?1-a.roll.t/.3:0,dead:a.dead,deadT:0,flash:a.hurtT>.22?1:0,vis:1});
     }else{
       const d=a.def,w=['wind','windS','cast','cwind','fuse'].includes(a.st)?clamp(a.t/(d.wind||.5),0.01,1):0;
-      pose(r,{dt,t:time,mv:a.mv,atk:-1,wind:w,gun:d.proj&&a.alert&&r.type==='human'?1:0,recoil:a.atkT>0?1:0,charge:a.st==='charge',stun:a.stunT>0,dead:a.dead,deadT:a.deadT,flash:a.flash,vis:a.vis});
+      pose(r,{dt,t:time,mv:a.mv,atk:-1,wind:w,gun:d.proj&&a.alert&&r.type==='human'?1:0,recoil:d.proj&&a.atkT>0?1:0,strike:!d.proj&&a.atkT>0,charge:a.st==='charge',stun:a.stunT>0,dead:a.dead,deadT:a.deadT,flash:a.flash,vis:a.vis});
       if(!a.dead&&bars<95&&(a.hp<a.mhp||a.boss||d.boss)&&a.vis>.5){const w0=d.boss?1.6:.7,f=clamp(a.hp/a.mhp,0,1),hy=r.h+.35;
         _m.compose(_p.set(a.x,hy,a.y),camQ,_s.set(w0+.06,.13,1));barBg.setMatrixAt(bars,_m);
         _p.set(-(w0*(1-f))/2,0,0).applyQuaternion(camQ);_p.x+=a.x;_p.y+=hy;_p.z+=a.y;_m.compose(_p,camQ,_s.set(Math.max(.001,w0*f),.085,1));barFg.setMatrixAt(bars,_m);
@@ -375,10 +375,14 @@ function pick(cx,cy){const r=canvas.getBoundingClientRect();ndc.set((cx-r.left)/
 /** Sim point (+height) → screen pixels relative to the canvas. */
 function project(x,y,h=0){_p.set(x,h,y).project(cam);const r=canvas.getBoundingClientRect();return{x:(_p.x*.5+.5)*r.width,y:(-_p.y*.5+.5)*r.height,vis:_p.z<1}}
 /** Placement preview in build mode. kind=null hides it. */
+let ghostArrow=null;
 const ghostMat=new THREE.MeshBasicMaterial(Object.assign({color:'#7cff7c',transparent:true,opacity:.5,depthWrite:false,toneMapped:false},inkBlend()));
 function setGhost(kind,tx,ty,ok,rot=0){
-  if(!kind||tx==null){if(ghost)ghost.visible=false;ghostTile.visible=false;return}
+  if(!ghostArrow){const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute([0,0,.72,.17,0,.47,-.17,0,.47],3));ghostArrow=new THREE.Mesh(g,new THREE.MeshBasicMaterial(Object.assign({color:'#ffffff',transparent:true,opacity:.95,depthTest:false,side:THREE.DoubleSide,toneMapped:false},inkBlend())));ghostArrow.renderOrder=9;ghostArrow.visible=false;scene.add(ghostArrow)}
+  if(!kind||tx==null){if(ghost)ghost.visible=false;ghostTile.visible=false;ghostArrow.visible=false;return}
   ghostTile.visible=true;ghostTile.position.set(tx+.5,.06,ty+.5);ghostTile.material.color.set(ok?'#7cff7c':'#ff5a4a');
+  // a white arrow shows which way the piece will face
+  ghostArrow.visible=kind!=='*';ghostArrow.position.set(tx+.5,.09,ty+.5);ghostArrow.rotation.y=rot*Math.PI/2;
   if(kind==='*'){if(ghost)ghost.visible=false;return}
   const key=OBJ[kind].m+'|0';if(!ghost){ghost=new THREE.Mesh(modelGeo(key),ghostMat);scene.add(ghost)}if(ghost.userData.key!==key){ghost.geometry=modelGeo(key);ghost.userData.key=key}
   ghost.visible=true;ghost.position.set(tx+.5,.02,ty+.5);ghost.rotation.y=rot*Math.PI/2;ghostMat.color.set(ok?'#7cff7c':'#ff5a4a');

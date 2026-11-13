@@ -6,7 +6,7 @@ import {RECIPES,VEHICLES} from '../data/recipes.js';
 import {PERK,xpFor,MAX_LEVEL} from '../data/progress.js';
 import {clamp,rnd} from './util.js';
 
-export const VERSION='0.5.0';
+export const VERSION='0.5.1';
 export const SAVE_V=1;
 export const HOME_W=46,HOME_H=46,EXIT_RING=2,NO_BUILD=4;
 export const MIN_PER_SEC=1.5;            // game minutes per real second: a day is 16 real minutes
@@ -241,6 +241,22 @@ export function place(S,k,x,y,rot=0){
   if(d.floor){Z.fl[i]=k;emit('floor',i)}else{Z.obj[i]={k,hp:maxHp(k),r:rot};if(d.store)Z.obj[i].inv=[];if(d.turret)Z.obj[i].ammo=0;Z.touch(i)}
   stat('built');if(!S.flags['built_'+k]){S.flags['built_'+k]=1;addXp(S,10+d.lv*4)}else addXp(S,2);
   sfx('build',x+.5,y+.5);emit('fx','dust',x+.5,y+.5);return true;
+}
+/** Turn a structure you built a quarter turn where it stands. */
+export function rotateObj(S,i){const Z=G.Z;if(!Z||!Z.home)return false;const o=Z.obj[i];if(!o||!OBJ[o.k].cost){toast('Nothing of yours to turn here','bad');sfx('error');return false}o.r=((o.r||0)+1)%4;Z.touch(i);sfx('ui_tap');return true}
+/** Why the structure on tile i cannot be moved to (x, y), or null. Moving is free and keeps everything about it (health, contents, crops, jobs). */
+export function canMove(S,i,x,y){
+  const Z=G.Z;if(!Z||!Z.home)return'Only at home';const o=Z.obj[i];if(!o||!OBJ[o.k]||!OBJ[o.k].cost)return'Nothing of yours to move';
+  if(x<0||y<0||x>=Z.w||y>=Z.h||!inBuildArea(Z,x,y))return'Too close to the tree line';const j=idx(Z,x,y);if(j===i)return null;
+  if(Z.g[j]===6)return'Water';if(Z.obj[j])return'Occupied';
+  if(OBJ[o.k].solid)for(const a of Z.actors)if(!a.dead&&Math.floor(a.x)===x&&Math.floor(a.y)===y)return'Something is standing there';
+  return null;
+}
+export function moveObj(S,i,x,y,rot){
+  const why=canMove(S,i,x,y);if(why){toast(why,'bad');sfx('error');return false}
+  const Z=G.Z,j=idx(Z,x,y),o=Z.obj[i];if(rot!==undefined)o.r=rot;
+  if(j!==i){Z.obj[j]=o;Z.obj[i]=null;if(S.p.bed===i)S.p.bed=j;Z.touch(i)}Z.touch(j);
+  stat('moved');sfx('build',x+.5,y+.5);emit('fx','dust',x+.5,y+.5);return true;
 }
 export function canUpgrade(S,i,floor){
   const Z=G.Z;if(!Z||!Z.home)return'Only at home';const k=floor?Z.fl[i]:Z.obj[i]&&Z.obj[i].k;if(!k)return'Nothing here';const d=OBJ[k];if(!d.up)return'Fully upgraded';

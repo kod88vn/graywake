@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.5.1 — 2026-11-12
+
+- **Fluid movement.** Characters have a real skeleton now (hips, waist, chest, with the head and arms riding on the chest), and the motion is rebuilt on it:
+  - Walking and running: the stride follows the distance covered so feet do not slide; knees fold as the leg swings forward; hips and shoulders twist against each other; the body rises and falls with each step; arms swing with the elbows trailing; the head stays level. The body leans into speeding up and banks into turns.
+  - Standing: breathing, weight shifting from foot to foot, looking around.
+  - Melee: wind back, cut across with a step in, carry through, settle. Chopping and mining: raise, bring down, bounce. Shooting kicks. Being hit makes a figure flinch. Enemies wind up and follow through.
+  - Dying: the knees go first, then the body falls and settles. Dodging tucks.
+  - Animals trot on diagonal pairs and bound at a run.
+  - Poses blend into each other instead of snapping, and the player eases into and out of a run over about a tenth of a second.
+- **Build mode: Move and Rotate.**
+  - **Move:** tap one of your structures to pick it up, tap a free tile to set it down. It is free and keeps health, contents, crops and running jobs. Esc puts it back.
+  - **Rotate:** tap a structure to turn it a quarter turn where it stands. R (or right-click) turns the piece in hand while placing or carrying, and otherwise turns whatever you point at.
+  - A white arrow on the placement ghost and "facing north/east/south/west" in the info line show the direction. Before this, turning only affected a piece not yet placed and nothing showed that it had turned, which is why rotate seemed not to work.
+
 ## 0.5.0 — 2026-11-12
 
 The homestead becomes a community among other communities. All of them are run by the game: there are no other players.

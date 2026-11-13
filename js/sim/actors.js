@@ -388,6 +388,8 @@ function stepPlayer(Z,dt){
   if(G.auto){if(ml>.3||inp.attack){G.auto=false;p.auto=null;p.fight=null}else{[mx,my]=autoStep(Z,p,dt);ml=Math.hypot(mx,my)}}
   if(inp.dodge){inp.dodge=false;if(p.rollCd<=0&&!p.roll){const dx=ml>.1?mx/ml:Math.cos(p.a),dy=ml>.1?my/ml:Math.sin(p.a);p.roll={t:.3,dx,dy};p.rollCd=1.5*(1-perk('dodge'));p.iframe=.34;p.act=null;p.atk=null;sfx('swing',p.x,p.y,{pitch:.7})}}
   let speed=ds.spd*(p.sneak?.5:1)*(p.slowT>0?.55:1),vx=mx*speed,vy=my*speed;
+  // ease into and out of a run instead of snapping to full speed: about a tenth of a second either way
+  {const k=1-Math.exp(-dt*(ml>.1?16:20));p.sx=(p.sx||0)+(vx-(p.sx||0))*k;p.sy=(p.sy||0)+(vy-(p.sy||0))*k;if(Math.abs(p.sx)+Math.abs(p.sy)<.02)p.sx=p.sy=0;vx=p.sx;vy=p.sy}
   if(p.roll){p.roll.t-=dt;vx=p.roll.dx*10;vy=p.roll.dy*10;if(p.roll.t<=0)p.roll=null}
   else if(p.atk&&!p.atk.done){vx*=.45;vy*=.45}
   if(p.kx||p.ky){vx+=p.kx;vy+=p.ky;const f=Math.pow(.002,dt);p.kx*=f;p.ky*=f;if(Math.abs(p.kx)+Math.abs(p.ky)<.2)p.kx=p.ky=0}

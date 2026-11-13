@@ -21,6 +21,7 @@ Needs Node 22 or newer. There is nothing to install.
 | Dodge / sneak | Space / Shift | Dodge / Sneak |
 | Swap weapon | Q | tap the other weapon slot |
 | Pack, craft, build, journal, camp | I, C, B, J, L | buttons, top right |
+| In build mode: turn a piece | R or right-click | Turn piece / Rotate |
 | Heal, eat, drink, antidote | 1, 2, 3, 4 | tap the bar |
 
 ## What is in it

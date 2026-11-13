@@ -1,7 +1,7 @@
 // Character rigs: jointed bodies built from rounded anatomy (not boxes), and the code that poses them every frame.
 // A humanoid is about 1.3 units tall in anime proportions: about five and a half heads tall, big eyes, chunky hair,
 // slim two-part limbs with elbows and knees. Everything is cel-shaded and outlined by the ink pass (post.js).
-// A rig is a THREE.Group: root → body (leans, crouches, falls) → parts. Each rig owns its material so it can flash and fade.
+// A rig is a THREE.Group: root → body (leans, crouches, falls) → hips (pelvis, legs) → chest (ribcage, head, arms). Each rig owns its material so it can flash and fade.
 import {THREE,Geo,shade,mix,toon} from './geo.js';
 import {HAND} from './props.js';
 import {ITEMS} from '../data/items.js';
@@ -61,8 +61,9 @@ export function humanoid(o){
   const mat=newMat(),root=new THREE.Group(),body=new THREE.Group();root.add(body);
   const fat=o.fat||1,skin=o.skin||'#e8bf9c',top=o.top||'#6a7a5a',legs=o.legs||'#3a3f4a',boots=o.boots||shade(legs,.55),jacket=o.vestStyle==='jacket'&&o.vest,sleeve=jacket||o.sleeves||top,P={};
   // ---- torso: pelvis, narrow waist, ribcage, shoulders, neck (pivot at the hips)
+  // skeleton: body → hips (pelvis, legs) → chest at the waist (ribcage, head, arms), so the two halves can twist against each other
+  P.hips=grp(body,0,.6,0);P.pelvis=part(mat,g=>{g.sph(.114,legs,0,.02,0,1.1*fat,.78,.86*fat,10,6);g.sph(.112,shade(legs,.6),0,.085,0,1.08*fat,.2,.84*fat,10,4)});P.hips.add(P.pelvis);P.chest=grp(P.hips,0,.1,0);
   P.torso=part(mat,g=>{
-    g.sph(.114,legs,0,.02,0,1.1*fat,.78,.86*fat,10,6);g.sph(.112,shade(legs,.6),0,.085,0,1.08*fat,.2,.84*fat,10,4);
     g.sph(.106,top,0,.17,.004,1.04*fat,1.2,.8*fat,10,6);g.sph(.138,top,0,.305,0,1.08*fat,.98,.74*fat,10,7);
     g.sph(.05,sleeve,-.15*fat,.36,0,1.1,.85,1,7,5);g.sph(.05,sleeve,.15*fat,.36,0,1.1,.85,1,7,5);
     g.cyl(.03,.036,.08,o.head||skin,0,.445,.004,8);
@@ -75,21 +76,21 @@ export function humanoid(o){
     if(o.pack){const p=o.pack;g.sph(.125,p,0,.26,-.165*fat,.98,1.3,.72,9,6);g.sph(.07,shade(p,1.2),0,.19,-.255*fat,1.05,.85,.6,7,4);g.sph(.1,shade(p,.8),0,.4,-.15*fat,1,.35,.7,8,4);g.box(.028,.24,.02,shade(p,.7),-.09,.31,.1*fat);g.box(.028,.24,.02,shade(p,.7),.09,.31,.1*fat)}
     if(o.scarf){g.torus(.058,.03,o.scarf,0,.432,.002,0,0,0,10);g.sph(.03,shade(o.scarf,.85),.03,.42,-.066,1,1,1,6,4)}
     if(o.gore){g.sph(.055,BLOOD,-.05*fat,.3,.1*fat,1.2,1.1,.3,6,4);if(o.gore>1)g.sph(.045,BLOOD,.1*fat,.17,.075*fat,.5,1.3,.9,6,4);if(o.gore>2)g.sph(.06,shade(BLOOD,.7),.03,.2,-.1*fat,1.3,.9,.3,6,4)}
-  });P.torso.position.y=.6;body.add(P.torso);
+  });P.torso.position.y=-.1;P.chest.add(P.torso);
   // ---- scarf tails: two strips that trail behind when running
-  if(o.scarf){P.scarf=part(mat,g=>{g.sph(.03,o.scarf,-.022,-.13,0,.95,4.4,.36,7,6);g.sph(.027,shade(o.scarf,.82),.03,-.1,-.008,.95,3.7,.36,7,6)});P.scarf.position.set(.03,1.03,-.085);P.scarf.rotation.x=.25;body.add(P.scarf)}
+  if(o.scarf){P.scarf=part(mat,g=>{g.sph(.03,o.scarf,-.022,-.13,0,.95,4.4,.36,7,6);g.sph(.027,shade(o.scarf,.82),.03,-.1,-.008,.95,3.7,.36,7,6)});P.scarf.position.set(.03,.33,-.085);P.scarf.rotation.x=.25;P.chest.add(P.scarf)}
   // ---- head (pivot at the top of the neck)
-  P.head=part(mat,g=>drawHead(g,o,skin));P.head.position.y=1.07;P.head.scale.setScalar(HEAD);body.add(P.head);
+  P.head=part(mat,g=>drawHead(g,o,skin));P.head.position.y=.37;P.head.scale.setScalar(HEAD);P.chest.add(P.head);
   // ---- arms: upper arm from the shoulder, forearm and hand from the elbow
-  const arm=side=>{const up=part(mat,g=>{g.limb(.045,.038,.215,sleeve,0,0,0,0,0,0,7);if(o.gore>1&&side<0)g.sph(.04,BLOOD,0,-.12,.02,1.1,1.4,.8,6,4)});up.position.set(side*(.164*fat+.012),.955,0);body.add(up);
+  const arm=side=>{const up=part(mat,g=>{g.limb(.045,.038,.215,sleeve,0,0,0,0,0,0,7);if(o.gore>1&&side<0)g.sph(.04,BLOOD,0,-.12,.02,1.1,1.4,.8,6,4)});up.position.set(side*(.164*fat+.012),.255,0);P.chest.add(up);
     const el=grp(up,0,-.215,0),fore=part(mat,g=>{g.limb(.037,.03,.2,jacket||(o.sleeves?sleeve:skin),0,0,0,0,0,0,7);if(!o.husk)g.cyl(.036,.034,.05,shade(o.glove||sleeve,.72),0,-.17,0,7);g.sph(.04,o.husk?shade(skin,.85):o.glove||skin,0,-.228,.006,.85,1.12,1,7,5)});el.add(fore);return[up,el]};
   [P.armL,P.elbowL]=arm(-1);[P.armR,P.elbowR]=arm(1);
   // ---- legs: thigh from the hip, shin and boot from the knee
-  const leg=side=>{const th=part(mat,g=>g.limb(.063*Math.min(1.25,fat),.048,.3,legs,0,0,0,0,0,0,7));th.position.set(side*.074,.6,0);body.add(th);
+  const leg=side=>{const th=part(mat,g=>g.limb(.063*Math.min(1.25,fat),.048,.3,legs,0,0,0,0,0,0,7));th.position.set(side*.074,0,0);P.hips.add(th);
     const kn=grp(th,0,-.3,0),sh=part(mat,g=>{g.limb(.048,.037,.25,legs,0,0,0,0,0,0,7);g.limb(.05,.048,.1,boots,0,-.16,0,0,0,0,7);g.sph(.056,boots,0,-.272,.036,.92,.72,1.75,8,5);g.sph(.056,shade(boots,.6),0,-.296,.036,.94,.22,1.78,8,4)});kn.add(sh);return[th,kn]};
   [P.legL,P.kneeL]=leg(-1);[P.legR,P.kneeR]=leg(1);
   const hand=grp(P.elbowR,0,-.228,.012);hand.rotation.x=Math.PI/2;
-  const rig={root,body,P,hand,mat,type:'human',ph:Math.random()*6,scale:o.scale||1,weapon:null,lean:o.lean||0,husk:!!o.husk,h:1.32*(o.scale||1),death:0};
+  const rig={root,body,P,hand,mat,type:'human',ph:Math.random()*6,sd:Math.random()*6,scale:o.scale||1,weapon:null,lean:o.lean||0,husk:!!o.husk,h:1.32*(o.scale||1),death:0};
   root.scale.setScalar(rig.scale);if(o.weapon)setWeapon(rig,o.weapon);
   return rig;
 }
@@ -114,7 +115,7 @@ export function quadruped(o){
   const leg=(sx,sz,key)=>{const L=ht-.06,u=part(mat,g=>g.limb(sz>0?.05:.058,.034,L*.52,c,0,0,0,0,0,0,6));u.position.set(sx*(w-.03),ht-.05,sz*(len*.5-.13));body.add(u);
     const k=grp(u,0,-L*.52,0);k.add(part(mat,g=>{g.limb(.032,.024,L*.44,dk,0,0,0,0,0,0,6);g.sph(.034,shade(c,.5),0,-L*.46,.012,1,.6,1.3,6,4)}));P[key]=u;P['k'+key]=k};
   leg(-1,1,'legFL');leg(1,1,'legFR');leg(-1,-1,'legBL');leg(1,-1,'legBR');
-  const rig={root,body,P,mat,type:'quad',ph:Math.random()*6,scale:o.scale||1,h:(ht+.42)*(o.scale||1),death:0};root.scale.setScalar(rig.scale);return rig;
+  const rig={root,body,P,mat,type:'quad',ph:Math.random()*6,sd:Math.random()*6,scale:o.scale||1,h:(ht+.42)*(o.scale||1),death:0};root.scale.setScalar(rig.scale);return rig;
 }
 /** The Bloom Core: a rooted pulsing mass. */
 export function blob(o){
@@ -143,44 +144,105 @@ export function playerRig(eq){
   return humanoid({skin:'#f0c8a4',top:'#3f7f9a',legs:legs?legs.c:'#3a4460',boots:feet?feet.c:'#4a3226',hair:'#e8e2d8',hairStyle:0,eye:'#2a8a9a',scarf:'#d8433a',glove:'#5a4634',helm:head?head.c:null,helmStyle:head?head.s||'helm':null,vest:bodyL?bodyL.c:null,vestStyle:bodyL?bodyL.s||'vest':null,pack:pack?pack.c:null});
 }
 
-const lerpA=(a,b,t)=>a+(b-a)*Math.min(1,t);
-/** Pose a rig for this frame. s = {mv speed, dt, t time, atk 0..1 swing progress or -1, wind 0..1 enemy wind-up, gun, sneak, roll 0..1, dead, deadT, act, flash, vis, charge, stun, recoil, throwing} */
+// ---------------------------------------------------------------- motion
+// Poses are built in layers every frame: a gait whose cycle advances with the distance covered (so feet do not slide), an idle
+// layer of breathing and weight shift, stances (sneak, aim), and actions keyed over their own progress with eased curves
+// (anticipation, strike, follow-through). Layer weights and the final joint angles are damped, never snapped, and the hips
+// and chest twist against each other. Nothing here lerps straight to a target at a fixed frame fraction.
+const damp=(a,b,rate,dt)=>a+(b-a)*(1-Math.exp(-rate*dt));
+const sat=x=>x<0?0:x>1?1:x,ease=t=>{t=sat(t);return t*t*(3-2*t)},mixv=(a,b,t)=>a+(b-a)*t;
+/** A keyed curve: keys [[progress, value], ...], eased between neighbours. */
+const key=(f,k)=>{if(f<=k[0][0])return k[0][1];for(let i=1;i<k.length;i++)if(f<=k[i][0]){const a=k[i-1],b=k[i];return a[1]+(b[1]-a[1])*ease((f-a[0])/(b[0]-a[0]))}return k[k.length-1][1]};
+const lift=x=>Math.pow(Math.max(0,x),1.3);
+// melee swing: wind back, cut across, carry through, settle
+const SW={yaw:[[0,0],[.26,-.8],[.44,.85],[.68,.4],[1,0]],pitch:[[0,0],[.26,-.1],[.44,.3],[.7,.16],[1,0]],arm:[[0,-.3],[.26,-2.95],[.44,-.75],[.7,-.35],[1,-.1]],armZ:[[0,.1],[.26,.7],[.44,-.55],[.7,-.25],[1,.06]],
+  el:[[0,-.4],[.26,-1.55],[.44,-.12],[.7,-.5],[1,-.3]],off:[[0,0],[.26,-.55],[.44,.5],[.7,.25],[1,0]],hips:[[0,0],[.26,-.28],[.44,.32],[1,0]],lunge:[[0,0],[.26,-.25],[.44,1],[.75,.5],[1,0]]};
+// tool chop: bounce off the last hit, raise, bring it down (the hit lands as the cycle wraps)
+const CH={arm:[[0,-.85],[.14,-.55],[.6,-2.95],[.94,-.85],[1,-.85]],el:[[0,-.3],[.14,-.6],[.6,-1.35],[.94,-.2],[1,-.3]],pitch:[[0,.32],[.14,.2],[.6,-.12],[.94,.34],[1,.32]],yaw:[[0,.28],[.6,-.5],[.94,.3],[1,.28]],hit:[[0,1],[.2,.15],[.6,0],[.94,1],[1,1]]};
+const TH={arm:[[0,-2.9],[.45,-1.1],[1,-.3]],yaw:[[0,-.55],[.45,.55],[1,0]]};
+
+/** Pose a rig for this frame. s = {mv speed, dt, t time, atk 0..1 swing progress or -1, wind 0..1 enemy wind-up, strike enemy blow landing, gun, sneak, roll 0..1, dead, deadT, act, flash, vis, charge, stun, recoil, throwing} */
 export function pose(rig,s){
-  const P=rig.P,dt=s.dt,k=Math.min(1,dt*14);
+  const P=rig.P,dt=Math.min(.1,Math.max(0,s.dt));
   if(rig.type==='blob'){const p=1+Math.sin(s.t*2.2)*.05+(s.wind>0?s.wind*.18:0);rig.body.scale.set(p,2-p,p);rig.body.rotation.y+=dt*.2;fade(rig,s);return}
-  const moving=s.mv>.25,speed=Math.min(1.4,s.mv/3.2);if(moving)rig.ph+=dt*(4+s.mv*1.9);
-  const amp=Math.min(1,speed+.3),sw=moving?Math.sin(rig.ph)*.7*amp:0,cw=moving?Math.cos(rig.ph)*amp:0;
-  if(s.dead){rig.death=Math.min(1,rig.death+dt*3.2);
-    if(rig.type==='quad'){rig.body.rotation.z=rig.death*Math.PI/2;rig.body.position.y=rig.death*.14}
-    else{rig.body.rotation.x=lerpA(rig.body.rotation.x,-Math.PI/2,rig.death);rig.body.position.y=rig.death*.1;P.armL.rotation.z=-rig.death*.9;P.armR.rotation.z=rig.death*.7;P.legL.rotation.z=-rig.death*.18;P.legR.rotation.z=rig.death*.22;P.kneeR.rotation.x=rig.death*.5}
-    fade(rig,s);return}
-  if(rig.type==='quad'){
-    for(const[a,b,sg]of[['legFL','legBR',1],['legFR','legBL',-1]]){P[a].rotation.x=sw*sg;P[b].rotation.x=sw*sg;P['k'+a].rotation.x=-Math.max(0,cw*sg)*.9;P['k'+b].rotation.x=Math.max(0,-cw*sg)*.9}
-    rig.body.position.y=moving?Math.abs(Math.sin(rig.ph))*.035:Math.sin(s.t*1.6+rig.ph)*.006;P.head.rotation.x=lerpA(P.head.rotation.x,s.wind>0?-.45:moving?.06:Math.sin(s.t*1.1+rig.ph)*.14,k);P.head.rotation.y=moving?0:Math.sin(s.t*.5+rig.ph)*.25;
-    rig.body.rotation.x=lerpA(rig.body.rotation.x,s.wind>0?-.22:s.charge?.12:0,k);fade(rig,s);return}
-  // ---- humanoids: hips, knees, shoulders, elbows
-  const crawl=rig.type==='crawler';
-  let tL=sw,tR=-sw,kL=moving?Math.max(0,cw)*1.05*amp+.08:.04,kR=moving?Math.max(0,-cw)*1.05*amp+.08:.04;
-  let aL=-sw*.75,aR=sw*.75,eL=-.22-Math.max(0,-sw)*.5,eR=-.22-Math.max(0,sw)*.5,zL=-.06,zR=.06,lean=rig.lean+(moving?.1*speed:0),bodyY=moving?Math.abs(Math.sin(rig.ph))*.03:0,twist=0;
-  if(rig.husk&&!crawl){aL=-1.15+Math.sin(s.t*2+rig.ph)*.12;aR=-1.3+Math.cos(s.t*1.7+rig.ph)*.12;eL=-.35;eR=-.2;lean+=.16;P.head.rotation.z=Math.sin(s.t*1.1+rig.ph)*.16;P.head.rotation.x=.18;tL*=.7;tR*=.7}
-  if(crawl){lean=1.32;bodyY=.05;aL=-2.7+sw*.6;aR=-2.7-sw*.6;eL=-.5-Math.max(0,sw)*.6;eR=-.5-Math.max(0,-sw)*.6;tL=.25+sw*.2;tR=.25-sw*.2;kL=.3;kR=.5;P.head.rotation.x=-.9}
-  if(s.gun){aR=-1.42+(s.recoil>0?-.18:0);eR=-.12;zR=-.1;if(s.gun===2){aL=-1.15;eL=-.75;zL=.55}lean+=.06;twist=s.gun===2?-.3:0}
-  if(s.wind>0){const f=1-s.wind;aR=-2.75+f*.4;eR=-.7;if(rig.husk){aL=-2.6+f*.4;eL=-.6}lean-=.16}
-  if(s.atk>=0){const f=s.atk,q=f<.35?0:Math.min(1,(f-.35)/.28);aR=-2.7+q*3.5;eR=-1.0+q*.85;zR=.25-q*.5;twist=-.55+q*1.2;lean+=.14;aL=.3;eL=-.6}
-  if(s.act){const f=(s.act*2)%1,q=f<.5?0:Math.min(1,(f-.5)/.22);aR=-2.5+q*2.9;eR=-.9+q*.7;lean+=.12+q*.1;aL=-.5;eL=-.8}
-  if(s.throwing>0){aR=-2.9+s.throwing*8;eR=-.5}
-  if(s.sneak){lean+=.38;bodyY-=.13;tL-=.55;tR-=.55;kL+=1.0;kR+=1.0}
-  if(s.stun){P.head.rotation.z=Math.sin(s.t*14)*.25;lean+=.22}
-  if(s.roll>0){rig.body.rotation.x=s.roll*Math.PI*2;rig.body.position.y=.3;P.legL.rotation.x=P.legR.rotation.x=-1.3;P.kneeL.rotation.x=P.kneeR.rotation.x=1.9;P.armL.rotation.x=P.armR.rotation.x=-1;fade(rig,s);return}
-  if(!moving&&!crawl){const br=Math.sin(s.t*1.8+rig.ph);bodyY+=br*.006;P.torso.scale.z=1+br*.025;if(!rig.husk)P.head.rotation.y=lerpA(P.head.rotation.y,Math.sin(s.t*.6+rig.ph)*.22,k)}else{P.torso.scale.z=1;if(!rig.husk)P.head.rotation.y=lerpA(P.head.rotation.y,0,k)}
-  if(P.scarf){P.scarf.rotation.x=lerpA(P.scarf.rotation.x,moving?.55+speed*.7+Math.sin(s.t*9+rig.ph)*.08:.22+Math.sin(s.t*1.7+rig.ph)*.06,k*.6);P.scarf.rotation.z=Math.sin(s.t*(moving?6:1.3)+rig.ph)*(moving?.14:.05)}
-  const fast=s.atk>=0||s.act?1:k*1.6;
-  P.legL.rotation.x=lerpA(P.legL.rotation.x,tL,k*2);P.legR.rotation.x=lerpA(P.legR.rotation.x,tR,k*2);P.kneeL.rotation.x=lerpA(P.kneeL.rotation.x,kL,k*2);P.kneeR.rotation.x=lerpA(P.kneeR.rotation.x,kR,k*2);
-  P.armL.rotation.x=lerpA(P.armL.rotation.x,aL,k*1.6);P.armR.rotation.x=lerpA(P.armR.rotation.x,aR,fast);P.elbowL.rotation.x=lerpA(P.elbowL.rotation.x,eL,k*1.6);P.elbowR.rotation.x=lerpA(P.elbowR.rotation.x,eR,fast);
-  P.armL.rotation.z=lerpA(P.armL.rotation.z,zL,k);P.armR.rotation.z=lerpA(P.armR.rotation.z,zR,k);
-  P.torso.rotation.y=lerpA(P.torso.rotation.y,moving?sw*.12:0,k);
-  rig.body.rotation.x=lerpA(rig.body.rotation.x,lean,k);rig.body.rotation.y=lerpA(rig.body.rotation.y,twist,k*2);rig.body.position.y=lerpA(rig.body.position.y,bodyY,k*2);
-  fade(rig,s);
+  const v=s.mv||0;rig.vS=damp(rig.vS||0,v,9,dt);
+  if(rig.type==='quad'){poseQuad(rig,s,dt,v);fade(rig,s);return}
+  poseHuman(rig,s,dt,v);fade(rig,s);
+}
+function poseQuad(rig,s,dt,v){
+  const P=rig.P,sd=rig.sd||0,w=ease(rig.vS/.9),run=ease((rig.vS-2.6)/2.4),k=1-Math.exp(-18*dt);
+  if(s.dead){rig.death=Math.min(1,rig.death+dt*1.7);const d=rig.death,fall=sat((d-.1)/.7),f2=fall*fall;
+    rig.body.rotation.z=(Math.PI/2)*f2+Math.sin(Math.PI*sat((d-.8)/.2))*.06;rig.body.position.y=mixv(rig.body.position.y,.14*f2,k);
+    for(const key of['legFL','legFR','legBL','legBR']){P[key].rotation.x=damp(P[key].rotation.x,key[3]==='F'?-.5:.4,6,dt);P['k'+key].rotation.x=damp(P['k'+key].rotation.x,.6,6,dt)}P.head.rotation.x=damp(P.head.rotation.x,.5,6,dt);return}
+  rig.ph+=dt*v/(.5+run*.55)*Math.PI;const ph=rig.ph,A=(.45+run*.35)*w;
+  // trot: diagonal pairs together; at a run the hind pair trails the front by a quarter cycle, which reads as a bound
+  for(const[key,sg,off]of[['legFL',1,0],['legBR',1,run*.8],['legFR',-1,0],['legBL',-1,run*.8]]){const p=ph-off,sn=Math.sin(p)*sg,cs=Math.cos(p)*sg,front=key[3]==='F';
+    P[key].rotation.x=mixv(P[key].rotation.x,A*sn,k);P['k'+key].rotation.x=mixv(P['k'+key].rotation.x,(front?-1:1)*w*(.1+(.8+run*.5)*lift(-cs)),k)}
+  const bob=Math.cos(2*ph),br=Math.sin(s.t*1.6+sd);
+  rig.body.position.y=mixv(rig.body.position.y,w*(.018+run*.035)*bob+(1-w)*br*.006,k);
+  rig.body.rotation.x=mixv(rig.body.rotation.x,(s.wind>0?-.24*ease(s.wind*1.4):s.charge?.14:0)+w*run*.07*Math.sin(2*ph+.6),k);
+  rig.body.rotation.z=mixv(rig.body.rotation.z,w*.035*Math.sin(ph),k);
+  P.torso.scale.x=1+(1-w)*br*.02;
+  P.head.rotation.x=mixv(P.head.rotation.x,s.wind>0?-.5*ease(s.wind*1.4):w*(.05-.07*bob)+(1-w)*Math.sin(s.t*1.1+sd)*.14,k);
+  P.head.rotation.y=mixv(P.head.rotation.y,(1-w)*Math.sin(s.t*.5+sd)*.28-w*.05*Math.sin(ph),k);
+}
+function poseHuman(rig,s,dt,v){
+  const P=rig.P,crawl=rig.type==='crawler',husk=rig.husk,sd=rig.sd||0,body=rig.body;
+  // how the body is moving: gait weight, how much of a run, speeding up or slowing, turning
+  const w=ease(rig.vS/1.1),run=husk?0:ease((rig.vS-2.4)/2.2),acc=Math.max(-1,Math.min(1,(v-rig.vS)*.45));
+  const yaw=rig.root.rotation.y;let dy=yaw-(rig._yaw===undefined?yaw:rig._yaw);rig._yaw=yaw;dy=((dy+Math.PI)%(Math.PI*2)+Math.PI*2)%(Math.PI*2)-Math.PI;rig.turn=damp(rig.turn||0,dt>0?Math.max(-6,Math.min(6,dy/dt)):0,7,dt);
+  rig.wSneak=damp(rig.wSneak||0,s.sneak?1:0,9,dt);rig.wAim=damp(rig.wAim||0,s.gun?1:0,12,dt);rig.wTwo=damp(rig.wTwo||0,s.gun===2?1:0,12,dt);
+  if(s.recoil>0)rig.kick=1;rig.kick=damp(rig.kick||0,0,13,dt);if(s.strike&&!rig._st)rig.blow=1;rig._st=!!s.strike;rig.blow=damp(rig.blow||0,0,7,dt);
+  if(s.flash>0&&!rig._fl)rig.flinch=1;rig._fl=s.flash>0;rig.flinch=damp(rig.flinch||0,0,8,dt);
+  // ---- death: knees go, then the body falls and settles
+  if(s.dead){rig.death=Math.min(1,rig.death+dt*1.5);const d=rig.death,buckle=ease(d/.35),fall=sat((d-.12)/.7),f2=fall*fall,side=sd>3?1:-1,settle=Math.sin(Math.PI*sat((d-.82)/.18))*.07;
+    body.rotation.x=-(Math.PI/2)*f2+settle;body.rotation.y=side*.5*f2;body.position.y=-.1*buckle*(1-f2)+.1*f2;
+    P.kneeL.rotation.x=1.2*buckle*(1-f2*.75);P.kneeR.rotation.x=1.0*buckle*(1-f2*.4);P.legL.rotation.x=-.5*buckle*(1-f2);P.legR.rotation.x=-.35*buckle*(1-f2)-.15*f2;P.legL.rotation.z=-.2*f2;P.legR.rotation.z=.26*f2;
+    P.armL.rotation.x=damp(P.armL.rotation.x,-.6*f2,10,dt);P.armR.rotation.x=damp(P.armR.rotation.x,-2.2*f2,10,dt);P.armL.rotation.z=-1.0*f2;P.armR.rotation.z=.6*f2;P.elbowL.rotation.x=damp(P.elbowL.rotation.x,-.5,8,dt);P.elbowR.rotation.x=damp(P.elbowR.rotation.x,-.7,8,dt);
+    P.chest.rotation.x=.25*buckle*(1-f2);P.chest.rotation.y=side*.3*f2;P.head.rotation.x=.3*buckle-.5*f2;P.head.rotation.z=side*.3*f2;return}
+  // ---- gait: the cycle advances with distance, half a turn a step
+  rig.ph+=dt*v/((husk?.5:.62)+run*.55)*Math.PI;
+  const ph=rig.ph,sn=Math.sin(ph),cs=Math.cos(ph),la=Math.sin(ph-.35),t=s.t,br=Math.sin(t*1.7+sd),idle=1-w;
+  const A=(.5+run*.38)*w;
+  let legL=A*sn-.1*w*run,legR=-A*sn-.1*w*run,knL=w*(.1+(.9+run*.75)*lift(-cs)),knR=w*(.1+(.9+run*.75)*lift(cs));
+  let bodyY=w*(.016+run*.028)*Math.cos(2*ph)-w*run*.02+idle*br*.005,bodyX=.014*w*sn+idle*.012*Math.sin(t*.5+sd),lean=rig.lean||0;
+  let hipsYaw=-(.1+run*.1)*w*sn,hipsRoll=(.045+run*.03)*w*cs+idle*.035*Math.sin(t*.5+sd)+Math.max(-.12,Math.min(.12,rig.turn*.022))*w;
+  let chestYaw=(.2+run*.2)*w*sn,chestRoll=-.05*w*cs-idle*.02*Math.sin(t*.5+sd),chestPitch=w*(.04+run*.2)+acc*.13+idle*br*.018;
+  let headYaw=0,headPitch=0,headRoll=0;
+  const armA=(.36+run*.5)*w;
+  let armL=-armA*la+idle*.03*Math.sin(t*.9+sd),armR=armA*la-idle*.03*Math.sin(t*.9+sd+1),zL=-(.07+run*.07),zR=.07+run*.07;
+  let elL=-(.2+run*w*.95+.34*w*Math.max(0,la)),elR=-(.2+run*w*.95+.34*w*Math.max(0,-la));
+  let direct=0;
+  if(husk&&!crawl){   // shamble: arms out, a dragged leg, the trunk lurching over each step
+    armL=-1.15+Math.sin(t*2+sd)*.12+.14*w*sn;armR=-1.3+Math.cos(t*1.7+sd)*.12-.14*w*sn;elL=-.38+.1*Math.sin(t*1.3+sd);elR=-.22;chestPitch+=.18;chestRoll+=.11*w*sn;
+    headRoll=Math.sin(t*1.1+sd)*.17;headPitch=.2;legR*=.6;knR*=.45;bodyX+=.02*w*sn}
+  if(crawl){lean=1.32;bodyY=.05;armL=-2.7+sn*.6*Math.max(.25,w);armR=-2.7-sn*.6*Math.max(.25,w);elL=-.5-Math.max(0,sn)*.6;elR=-.5-Math.max(0,-sn)*.6;legL=.25+sn*.2;legR=.25-sn*.2;knL=.3;knR=.5;headPitch=-.9;chestPitch=0;chestRoll=.16*sn;chestYaw=.1*sn;hipsYaw=0;hipsRoll=0}
+  // ---- stances
+  const sk=rig.wSneak;if(sk>.01){bodyY-=.13*sk;legL-=.55*sk;legR-=.55*sk;knL+=1.0*sk;knR+=1.0*sk;chestPitch+=.4*sk;headPitch-=.3*sk;armL-=.3*sk;armR-=.3*sk;elL-=.5*sk;elR-=.5*sk}
+  const ak=rig.wAim;if(ak>.01){const tk=rig.wTwo,kick=rig.kick;armR=mixv(armR,-1.42-kick*.24,ak);elR=mixv(elR,-.12-kick*.2,ak);zR=mixv(zR,-.1,ak);chestYaw=chestYaw*(1-.65*ak)-.3*tk;chestPitch+=.05*ak-kick*.07*ak;
+    armL=mixv(armL,-1.15-kick*.1,tk);elL=mixv(elL,-.75,tk);zL=mixv(zL,.55,tk)}
+  // ---- actions
+  if(s.wind>0){const f=ease(s.wind*1.5);armR=mixv(armR,-2.85,f);elR=mixv(elR,-.9,f);zR+=.3*f;if(husk){armL=mixv(armL,-2.6,f);elL=mixv(elL,-.7,f)}chestPitch-=.2*f;chestYaw-=.3*f;bodyY-=.03*f}
+  const bl=rig.blow;if(bl>.01){armR=mixv(armR,-.55,bl);elR=mixv(elR,-.15,bl);if(husk)armL=mixv(armL,-.6,bl);chestPitch+=.36*bl;chestYaw+=.4*bl;bodyY-=.04*bl;legL-=.3*bl*idle;knL+=.3*bl*idle}
+  if(s.atk>=0){const f=s.atk,ln=key(f,SW.lunge)*(1-w*.7);armR=key(f,SW.arm);zR=key(f,SW.armZ);elR=key(f,SW.el);chestYaw=chestYaw*.3+key(f,SW.yaw);chestPitch+=key(f,SW.pitch);hipsYaw+=key(f,SW.hips);
+    armL=mixv(armL,key(f,SW.off),.85);elL=mixv(elL,-.7,.6);legL-=.42*ln;knL+=.45*Math.max(0,ln);legR+=.3*ln;bodyY-=.045*Math.max(0,ln);direct=1}
+  else if(s.act){const f=(s.act*2)%1,hit=key(f,CH.hit);armR=key(f,CH.arm);elR=key(f,CH.el);armL=key(f,CH.arm)*.78;elL=key(f,CH.el)-.55;zL=.28;zR=-.12;chestPitch+=key(f,CH.pitch);chestYaw=key(f,CH.yaw);
+    knL+=.28*hit;knR+=.28*hit;legL-=.2*hit;legR-=.2*hit;bodyY-=.035*hit;direct=1}
+  if(s.throwing>0){const f=sat(1-s.throwing/.25);armR=key(f,TH.arm);elR=-.5;chestYaw+=key(f,TH.yaw);direct=1}
+  if(s.stun){headRoll=Math.sin(t*14)*.25;chestPitch+=.22;knL+=.2;knR+=.2}
+  const fl=rig.flinch;if(fl>.01){chestPitch-=.3*fl;headPitch-=.22*fl;bodyY-=.03*fl;zL-=.3*fl;zR+=.3*fl;elL-=.3*fl;elR-=.3*fl}
+  if(s.roll>0){const r=s.roll,tuck=Math.sin(Math.PI*sat(r));body.rotation.x=r*Math.PI*2;body.position.y=.12+.2*tuck;legL=legR=-1.3*tuck;knL=knR=1.9*tuck;armL=armR=-1.0*tuck;elL=elR=-1.2*tuck;chestPitch=.55*tuck;headPitch=.4*tuck;direct=2}
+  // the head stays on the horizon while the trunk works under it
+  if(!crawl){headYaw+=-(chestYaw+hipsYaw)*.8+(husk?0:idle*.22*Math.sin(t*.6+sd));headPitch+=-chestPitch*.55;headRoll+=-(chestRoll+hipsRoll)*.6}
+  // ---- apply: cyclic joints follow closely, actions follow their keys exactly
+  const rc=1-Math.exp(-(direct?40:20)*dt),ra=1-Math.exp(-(direct?60:22)*dt),set=(o,ax,val,k)=>{o.rotation[ax]+=(val-o.rotation[ax])*k};
+  set(P.legL,'x',legL,rc);set(P.legR,'x',legR,rc);set(P.kneeL,'x',knL,rc);set(P.kneeR,'x',knR,rc);P.legL.rotation.z*=1-rc;P.legR.rotation.z*=1-rc;
+  set(P.armL,'x',armL,ra);set(P.armR,'x',armR,ra);set(P.armL,'z',zL,ra);set(P.armR,'z',zR,ra);set(P.elbowL,'x',elL,ra);set(P.elbowR,'x',elR,ra);
+  set(P.hips,'y',hipsYaw,rc);set(P.hips,'z',hipsRoll,rc);set(P.chest,'x',chestPitch,ra);set(P.chest,'y',chestYaw,ra);set(P.chest,'z',chestRoll,rc);
+  set(P.head,'x',headPitch,rc);set(P.head,'y',headYaw,rc);set(P.head,'z',headRoll,rc);
+  P.torso.scale.z=1+idle*br*.03;
+  if(direct!==2){set(body,'x',lean,rc);body.rotation.y*=1-rc;body.position.y+=(bodyY-body.position.y)*rc}body.position.x+=(bodyX-body.position.x)*rc;
+  if(P.scarf){set(P.scarf,'x',.2+w*(.45+run*.7)+Math.max(0,acc)*.4+Math.sin(t*(2+w*7)+sd)*(.05+w*.06),1-Math.exp(-6*dt));P.scarf.rotation.z=Math.sin(t*(1.3+w*5)+sd)*(.05+w*.1)-rig.turn*.05}
 }
 function fade(rig,s){
   const m=rig.mat,fl=s.flash>0?1:0;if(m._fl!==fl){m._fl=fl;m.emissive.setRGB(fl*.55,fl*.5,fl*.45)}

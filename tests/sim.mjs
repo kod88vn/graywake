@@ -9,7 +9,7 @@ import {ENEMIES} from '../js/data/enemies.js';
 import {LOCATIONS,SITES} from '../js/data/world.js';
 import {EVENTS} from '../js/data/events.js';
 import {STORY} from '../js/data/progress.js';
-import {G,give,count,craft,place,upgrade,demolish,repair,equip,useItem,quickUse,learnPerk,derive,canPlace,slotCount,freeSlots,sortInv,HOME_W} from '../js/sim/core.js';
+import {G,give,count,craft,place,upgrade,demolish,repair,moveObj,rotateObj,canMove,equip,useItem,quickUse,learnPerk,derive,canPlace,slotCount,freeSlots,sortInv,HOME_W} from '../js/sim/core.js';
 import {genZone,field,siteDef,blockAt} from '../js/sim/zone.js';
 import {spawnActor,enemiesAlive,populate,interact,findInteract,lootAll,openLoot,plant} from '../js/sim/actors.js';
 import * as World from '../js/sim/world.js';
@@ -95,6 +95,16 @@ safe('build',()=>{
   T.ok(learnPerk(S,'thick')&&derive(S).maxHp===112,'perk raises max health');
   give(S,'seed_carrot',3);place(S,'garden',cx-1,cy-2);T.ok(plant(Z,(cy-2)*Z.w+cx-1,'seed_carrot'),'plant a seed');
   place(S,'collector',cx-2,cy-2);place(S,'spikes',cx,cy+6);place(S,'spikes',cx+1,cy+6);
+});
+// ---- move and rotate what is built
+safe('move rotate',()=>{
+  const S=G.S,Z=G.Z;let from=-1;for(let i=0;i<Z.obj.length;i++){const o=Z.obj[i];if(o&&o.inv&&OBJ[o.k].store){from=i;break}}T.ok(from>=0,'there is a storage box to move');
+  const o=Z.obj[from];o.inv[0]={id:'stone',n:3};let tx=-1,ty=-1;for(let r=2;r<12&&tx<0;r++)for(let dx=-r;dx<=r&&tx<0;dx++){const x=from%Z.w+dx,y=Math.floor(from/Z.w)+r;if(canMove(S,from,x,y)===null&&!Z.obj[y*Z.w+x]){tx=x;ty=y}}
+  T.ok(moveObj(S,from,tx,ty,1)&&!Z.obj[from]&&Z.obj[ty*Z.w+tx]===o&&o.r===1&&o.inv[0]&&o.inv[0].n===3,'a structure moves to a free tile with its contents and facing');
+  T.ok(canMove(S,ty*Z.w+tx,cx,cy)!==null||!Z.obj[cy*Z.w+cx],'an occupied tile refuses it');T.ok(canMove(S,ty*Z.w+tx,0,0)==='Too close to the tree line','and so does the tree line');
+  const r0=o.r;T.ok(rotateObj(S,ty*Z.w+tx)&&o.r===(r0+1)%4,'a structure turns a quarter turn in place');
+  const tree=Z.obj.findIndex(q=>q&&!OBJ[q.k].cost);T.ok(!rotateObj(S,tree)&&canMove(S,tree,tx+1,ty)!==null,'things you did not build cannot be turned or moved');o.inv[0]=null;
+  T.ok(moveObj(S,ty*Z.w+tx,from%Z.w,Math.floor(from/Z.w),0)&&Z.obj[from]===o,'and it moves back');
 });
 // ---- combat
 safe('combat',()=>{

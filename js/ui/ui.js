@@ -1,5 +1,5 @@
 // The interface: HUD, toasts, build mode, title screen, and the plumbing that opens sheets and the map.
-import {G,VERSION,weaponDef,count,quickUse,place,upgrade,repair,demolish,canPlace,canUpgrade,buildCost,buildUnlocked,repairCost,maxHp,inBuildArea,freeSlots} from '../sim/core.js';
+import {G,VERSION,weaponDef,count,quickUse,place,upgrade,repair,demolish,rotateObj,moveObj,canMove,canPlace,canUpgrade,buildCost,buildUnlocked,repairCost,maxHp,inBuildArea,freeSlots} from '../sim/core.js';
 import * as World from '../sim/world.js';
 import {story,goalProgress,goalText,contractReady} from '../sim/quests.js';
 import {autoPlan} from '../sim/actors.js';
@@ -15,7 +15,8 @@ import {PANELS} from './panels.js';
 import {MapScreen} from './map.js';
 
 let api,cur=null,curArg=null,curTab=null,hudT=0,miniT=0,questT=0,deathT=0,needHud=true,hints=[],hintT=0;
-const B={tool:'place',cat:'base',kind:'wall_stick',rot:0,last:-1,hover:null};
+const B={tool:'place',cat:'base',kind:'wall_stick',rot:0,last:-1,hover:null,moving:null};
+const FACING=['south','east','north','west'];
 const DIRS=['north','east','south','west'];
 export const UI={init,title,start,zone,frame,onEvent,dirty(){needHud=true;if(cur&&PANELS[cur].live)refresh()},hot,buildPointer,resize(){if(G.mode==='map')MapScreen.draw()},toast,open,close,refresh,banner,get panel(){return cur}};
 bus.UI=UI;bus.api=()=>api;
@@ -33,7 +34,7 @@ function init(a){
   $('btns').addEventListener('click',e=>{const el=e.target.closest('[data-h]');if(el)hot(el.dataset.h)});
   $('weap').addEventListener('click',e=>{const el=e.target.closest('[data-w]');if(!el)return;if(el.dataset.w==='auto'){hot('auto')}else if(el.dataset.w==='w1'||el.dataset.w==='w2'){G.S.p.active=el.dataset.w;bus.emitEq();needHud=true}});
   $('build').addEventListener('click',e=>{const el=e.target.closest('[data-b]');if(!el)return;const[k,v]=el.dataset.b.split(':');
-    if(k==='tool'){if(v==='done')return buildClose();if(v==='rot'){B.rot=(B.rot+1)%4;return}B.tool=v}else if(k==='cat'){B.cat=v;const first=pieces()[0];if(first)B.kind=first.id;B.tool='place'}else if(k==='kind'){B.kind=v;B.tool='place'}
+    if(k==='tool'){if(v==='done')return buildClose();if(v==='rot'){hot('rotate');return}B.tool=v;B.moving=null}else if(k==='cat'){B.cat=v;const first=pieces()[0];if(first)B.kind=first.id;B.tool='place'}else if(k==='kind'){B.kind=v;B.tool='place'}
     renderBuild();sfx('ui_tap')});
   // the mouse wheel moves the build bar sideways, and wheel or keys over a sheet scroll it rather than the game
   $('bpieces').addEventListener('wheel',e=>{e.preventDefault();$('bpieces').scrollLeft+=e.deltaY||e.deltaX},{passive:false});
@@ -115,7 +116,7 @@ function close(){if(!cur)return;sfx('ui_close');closeQuiet();if(G.mode==='map')M
 // ---------------------------------------------------------------- hot-keys
 function hot(k){
   const S=G.S;if(!S||G.mode==='menu')return;const Z=G.Z;
-  if(k==='esc'){if(cur){if(!PANELS[cur].modal)close()}else if(G.build)buildClose();else open('menu');return}
+  if(k==='esc'){if(cur){if(!PANELS[cur].modal)close()}else if(G.build){if(B.moving!=null){B.moving=null;toast('Put back','info')}else buildClose()}else open('menu');return}
   if(cur){if(PANELS[cur].modal)return;const same={inv:'inv',craft:'craft',journal:'journal',camp:'camp',menu:'menu'}[k]===cur;close();if(same)return}
   if(k==='inv')open('inv');else if(k==='journal')open('journal');else if(k==='menu')open('menu');
   else if(k==='craft'){const h=Z&&Z.hint;open('craft',h&&h.type==='station'?h.i:null)}
@@ -124,18 +125,20 @@ function hot(k){
   else if(G.mode!=='play'||!Z)return;
   else if(k==='swap'){S.p.active=S.p.active==='w1'?'w2':'w1';bus.emitEq();sfx('equip');needHud=true}
   else if(k==='auto'){G.auto=!G.auto;if(Z.pl){Z.pl.auto=null;Z.pl.fight=null}if(G.auto){const pl=autoPlan(Z);toast('Auto-gather on'+(pl.using.length?': using '+pl.using.join(', ').toLowerCase():': by hand only'),'info');if(pl.skipping.length)toast('Skipping '+pl.skipping.slice(0,3).join(', '),'bad')}else toast('Auto-gather off','info');needHud=true}
-  else if(k==='rotate'){B.rot=(B.rot+1)%4}
+  else if(k==='rotate'){if(!G.build)return;
+    // placing or carrying: turn the piece in hand. Otherwise turn the structure under the pointer where it stands.
+    if(B.tool==='place'||(B.tool==='move'&&B.moving!=null)){B.rot=(B.rot+1)%4;sfx('ui_tap')}else if(B.hover){const[tx,ty]=B.hover,i=ty*Z.w+tx;if(tx>=0&&ty>=0&&tx<Z.w&&ty<Z.h&&Z.obj[i]&&OBJ[Z.obj[i].k].cost)rotateObj(S,i);else toast('Point at one of your structures to turn it','info')}}
   else if(k==='leave'){if(Z.exit)World.leaveZone();else toast('Walk to the edge of the area to leave','info')}
   else if(k.startsWith('q_')){quickUse(S,k.slice(2));needHud=true}
 }
 
 // ---------------------------------------------------------------- build mode
 const pieces=()=>Object.values(OBJ).filter(o=>o.cost&&o.cat===B.cat).sort((a,b)=>a.lv-b.lv);
-function buildOpen(){G.build=B;G.auto=false;B.last=-1;$('build').hidden=false;$('bot').hidden=true;renderBuild();sfx('ui_open')}
+function buildOpen(){G.build=B;G.auto=false;B.last=-1;B.moving=null;$('build').hidden=false;$('bot').hidden=true;renderBuild();sfx('ui_open')}
 function buildClose(){if(!G.build)return;G.build=null;$('build').hidden=true;$('bot').hidden=false;View.setGhost(null)}
 function renderBuild(){
-  const S=G.S,tools=[['place','Place'],['upgrade','Upgrade'],['repair','Repair'],['remove','Remove']];
-  $('btool').innerHTML=tools.map(([id,l])=>`<button data-b="tool:${id}" class="${B.tool===id?'on':''}">${l}</button>`).join('')+`<button data-b="tool:rot">Rotate</button><button data-b="tool:done" style="margin-left:auto;border-color:var(--amber)!important;color:var(--amber2)">Done</button>`;
+  const S=G.S,tools=[['place','Place'],['move','Move'],['turn','Rotate'],['upgrade','Upgrade'],['repair','Repair'],['remove','Remove']];
+  $('btool').innerHTML=tools.map(([id,l])=>`<button data-b="tool:${id}" class="${B.tool===id?'on':''}">${l}</button>`).join('')+(B.tool==='place'||B.tool==='move'?`<button data-b="tool:rot" title="R or right-click">Turn piece ↻</button>`:'')+`<button data-b="tool:done" style="margin-left:auto;border-color:var(--amber)!important;color:var(--amber2)">Done</button>`;
   $('bcat').innerHTML=BUILD_CATS.map(([id,l])=>`<button data-b="cat:${id}" class="${B.cat===id?'on':''}">${l}</button>`).join('');
   const list=pieces().filter(o=>o.bp?S.p.known[o.bp]||o.lv<=S.p.lvl+6:o.lv<=S.p.lvl+6);
   $('bpieces').innerHTML=list.map(o=>{const ok=buildUnlocked(S,o.id);return`<button class="bp ${B.kind===o.id&&B.tool==='place'?'on':''} ${ok?'':'off'}" data-b="kind:${o.id}" title="${esc(o.d||o.n)}"><b>${esc(o.n)}</b>${ok?chips(buildCost(o.id)):`<div class="ing"><span class="no">${o.bp&&!S.p.known[o.bp]?'Schematic':'Level '+o.lv}</span></div>`}</button>`}).join('');
@@ -144,6 +147,11 @@ function renderBuild(){
 function buildApply(tx,ty){
   const S=G.S,Z=G.Z,i=ty*Z.w+tx;if(tx<0||ty<0||tx>=Z.w||ty>=Z.h)return;let ok=false;
   if(B.tool==='place')ok=place(S,B.kind,tx,ty,B.rot);
+  else if(B.tool==='move'){
+    if(B.moving==null){const o=Z.obj[i];if(o&&OBJ[o.k].cost){B.moving=i;B.rot=o.r||0;sfx('ui_tap');toast('Picked up '+OBJ[o.k].n.toLowerCase()+': tap where it should go','info')}else{toast('Tap one of your structures to pick it up','info')}}
+    else if(!Z.obj[B.moving])B.moving=null;
+    else if(moveObj(S,B.moving,tx,ty,B.rot)){B.moving=null;ok=true}}
+  else if(B.tool==='turn')ok=rotateObj(S,i);
   else if(B.tool==='upgrade')ok=upgrade(S,i,!Z.obj[i]&&!!Z.fl[i]);
   else if(B.tool==='repair'){if(Z.obj[i])ok=repair(S,i)}
   else if(B.tool==='remove')ok=demolish(S,i,!Z.obj[i]&&!!Z.fl[i]);
@@ -152,15 +160,19 @@ function buildApply(tx,ty){
 function buildPointer(type,x,y,down){
   if(!G.build||!G.Z)return;const p=View.pick(x,y);if(!p)return;const tx=Math.floor(p.x),ty=Math.floor(p.y),i=ty*G.Z.w+tx;B.hover=[tx,ty];
   if(type==='up'){B.last=-1;return}
-  if((type==='down'||(type==='move'&&down))&&i!==B.last){B.last=i;buildApply(tx,ty)}
+  // painting by dragging is for placing and clearing; moving and turning act once per tap
+  if((type==='down'||(type==='move'&&down&&B.tool!=='move'&&B.tool!=='turn'))&&i!==B.last){B.last=i;buildApply(tx,ty)}
 }
 function buildFrame(){
   const S=G.S,Z=G.Z,h=B.hover;let info='';
   if(B.tool==='place'){const d=OBJ[B.kind];info=`<b style="color:var(--ink)">${esc(d.n)}</b> · ${esc(d.d||(d.wall?'Blocks everything. '+d.hp+' health.':d.door?'You walk through it. They have to break it.':d.floor?'Flooring.':d.store?d.store+' slots of storage.':d.station?'Crafting station.':d.trap?'Triggers when something walks over it.':d.turret?'Fires on anything hostile in range. Needs loading.':''))}`}
-  else info={upgrade:'Tap a structure to raise it to the next tier.',repair:'Tap a damaged structure to mend it.',remove:'Tap a structure to take it down. Half the materials come back.'}[B.tool];
+  else info={move:B.moving!=null&&Z.obj[B.moving]?`Carrying <b style="color:var(--ink)">${esc(OBJ[Z.obj[B.moving].k].n)}</b>: tap a free tile to set it down. Esc puts it back.`:'Tap a structure to pick it up, then tap where it should go. Moving is free and keeps its contents.',turn:'Tap a structure to turn it a quarter turn. R does the same to whatever you point at.',upgrade:'Tap a structure to raise it to the next tier.',repair:'Tap a damaged structure to mend it.',remove:'Tap a structure to take it down. Half the materials come back.'}[B.tool];
+  if(B.tool==='place'||(B.tool==='move'&&B.moving!=null))info+=` · facing ${FACING[B.rot]}`;
   if(h){const[tx,ty]=h,i=ty*Z.w+tx;let why=null,kind='*';
     if(tx<0||ty<0||tx>=Z.w||ty>=Z.h)why='Out of bounds';
     else if(B.tool==='place'){kind=B.kind;why=canPlace(S,B.kind,tx,ty)}
+    else if(B.tool==='move'){if(B.moving!=null&&Z.obj[B.moving]){kind=Z.obj[B.moving].k;why=canMove(S,B.moving,tx,ty)}else{const o=Z.obj[i];if(!(o&&OBJ[o.k].cost))why='Nothing of yours here'}}
+    else if(B.tool==='turn'){const o=Z.obj[i];if(!(o&&OBJ[o.k].cost))why='Nothing of yours here';else info+=` · ${esc(OBJ[o.k].n)} faces ${FACING[o.r||0]}`}
     else if(B.tool==='upgrade'){why=canUpgrade(S,i,!Z.obj[i]&&!!Z.fl[i]);const k=Z.obj[i]?Z.obj[i].k:Z.fl[i];if(k&&OBJ[k].up)info=`${esc(OBJ[k].n)} → <b style="color:var(--ink)">${esc(OBJ[OBJ[k].up].n)}</b> ${chips(buildCost(OBJ[k].up))}`}
     else if(B.tool==='repair'){const o=Z.obj[i];if(!o||!OBJ[o.k].cost)why='Nothing to repair';else{const c=repairCost(o);if(!c)why='No damage';else info=`${esc(OBJ[o.k].n)} ${Math.round(o.hp)}/${maxHp(o.k)} ${chips(c)}`}}
     else if(B.tool==='remove'){const o=Z.obj[i];if(!(o&&OBJ[o.k].cost)&&!Z.fl[i])why='Nothing of yours here'}

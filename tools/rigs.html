@@ -17,9 +17,18 @@ const list=[];const outfits=[['player',{}],['hide',{head:'hide_hood',body:'hide_
 for(const[n,eq,w]of outfits){const e={};for(const k in eq)e[k]={id:eq[k]};const r=playerRig(e);if(w)setWeapon(r,w);list.push([n,r,w&&['rifle','shotgun'].includes(w)?2:0])}
 let i=0;for(const k in ENEMIES){for(let v=0;v<(ENEMIES[k].rig[1].vary?3:1);v++)list.push([k,rigFor(ENEMIES[k],++i*7+3),0])}
 {const sv=+qs.get('surv')||0;for(let k=0;k<sv;k++)list.push(['survivor',rigFor({rig:['human',{}],ai:'follow'},k*13+5),0])}
+// &strip=walk|run|sneak|attack|chop|die|husk : one figure at ten successive moments of that motion, left to right (a film strip, since stills cannot show movement)
+const strip=qs.get('strip');if(strip){list.length=0;const N=10;for(let i=0;i<N;i++){const husk=strip==='husk',r=husk?rigFor(ENEMIES.shambler,11):playerRig(strip==='chop'?{w1:{id:'hatchet_stone'}}:{});if(strip==='attack')setWeapon(r,'machete');if(strip==='chop')setWeapon(r,'hatchet');r.ph=0;r.sd=1;
+  const base={dt:1/60,t:0,mv:0,atk:-1,wind:0,gun:0,dead:false,deadT:0,flash:0,vis:1},run=(o,n)=>{for(let k=0;k<n;k++){base.t+=1/60;pose(r,Object.assign({},base,o))}};
+  if(strip==='walk'||strip==='run'||strip==='sneak'||husk)run({mv:strip==='run'?5.2:strip==='sneak'?1.7:husk?1.6:3.2,sneak:strip==='sneak'},90+i*(strip==='run'?3:husk?7:4));
+  else if(strip==='attack'){run({},40);for(let k=0;k<=i*3;k++){base.t+=1/60;pose(r,Object.assign({},base,{atk:Math.min(1,k/27)}))}}
+  else if(strip==='chop'){run({},40);for(let k=0;k<=i*4;k++){base.t+=1/60;pose(r,Object.assign({},base,{act:(k/40)*.5}))}}
+  else if(strip==='die'){run({mv:3},60);run({dead:true},i*5)}
+  r._strip=1;list.push([strip+' '+i,r,0])}}
 const q=qs.get('q');if(q){const keep=list.filter(l=>q.split(',').some(t=>l[0].includes(t)));list.length=0;list.push(...keep)}
 const cols=Math.min(10,list.length),gap=1.5,rows=Math.ceil(list.length/cols),marks=[];
 list.forEach(([n,r,gun],j)=>{const x=(j%cols-(cols-1)/2)*gap,z=(Math.floor(j/cols)-(rows-1)/2)*2.1;r.root.position.set(x,0,z);r.root.rotation.y=.5;S.add(r.root);marks.push([n,x,z]);
+  if(r._strip){r.root.rotation.y=+qs.get('ry')||.9;return}
   const st={dt:.2,t:j*.7,mv:mode==='walk'?3.4:0,atk:mode==='attack'?.55:-1,wind:0,gun,dead:mode==='dead',deadT:1,flash:0,vis:1};r.ph=1.1+j;for(let k=0;k<12;k++)pose(r,st)});
 const cam=new THREE.PerspectiveCamera(+qs.get('fov')||(qs.get('close')?16:30),1,.1,200);
 function draw(){const w=innerWidth,h=innerHeight;R.setSize(w,h,false);cam.aspect=w/h;cam.updateProjectionMatrix();const span=Math.max(cols*gap*.6,rows*2.1*.9)+1;if(qs.get('low')){cam.position.set(0,span*.5+.7,span*1.5);cam.lookAt(0,+qs.get('y')||.7,0)}else{cam.position.set(0,span*1.15,span*1.0);cam.lookAt(0,.5,0)}post.render(S,cam);
