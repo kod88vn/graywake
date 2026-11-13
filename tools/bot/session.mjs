@@ -136,12 +136,17 @@ C.use=async a=>{const before=await ev(`(()=>{const e=document.getElementById('pr
   const r=await during(.5);if(r.why)return{msg:`pressed E (${before||'nothing was in reach'}): ${r.why}`};
   if(r.p.act){const r2=await during(clamp(num(a[0],10),1,25),{each:p=>p.act?null:'done'});return{msg:`pressed E (${before}) and kept at it for ${(r2.secs+.5).toFixed(1)} s`+(r2.why&&r2.why!=='done'?', stopped: '+r2.why:'')}}
   return{msg:`pressed E (${before||'nothing was in reach, so nothing happened'})`}};
-C.attack=async a=>{const secs=clamp(num(a[0],3),.3,12);let quiet=0,swung=false;
-  const aim=async()=>{const f=await ev('__bot.nearestFoe(7)');if(!f)return null;const s=await ev(`__bot.screen(${f.x},${f.y},.6)`);await mouseTo(clamp(s.x,4,W-4),clamp(s.y,4,H-4));return f};
-  const f0=await aim();
-  await mousePress();
-  const r=await during(secs,{fight:true,each:async()=>{const f=await aim();swung=true;if(!f||f.d>5){if(++quiet>6)return f?'nothing left in reach':'nothing left to fight'}else quiet=0}});
-  await mouseRelease();return{msg:(f0?`fought the ${f0.name} for ${r.secs.toFixed(1)} s`:`swung at the air for ${r.secs.toFixed(1)} s (nothing hostile within 7 tiles)`)+(r.why?': '+r.why:'')}};
+C.attack=async a=>{const secs=clamp(num(a[0],3),.3,12);let quiet=0,navT=-9,walked=false,hit=false,name=null,stuck=null,mark=null,markT=0;
+  // fight like a person: nothing is swung at through a wall. Walk round to a foe that is out of reach or out of sight, then aim and hold the button.
+  const r=await during(secs,{fight:true,each:async(p,p0,t)=>{const f=await ev('__bot.fight()');
+    if(!f){if(mouseDown)await mouseRelease();await steerKeys(0,0);return ++quiet>5?'nothing left to fight':null}quiet=0;name=name||f.name;
+    if(f.blocked||f.d>f.reach){if(mouseDown)await mouseRelease();walked=true;if(t-navT>.5){navT=t;await ev(`__bot.navTo(${f.x},${f.y})`)}const s=await ev('__bot.steer()');
+      if(s.done==='no way there'||s.done==='lost'){stuck='there is no way round to the '+f.name+' from here (it is behind a wall)';return stuck}
+      if(!s.done){const l=Math.max(.01,Math.hypot(s.dx,s.dy));await steerKeys(s.dx/l,s.dy/l)}
+      if(!mark){mark=p;markT=t}else if(t-markT>1.5){if(moved(p,mark)<.25){stuck='cannot get any closer to the '+f.name;return stuck}mark=p;markT=t}return null}
+    await steerKeys(0,0);mark=null;const sc=await ev(`__bot.screen(${f.x},${f.y},.6)`);await mouseTo(clamp(sc.x,4,W-4),clamp(sc.y,4,H-4));if(!mouseDown)await mousePress();hit=true;return null}});
+  if(mouseDown)await mouseRelease();await steerKeys(0,0);
+  return{msg:(name?(hit?`fought the ${name} for ${r.secs.toFixed(1)} s`+(walked?' (closing in first)':''):`went after the ${name} for ${r.secs.toFixed(1)} s without getting a blow in`):`nothing hostile within ten tiles, so nothing was attacked`)+(r.why?': '+r.why:'')}};
 C.dodge=async a=>{const way=WAYS[String(a[0]||'').toLowerCase()];if(way)await steerKeys(way[0],way[1]);await sleep(60);await press('space');const r=await during(.6,{fight:true});await steerKeys(0,0);return{msg:'rolled'+(way?' '+String(a[0]).toUpperCase():'')+(r.why?': '+r.why:'')}};
 C.sneak=async a=>{sneak=String(a[0]).toLowerCase()!=='off';if(sneak)await keyDown('shift');else await keyUp('shift');return{msg:'sneaking '+(sneak?'on (slower, harder to notice)':'off')}};
 C.key=async a=>{if(!keyDef(a[0]))return{msg:'unknown key "'+a[0]+'". Keys: i c b j l m f q r e 1 2 3 4 esc tab space enter'};await press(a[0]);const r=await during(clamp(num(a[1],.45),.2,5));return{msg:'pressed '+String(a[0]).toUpperCase()+(r.why?': '+r.why:'')}};

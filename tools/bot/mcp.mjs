@@ -11,7 +11,7 @@ const TOOLS=[
   T('walk','Hold a direction for some seconds (WASD). Stops early if something blocks you or something important happens.',{direction:str(DIR),seconds:numb('0.2 to 8. Default 1.5. You cover about 4 tiles a second.')},['direction']),
   T('goto','Walk to a tile, or to the nearest thing with a name (e.g. "birch", "crate", "campfire"), finding the way round obstacles. Stops next to solid things, ready for `use`.',{target:str('A name from the "Around you" list, or "X Y" tile numbers.')},['target']),
   T('use','Press E: gather, search, open, use whatever is in reach (the line "In reach — E would: ..." says what). Gathering keeps going until the thing is used up.',{seconds:numb('Longest time to keep gathering. Default 10.')}),
-  T('attack','Aim the mouse at the nearest hostile thing and hold the attack button. Use `goto` or `walk` first to get close with a melee weapon.',{seconds:numb('0.3 to 12. Default 3.')}),
+  T('attack','Fight the nearest hostile thing: walks round walls and closes to the reach of the weapon in hand, then aims the mouse at it and holds the attack button. Nothing is attacked through a wall.',{seconds:numb('0.3 to 12. Default 3.')}),
   T('dodge','Roll (Space), optionally in a direction. You cannot be hit during the roll.',{direction:str(DIR)}),
   T('sneak','Hold or release Shift: slower, and much harder for enemies to notice.',{on:{type:'boolean'}},['on']),
   T('key','Press a keyboard key. i pack · c craft by hand · b build mode · j journal · l camp ledger · m leave area (at the edge) · f auto mode on/off · q swap weapon · r rotate (build) · 1 2 3 4 quick heal/eat/drink/antidote · esc close · tab pack.',{key:str('One key name.'),seconds:numb('How long to let the game run afterwards. Default 0.45.')},['key']),

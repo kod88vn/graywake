@@ -137,7 +137,7 @@ function hot(k){
 
 // ---------------------------------------------------------------- build mode
 const pieces=()=>Object.values(OBJ).filter(o=>o.cost&&o.cat===B.cat).sort((a,b)=>a.lv-b.lv);
-function buildOpen(){G.build=B;G.auto=false;B.last=-1;B.moving=null;$('build').hidden=false;$('bot').hidden=true;renderBuild();sfx('ui_open')}
+function buildOpen(){G.build=B;G.auto=false;B.last=-1;B.moving=null;B.tool='place';B.just=null;$('build').hidden=false;$('bot').hidden=true;renderBuild();sfx('ui_open')}
 function buildClose(){if(!G.build)return;G.build=null;$('build').hidden=true;$('bot').hidden=false;View.setGhost(null)}
 function renderBuild(){
   const S=G.S,tools=[['place','Place'],['move','Move'],['turn','Rotate'],['upgrade','Upgrade'],['repair','Repair'],['remove','Remove']];

@@ -1,11 +1,11 @@
 // Runs inside the bot's game page (served only by tools/bot/session.mjs, never published). It reads what a player could see into plain data,
 // numbers the things that can be clicked, and helps the session steer by key presses. It never changes game state: every action the bot takes
 // goes through real key and mouse events sent by the session.
-import {G} from '../js/sim/core.js';
+import {G,weaponDef} from '../js/sim/core.js';
 import {OBJ} from '../js/data/objects.js';
 import {ITEMS} from '../js/data/items.js';
 import {interactInfo} from '../js/sim/actors.js';
-import {field,pathAim,walkClear} from '../js/sim/zone.js';
+import {field,pathAim,walkClear,los} from '../js/sim/zone.js';
 import {MapScreen} from '../js/ui/map.js';
 
 const $=id=>document.getElementById(id),vis=el=>!!el&&!el.hidden&&el.offsetParent!==null,txt=el=>el?el.innerText.replace(/\s+\n/g,'\n').replace(/[ \t]+/g,' ').trim():'';
@@ -127,6 +127,11 @@ B.steer=()=>{const Z=G.Z,nv=B.nav;if(!Z||!nv||nv.zone!==Z.id)return{done:'lost'}
 /** Page pixels of a point in the world (h metres above the ground). */
 B.screen=(x,y,h=0)=>{const s=GW.View.project(x,y,h),r=$('cv').getBoundingClientRect();return{x:s.x+r.left,y:s.y+r.top,on:s.x>=0&&s.y>=0&&s.x<=r.width&&s.y<=r.height}};
 B.nearestFoe=(maxD=9)=>{const Z=G.Z,p=Z&&Z.pl;if(!p)return null;let b=null,bd=maxD;for(const a of Z.actors){if(a.pl||a.dead||a.team!==1||a.vis<.5)continue;const d=Math.hypot(a.x-p.x,a.y-p.y);if(d<bd){bd=d;b=a}}return b?{x:b.x,y:b.y,d:bd,name:b.def.n,flee:b.def.ai==='flee'}:null};
+/** Who to fight and whether it can be hit from here: the nearest hostile thing, preferring ones in plain view; `blocked` when a wall or
+ *  something solid stands between, `reach` how close the weapon in hand needs to be. */
+B.fight=()=>{const Z=G.Z,p=Z&&Z.pl;if(!p)return null;const w=weaponDef(G.S),gun=w.t==='gun';let b=null,bs=1e9;
+  for(const a of Z.actors){if(a.pl||a.dead||a.team!==1||a.vis<.5)continue;const d=Math.hypot(a.x-p.x,a.y-p.y);if(d>10)continue;const blocked=!los(Z,p.x,p.y,a.x,a.y),s=d+(blocked?4:0)+(a.def.ai==='flee'?3:0)+(a.alert?0:2);if(s<bs){bs=s;b={x:a.x,y:a.y,d,name:a.def.n,blocked,flee:a.def.ai==='flee',r:a.r}}}
+  if(!b)return null;b.reach=gun?Math.min(w.rng*.8,8):w.rng+b.r+.1;b.gun=gun;return b};
 B.find=name=>{const Z=G.Z,p=Z&&Z.pl;if(!p)return null;const q=name.toLowerCase();let b=null,bd=1e9;
   for(let i=0;i<Z.obj.length;i++){const o=Z.obj[i];if(!o||!OBJ[o.k])continue;const d=OBJ[o.k];if(!(d.n||'').toLowerCase().includes(q)&&o.k!==q)continue;if(d.loot&&o.empty)continue;const x=i%Z.w,y=(i-x)/Z.w,dist=Math.hypot(x+.5-p.x,y+.5-p.y);if(dist<bd){bd=dist;b={x,y,name:d.n}}}
   for(const dr of Z.drops)if('loot drop bag'.includes(q)){const dist=Math.hypot(dr.x-p.x,dr.y-p.y);if(dist<bd){bd=dist;b={x:dr.x,y:dr.y,name:'loose loot',free:true}}}
