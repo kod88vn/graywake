@@ -40,6 +40,8 @@ const LEAD_KINDS=Object.keys(SITES).filter(k=>SITES[k].lead);
 export function makeServer({dir=path.join(ROOT,'.out/worlds'),rnd=Math.random,now=()=>Date.now()}={}){
   fs.mkdirSync(dir,{recursive:true});const file=path.join(dir,'state.json');
   let DB={n:0,worlds:[]};try{DB=JSON.parse(fs.readFileSync(file,'utf8'))}catch(e){}
+  // settlements from before they were simulated get their seed and the first days they would have had, quietly, as soon as the server starts
+  for(const w of DB.worlds)w.enclaves.forEach((e,i)=>{if(e.kind==='npc'&&e.status==='holding'&&!e.st){e.st=seedSettlement(w.seed,i);for(let d=1;d<Math.min(w.npcDay||1,9);d++)settlementDay(e.st,{day:d,stage:0,tideMult:1,leads:[]});e.level=e.st.lvl}});
   for(const w of DB.worlds)if(!w.rel){w.rel=1;for(const e of w.enclaves){e.day=1;e.scoredDay=1;delete e.off}}   // (worlds from before enclaves had their own clocks)
   let dirty=false;const save=()=>{dirty=true},flush=()=>{if(dirty){dirty=false;try{fs.writeFileSync(file,JSON.stringify(DB))}catch(e){}}};
   const pick=a=>a[Math.floor(rnd()*a.length)],id=()=>crypto.randomBytes(5).toString('hex');
