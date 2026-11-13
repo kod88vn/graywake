@@ -95,7 +95,7 @@ function detailTex(){
 export function addDetail(m,{local=false,amp=.42,scale=.55,rim=0}={}){
   const prev=m.onBeforeCompile,prevKey=m.customProgramCacheKey?m.customProgramCacheKey():'';
   m.onBeforeCompile=(sh,r)=>{if(prev)prev(sh,r);sh.uniforms.uDetail={value:detailTex()};
-    sh.vertexShader='varying vec3 vDP;varying vec3 vDN;varying vec3 vRV;varying vec3 vRN;\n'+sh.vertexShader.replace('#include <project_vertex>',(local?'vDP=transformed;vDN=normalize(objectNormal);':`vec4 dwp=vec4(transformed,1.0);vec3 dwn=objectNormal;
+    sh.vertexShader='varying vec3 vDP;varying vec3 vDN;varying vec3 vRV;varying vec3 vRN;\n'+sh.vertexShader.replace('#include <project_vertex>',(local?'vDP=position;vDN=normalize(normal);':`vec4 dwp=vec4(transformed,1.0);vec3 dwn=objectNormal;
 #ifdef USE_INSTANCING
   dwp=instanceMatrix*dwp;dwn=mat3(instanceMatrix)*dwn;
 #endif
