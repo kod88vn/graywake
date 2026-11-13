@@ -216,7 +216,8 @@ export function leadOdds(S,def,lvl){
   const mine=(ds.maxHp+Math.min(heal,ds.maxHp))/(1-Math.min(.8,ds.armRed||0));
   // in a building they come two or three at a time, and about a third of their blows land on someone who keeps moving;
   // in the open (an ambush on the road) they all come at once, up to as many as can get round one person, and more of their blows land
-  const open=def.open;return hp/dps*(dmg/n*Math.min(open?AMBUSH.round:2.5,n)*(open?AMBUSH.land:.33))/mine;
+  // toxic air eats health for as long as the fight lasts, and what lives in it spits more of the same: without a mask the place is that much worse
+  const open=def.open,air=1+(def.tox||0)*1.6*(1-(ds.tox||0));return hp/dps*(dmg/n*Math.min(open?AMBUSH.round:2.5,n)*(open?AMBUSH.land:.33))/mine*air;
 }
 /** Fights that events start on the road. Everything arrives awake and at once, so the same garrison is far deadlier than in a building:
  *  `round` is how many can get at one person together, `land` the share of their blows that connect, `want` the odds an ambush is pitched to

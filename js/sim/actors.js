@@ -227,7 +227,7 @@ export function interactInfo(Z,i){
   const o=Z.obj[i];if(!o)return null;const d=OBJ[o.k];
   if(d.node){const lack=d.node.tool&&!findTool(G.S,d.node.tool,d.node.tier);return{type:'gather',label:(GATHER_VERB[d.node.tool]||(o.k==='pond'?'Fill':'Gather'))+(lack?' (needs '+(TIER_NAMES[d.node.tier]||'a')+' '+TOOL_NAMES[d.node.tool]+')':'')}}
   if(d.special==='deathbag')return{type:'loot',label:'Recover'};
-  if(d.loot)return o.empty?null:{type:'loot',label:o.inv?'Search':d.lock&&!o.unlocked?(d.lock==='pry'?'Pry open':d.lock==='pick'?'Pick lock':d.lock==='guard'?(guardDown(Z)?'Open':'Locked'):'Unlock'):'Search'};
+  if(d.loot)return o.empty?null:{type:'loot',label:o.inv?'Search':d.lock&&!o.unlocked?(d.lock==='pry'?'Pry open':d.lock==='pick'?'Pick lock':d.lock==='guard'?(guardDown(Z)?'Open':Z.def&&Z.def.boss?'Locked: '+ENEMIES[Z.def.boss].n+' has the keys':'Barred until the place is clear'):'Unlock'):'Search'};
   if(d.special==='cage')return o.held?{type:'cage',label:'Free'}:null;
   if(!Z.home)return null;
   if(d.station)return{type:'station',label:o.out?'Collect':'Use'};

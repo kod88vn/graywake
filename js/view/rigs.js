@@ -117,7 +117,9 @@ function drawHead(g,o,skin){
       // a pale fur roll round the face opening, so the hood reads as a hood and not as a head of hair the colour of the hide
       g.torus(.066,.011,'#d6c6a2',0,.1,.05,Math.PI/2-.12,0,0,14)}
     else if(st==='cap'){g.loft(shell(.134,.009,.004),c,14);g.ell(.05,.006,.04,shade(c,.8),0,.136,.066,.12,0,0,8,4);for(const s of[-1,1])g.ell(.008,.03,.02,shade(c,.9),s*(tab(HW,.1)+.006),.1,-.012,0,s*.3,0,6,4);if(hr)nape(g,hr)}
-    else if(st==='visor'){g.loft(shell(.104,.016,.004),c,14);g.ell(.064,.04,.04,'#27343c',0,.086,.05,0,0,0,9,6);g.loft([cover(.02,.018,-.01),cover(.06,.018,-.004),cover(.104,.016,.0)],shade(c,.75),12,'none')}
+    else if(st==='visor'){g.loft(shell(.104,.016,.004),c,14);g.ell(.064,.04,.04,'#27343c',0,.086,.05,0,0,0,9,6);g.loft([cover(.02,.018,-.01),cover(.06,.018,-.004),cover(.104,.016,.0)],shade(c,.75),12,'none');
+      // a pale band round the brim, a glint on the visor and a badge: at the size of the pack figure a plain dark shell read as a head of dark hair
+      g.torus(.094,.008,'#aeb6bc',0,.118,.004,-.1,0,0,16);g.ell(.03,.008,.006,'#9fb4c4',-.018,.098,.085,0,0,-.25,7,3);g.ell(.014,.012,.006,'#d8dce0',0,.15,.084,-.5,0,0,6,3)}
     else if(st==='mask'){g.loft(HYS.map(y=>{const r=headRing(y);r[1]+=.012;r[2]+=.012;r[6]+=.012;return r}),c,14);for(const s of[-1,1]){g.sph(.02,'#1c2a30',s*.03,.1,.079,1,1,.5,7,5);g.sph(.009,'#8fc8d8',s*.034,.106,.088,1,1,.4,5,4)}g.cyl(.026,.03,.05,'#34383a',0,.04,.094,8,Math.PI/2)}
     else if(st==='furhat'){g.loft(shell(.122,.02,.004),c,14);g.loft([cover(.114,.03,1),cover(.142,.029,1)],c2,14,'none');for(const d of[-1,1])g.ell(.016,.05,.034,c2,d*(tab(HW,.08)+.012),.075,-.006,0,0,0,6,6)}
     else if(st==='combat'){g.loft(shell(.112,.015,.004),c,14);g.loft([cover(.106,.02,1),cover(.118,.017,1)],shade(c,.78),14,'none');g.box(.1,.028,.02,'#1c2024',0,.168,.068,-.5);for(const d of[-1,1]){g.sph(.019,'#3a5a6a',d*.026,.17,.08,1,.7,.5,6,4);g.box(.008,.09,.01,'#22262a',d*(tab(HW,.07)+.004),.06,.026)}if(hr)nape(g,hr)}

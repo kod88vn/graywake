@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.10.1 — 2026-11-13
+
+From the two bots' first hours in a shared world.
+
+- **Fixed: a fight that an event brings to the homestead could be a massacre.** "Smoke on the Ridge" sent six raiders, two with guns, at the homestead's level; a level 13 character with 43 armour and sixteen bandages died in six seconds. Homestead fights are now pitched to who lives there, as road fights are, and the choice says what it may bring ("May come to a fight: 4 Raiders, 2 Raider Gunmen · Dangerous for you as you stand"). All 23 event fights, pitched for that character, ten runs each: survived every time.
+- **Toxic air counts in a lead's rating.** A Pharmacy pitched at three skulls for a strong character was survived 5 times in 16; the same place now reads four.
+- **Settlements are simulated** (see 0.10.0's notes): seeded from the world, a plan of their own, the game's own tide and lead rules.
+- **Worlds keep their own clock.** A long-played character joining no longer drags the world's day forward; an enclave's day means days in that world. A kind of lead is not repeated within three, and a repeat is announced as another place. A lead heard before joining a world is struck off, so no place is on the map twice. A lead you opened reads as yours on the World sheet.
+- **Where things come from, said more fully:** what a crafted thing is made from ("made by hand (C) from Cloth"), where a gathered thing is found in quantity ("Clay Bank (a few at home, many at Flint Ridge)"), and that animals are hunted by day with a bow or Snares, with a one-time hint when the first one bolts.
+- **Quick drink drinks.** Key 3 no longer eats berries for their trace of water; with only Dirty Water it says so and what to do.
+- **Wear best** takes the fresher of two alike and puts the best weapon into use (it used to leave a drawn spare tool in use while saying the weapon was in hand); wearing a second of what is already on says it is a spare.
+- **A strongroom's prompt says what opens it**: "Locked: The Desk Sergeant has the keys", or "Barred until the place is clear".
+- "Hurry home" on the road turns the trip back home. The hide hood has a fur trim and the riot helmet a brim band and badge, so neither reads as hair on the pack figure.
+- Bot tools: `walk` says what blocked it, the surroundings list says "N more elsewhere" instead of ×N, the last of a lead's garrison are listed wherever they are, `--port` picks a session, and the brief says to let Auto mode do the close fighting and not to chase animals.
+
 ## 0.10.0 — 2026-11-13
 
 Shared worlds. "A game world could have some NPC enclaves or human/bot enclaves. If they lose they move to another new gameworld. Each game world has event progress. If a gameworld has no more enclave it's deleted. Player can always generate a new game world."

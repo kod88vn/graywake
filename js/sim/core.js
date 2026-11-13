@@ -6,7 +6,7 @@ import {RECIPES,VEHICLES} from '../data/recipes.js';
 import {PERK,xpFor,MAX_LEVEL} from '../data/progress.js';
 import {clamp,rnd} from './util.js';
 
-export const VERSION='0.10.0';
+export const VERSION='0.10.1';
 export const SAVE_V=2;
 export const HOME_W=46,HOME_H=46,EXIT_RING=2,NO_BUILD=4;
 export const MIN_PER_SEC=1.5;            // game minutes per real second: a day is 16 real minutes
@@ -118,7 +118,9 @@ export function betterGear(S){
 export function wearBest(S){
   const names=[];for(let guard=0;guard<12;guard++){const b=betterGear(S)[0];if(!b)break;if(!equip(S,b.i,b.slot))break;names.push(b.id)}
   // the better of the two weapons goes in the hand, the other is the spare
-  {const p=S.p,a=p.eq.w1,b=p.eq.w2;if(b&&['melee','gun'].includes(ITEMS[b.id].t)&&gearScore(S,b)>(a&&['melee','gun'].includes(ITEMS[a.id].t)?gearScore(S,a):0)){p.eq.w1=b;p.eq.w2=a;p.active='w1';G.ds=derive(S);emit('eq');if(!names.length)names.push(b.id)}}
+  {const p=S.p,a=p.eq.w1,b=p.eq.w2;if(b&&['melee','gun'].includes(ITEMS[b.id].t)&&gearScore(S,b)>(a&&['melee','gun'].includes(ITEMS[a.id].t)?gearScore(S,a):0)){p.eq.w1=b;p.eq.w2=a;p.active='w1';G.ds=derive(S);emit('eq');if(!names.length)names.push(b.id)}
+    // and the hand is the one in use: with the spare drawn (Q) the best weapon sat in the hand slot unused, while the message said it was in hand
+    const w=p.eq.w1,ws=w&&['melee','gun'].includes(ITEMS[w.id].t)?gearScore(S,w):0,o=p.eq.w2,os=o&&['melee','gun'].includes(ITEMS[o.id].t)?gearScore(S,o):0;if(p.active!=='w1'&&ws>0&&ws>=os){p.active='w1';emit('eq');if(!names.includes(w.id))names.push(w.id)}}
   // say where each thing went: "in hand" and "spare" matter, a weapon taken as the spare is not the one being swung
   if(names.length){const p=S.p,where=id=>p.eq.w1&&p.eq.w1.id===id?' in hand':p.eq.w2&&p.eq.w2.id===id?' as spare':' on';toast('Wear best: '+[...new Set(names)].map(id=>ITEMS[id].n+where(id)).join(', '),'good')}
   else toast('You already have your best on','info');

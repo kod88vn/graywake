@@ -346,7 +346,7 @@ safe('radio leads',()=>{
   S.p.lvl=6;S.sites=[];
   World.leadRead(S);S.sites=[site];G.Z=null;World.arrive(site.id);const Z=G.Z,si=Z.obj.findIndex(o=>o&&o.k==='strong_guns'),tgt={i:si,x:si%Z.w+.5,y:Math.floor(si/Z.w)+.5,type:'loot'};
   T.ok(Z.site===site.id&&si>=0&&(Z.spawns.some(s=>s.boss)||Z.actors.some(a=>a.def&&a.def.boss)),'the place has a strongroom and a guardian');
-  T.ok(!guardDown(Z)&&interactInfo(Z,si).label==='Locked'&&interact(Z,tgt)===false&&!Z.obj[si].unlocked,'the strongroom stays shut while the guardian lives');
+  T.ok(!guardDown(Z)&&/^Locked: .+ has the keys$/.test(interactInfo(Z,si).label)&&interact(Z,tgt)===false&&!Z.obj[si].unlocked,'the strongroom stays shut while the guardian lives');
   for(const sp of Z.spawns)sp.done=true;for(const a of Z.actors)if(a.team===1)a.dead=true;
   T.ok(guardDown(Z)&&interactInfo(Z,si).label==='Open'&&interact(Z,tgt)===true,'and opens once it is dead');run(2,god);
   const inv=(Z.obj[si].inv||[]).filter(Boolean);T.ok(inv.length>=3,'with a strongroom worth the trip ('+inv.map(it=>ITEMS[it.id].n+(it.n>1?' ×'+it.n:'')).join(', ')+')');
@@ -402,6 +402,7 @@ safe('gear',()=>{
   const b=betterGear(S).map(x=>x.id).sort().join(',');T.ok(b==='bat,leather_jacket','the pack knows what in it is better than what is on ('+b+')');
   const names=wearBest(S);T.ok(p.eq.body.id==='leather_jacket'&&(p.eq.w1.id==='bat'||p.eq.w2.id==='bat')&&count(S,'hide_vest')===1&&betterGear(S).length===0,'Wear best puts on the jacket and takes up the bat ('+names.join(', ')+')');
   unequip(S,'head');T.ok(!p.eq.head&&count(S,'leather_cap')===1,'what is taken off stays off');
+  {const keep=[p.eq.w1,p.eq.w2];p.eq.w1={id:'bat',d:30};p.eq.w2={id:'hatchet_stone',d:20};p.active='w2';const n=wearBest(S);T.ok(p.active==='w1'&&n.includes('Baseball Bat'),'with the spare tool drawn, Wear best puts the weapon back in use ('+n.join(', ')+')');p.eq.w1=keep[0];p.eq.w2=keep[1];p.active='w1'}
   {const k=p.eq.w1.id==='bat'?'w1':'w2';p.eq[k].d=8;p.inv.push({id:'bat',n:1,d:18});wearBest(S);T.ok(p.eq.w1.id==='bat'&&p.eq.w1.d===18,'of two alike, Wear best takes the fresher one in hand')}
   give(S,'revolver',1);T.ok(!betterGear(S).some(x=>x.id==='revolver'),'a gun with no ammunition is not called better');give(S,'ammo_9',30);
   T.ok(betterGear(S).some(x=>x.id==='revolver'),'with ammunition it is');
