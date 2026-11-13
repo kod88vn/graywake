@@ -189,7 +189,7 @@ export function genZone(def,seed,opts={}){
   // story items hide in a container while their quest is active
   if(def.qi&&S)for(const[item,flag]of def.qi){if(!S.flags[flag]||S.flags['got_'+flag+'_'+def.id])continue;const c=[];Z.obj.forEach((o,i)=>{if(o&&OBJ[o.k].loot)c.push(o)});if(c.length){const o=c[Math.floor(rng()*c.length)];o.qi=item;o.qf='got_'+flag+'_'+def.id}}
   // the pack you dropped when you died here
-  const mem=S&&S.loc[def.id];if(mem&&mem.bag&&mem.bag.length){const x=Math.floor(Z.w/2)-2,y=Z.h-4;Z.obj[y*Z.w+x]={k:'deathbag',r:0,v:0,inv:mem.bag,open:1}}
+  const mem=S&&S.loc[def.id];if(mem&&mem.bag&&mem.bag.some(Boolean)){const x=Math.floor(Z.w/2)-2,y=Z.h-4;Z.obj[y*Z.w+x]={k:'deathbag',r:0,v:0,inv:mem.bag,open:1}}
   if(def.rich)Z.obj.forEach(o=>{if(o&&o.n)o.rich=1});
   return Z;
 }

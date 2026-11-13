@@ -2,6 +2,7 @@
 // Pure logic. step(dt) advances one frame; the view reads Z.actors / Z.projs / Z.areas / Z.drops afterwards.
 import {ITEMS} from '../data/items.js';
 import {OBJ} from '../data/objects.js';
+import {sourcesOf} from '../data/sources.js';
 import {ENEMIES,scale} from '../data/enemies.js';
 import {G,emit,toast,sfx,stat,statMax,derive,perk,weaponDef,weaponItem,count,take,give,addTo,slotCount,freeSlots,roomFor,wear,findTool,wearTool,dropAt,addXp,maxHp,FIST,quickUse,EREF,edgeIdx,structAt,structXY} from './core.js';
 import {collide,los,shotBlock,blockAt,playerField,field,stepOn,rollLoot,freeNear,atExit,edgeCross,edgeBetween,walkClear,pathAim} from './zone.js';
@@ -250,9 +251,14 @@ export function findInteract(Z){
   if(!best||bs>1.2)for(const dr of Z.drops){const d=dist(dr.x,dr.y,p.x,p.y);if(d<1.3&&d<bs){bs=d;best={drop:dr,x:dr.x,y:dr.y,type:'drop',label:'Pick up'}}}
   return best;
 }
+/** Where the least tool that would do this job comes from (": made at a Workbench · found in Tool Chest"), or nothing if the tables do not say. */
+function toolSource(tool,tier){
+  let best=null;for(const id in ITEMS){const it=ITEMS[id];if(it.tool===tool&&(it.tier||0)>=(tier||0)&&(!best||(it.tier||0)<(ITEMS[best].tier||0)))best=id}
+  const src=best?sourcesOf(best,2):'';return src?': '+src:'';
+}
 function toolFor(Z,i,quiet){
   const d=OBJ[Z.obj[i].k].node;if(!d.tool)return{it:null};const t=findTool(G.S,d.tool,d.tier);
-  if(!t&&!quiet){toast('Needs '+(TIER_NAMES[d.tier]||'a')+' '+TOOL_NAMES[d.tool],'bad');sfx('error')}return t;
+  if(!t&&!quiet){toast('Needs '+(TIER_NAMES[d.tier]||'a')+' '+TOOL_NAMES[d.tool]+toolSource(d.tool,d.tier),'bad');sfx('error')}return t;
 }
 export function interact(Z,target){
   const S=G.S,p=Z.pl,t=target||findInteract(Z);if(!t||p.dead)return false;
@@ -292,11 +298,12 @@ export function openLoot(Z,i){
 export function lootAll(Z,i){
   const o=Z.obj[i],S=G.S;if(!o||!o.inv)return false;const cap=slotCount(S);
   for(let k=0;k<o.inv.length;k++){const s=o.inv[k];if(!s)continue;const left=addTo(S.p.inv,cap,s.id,s.n,s.d);if(s.n-left>0){emit('loot',s.id,s.n-left);S.codex.it[s.id]=1}if(left>0)s.n=left;else o.inv[k]=null}
-  o.inv=o.inv.filter(Boolean);return checkEmpty(Z,i);
+  // closed up in place: a dropped pack's list is the same list the place remembers it by (S.loc[..].bag, a site's bag), and a new list here would leave that one stale
+  {const f=o.inv.filter(Boolean);o.inv.length=0;o.inv.push(...f)}return checkEmpty(Z,i);
 }
 export function checkEmpty(Z,i){
   const o=Z.obj[i];if(!o||!o.inv||o.inv.some(Boolean))return false;const d=OBJ[o.k];
-  if(d.special==='deathbag'){Z.obj[i]=null;if(G.S.loc[Z.id])G.S.loc[Z.id].bag=null;Z.touch(i);return true}
+  if(d.special==='deathbag'){Z.obj[i]=null;if(G.S.loc[Z.id])G.S.loc[Z.id].bag=null;const st=Z.site&&G.S.sites.find(s=>s.id===Z.site);if(st)st.bag=null;Z.touch(i);return true}
   if(d.loot&&!d.store){o.empty=1;if(!d.solid||o.k==='airdrop'||o.k==='stash'||o.k==='suitcase'||o.k==='corpse'||o.k==='ammo_box'){Z.obj[i]=null}Z.touch(i)}return true;
 }
 function pickDrop(Z,dr,manual){

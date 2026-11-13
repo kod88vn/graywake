@@ -154,7 +154,10 @@ C.attack=async a=>{const secs=clamp(num(a[0],3),.3,12),hunt=a.includes('hunt');l
   return{msg:(name?(hit?`fought the ${name} for ${r.secs.toFixed(1)} s`+(walked?' (closing in first)':''):`went after the ${name} for ${r.secs.toFixed(1)} s without getting a blow in`):`nothing is coming at you, so nothing was attacked`)+(r.why?': '+r.why:'')+(await ev('__bot.unaware()').then(n=>n&&!hunt?` — ${n} nearby ${n>1?'have':'has'} not noticed you; attack with hunt set goes after them, one at a time is wiser`:''))}};
 C.dodge=async a=>{const way=WAYS[String(a[0]||'').toLowerCase()];if(way)await steerKeys(way[0],way[1]);await sleep(60);await press('space');const r=await during(.6,{fight:true});await steerKeys(0,0);return{msg:'rolled'+(way?' '+String(a[0]).toUpperCase():'')+(r.why?': '+r.why:'')}};
 C.sneak=async a=>{sneak=String(a[0]).toLowerCase()!=='off';if(sneak)await keyDown('shift');else await keyUp('shift');return{msg:'sneaking '+(sneak?'on (slower, harder to notice)':'off')}};
-C.key=async a=>{if(!keyDef(a[0]))return{msg:'unknown key "'+a[0]+'". Keys: i c b j l m f q r e 1 2 3 4 esc tab space enter'};await press(a[0]);const r=await during(clamp(num(a[1],.45),.2,5));return{msg:'pressed '+String(a[0]).toUpperCase()+(r.why?': '+r.why:'')}};
+C.key=async a=>{if(!keyDef(a[0]))return{msg:'unknown key "'+a[0]+'". Keys: i c b j l m f q r e 1 2 3 4 esc tab space enter'};await press(a[0]);const r=await during(clamp(num(a[1],.45),.2,5));
+  // the bot switching Auto off is a decision: the guardian leaves it off for a while (unless the character is badly hurt), and the result says which way it went
+  let auto='';if(String(a[0]).toLowerCase()==='f'&&r.p){auto=r.p.auto?' (Auto mode is now ON)':' (Auto mode is now OFF; it stays off for the next 45 seconds unless you are badly hurt, so fight with `attack`)';S.autoOffT=r.p.auto?0:Date.now()}
+  return{msg:'pressed '+String(a[0]).toUpperCase()+auto+(r.why?': '+r.why:'')}};
 C.tap=async a=>{let n=parseInt(a[0]);
   if(!(n>0)){const q=a.join(' ');n=await ev(`(__bot.observe(),__bot.byText(${JSON.stringify(q)}))`);if(n===0)return{msg:`nothing clickable is labelled "${q}" right now: look again`};if(n<0)return{msg:`several clickable things contain "${q}": be more exact (include the row name, e.g. "MAKE — Stone Pickaxe"), or use its number`}}
   let t=await ev(`__bot.target(${n})`);if(!t)return{msg:`there is no clickable thing numbered ${a[0]} any more: look again`};
@@ -268,7 +271,7 @@ async function exec(name,args,who){
 async function guardian(){
   if(PACE!=='live'||S.busy||S.paused||S.chromeDead||Date.now()-S.guardT<8000)return;
   try{const p=await pulse();if(p.mode!=='play'||p.dead||p.sheet||p.auto)return;const hurt=S._ghp!==undefined&&p.hp<S._ghp-1.5;S._ghp=p.hp;
-    if((p.alertN>0&&p.foe<6.5)||hurt){if(S.busy)return;S.guardT=Date.now();await press('f');S.guardMsg='WHILE YOU WERE DECIDING, something hostile closed in. The world does not wait, so the session pressed F: Auto mode is ON and the character is defending itself. Press F (`key f`) to take over, or leave it on and `wait`.';
+    if((p.alertN>0&&p.foe<6.5)||hurt){if(S.busy)return;if(Date.now()-(S.autoOffT||0)<45000&&p.hp>=(p.max||100)*.4)return;S.guardT=Date.now();await press('f');S.guardMsg='WHILE YOU WERE DECIDING, something hostile closed in. The world does not wait, so the session pressed F: Auto mode is ON and the character is defending itself. Press F (`key f`) to take over, or leave it on and `wait`.';
       const evt={n:S.n,at:new Date().toISOString(),who:'session',cmd:'guard',args:[],ms:0,result:'threat while idle: switched Auto on',zone:null};S.events.push(evt);jl('events.jsonl',evt)}}catch(e){}}
 
 // ---------------------------------------------------------------- HTTP: the watch page, the command API, the game itself for the bot browser

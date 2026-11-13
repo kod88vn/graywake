@@ -26,7 +26,9 @@ B.gate=ms=>{B.gateUntil=performance.now()+ms;return true};
 // ---- what can be clicked right now, numbered
 function label(el){
   let t=(el.innerText||'').replace(/\s+/g,' ').trim();const ti=el.getAttribute('title')||el.getAttribute('aria-label')||'';
-  if(el.classList.contains('sl')){const n=el.querySelector('u');t=(ti||'empty slot')+(n&&n.textContent?' ×'+n.textContent:'')+(el.querySelector('em')?' ['+el.querySelector('em').textContent+']':'')}
+  if(el.classList.contains('sl')){const n=el.querySelector('u');t=(ti||'empty slot')+(n&&n.textContent?' ×'+n.textContent:'')+(el.querySelector('em')?' ['+el.querySelector('em').textContent+']':'');
+    // a container sheet has two grids of the same things: say which side a slot is on and what a tap does
+    const a=el.dataset.a;if(ti&&a==='take')t+=' — in the container, tap to take';else if(ti&&a==='put')t+=' — in your pack, tap to put in'}
   else if(!t)t=ti;else if(ti&&ti!==t&&t.length<24)t+=' ('+ti+')';
   if(/^×\d+$/.test(t))t='MAKE '+t+' (that many batches at once)';
   if(el.tagName==='SELECT')t=(ti||'choice')+': '+(el.selectedOptions[0]?el.selectedOptions[0].textContent:'');
@@ -114,7 +116,7 @@ B.observe=(full=false)=>{
 
 /** A cheap pulse while an action runs. */
 B.pulse=()=>{const S=G.S,Z=G.Z,p=Z&&Z.pl;let foe=99,alertN=0;if(Z&&p)for(const a of Z.actors){if(a.pl||a.dead||a.team!==1||a.def.ai==='flee'||!a.alert)continue;alertN++;const d=Math.hypot(a.x-p.x,a.y-p.y);if(d<foe)foe=d}
-  return{mode:G.mode,sheet:window.GW?GW.UI.panel:null,hp:S?S.p.hp:0,x:p?p.x:0,y:p?p.y:0,dead:!!(p&&p.dead),act:p&&p.act?p.act.type:null,atk:!!(p&&p.atk),foe:r1(foe),alertN,auto:!!G.auto,t:Z?Z.time:0,zone:Z?Z.id:null,fps:window.GW?GW.View.fps:0,msgs:B.msgs.length}};
+  return{mode:G.mode,sheet:window.GW?GW.UI.panel:null,hp:S?S.p.hp:0,max:G.ds&&G.ds.maxHp||100,x:p?p.x:0,y:p?p.y:0,dead:!!(p&&p.dead),act:p&&p.act?p.act.type:null,atk:!!(p&&p.atk),foe:r1(foe),alertN,auto:!!G.auto,t:Z?Z.time:0,zone:Z?Z.id:null,fps:window.GW?GW.View.fps:0,msgs:B.msgs.length}};
 
 // ---- walking by keys: which of the eight ways to press to get to a tile (or next to it, when something solid stands on it)
 B.navTo=(tx,ty)=>{const Z=G.Z;if(!Z||tx<0||ty<0||tx>=Z.w||ty>=Z.h)return false;B.nav={tx,ty,f:field(Z,Math.floor(tx),Math.floor(ty),true,400),t:Z.time,zone:Z.id};return true};

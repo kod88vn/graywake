@@ -355,7 +355,14 @@ safe('radio leads',()=>{
     World.leaveZone();T.ok(S.sites.some(x=>x.id===st.id),'leaving a lead with its strongroom unopened keeps it on the map');
     G.Z=null;World.arrive(st.id);give(S,'log',5);G.Z.pl.dead=true;S.p.hp=0;World.respawn();const kept=S.sites.find(x=>x.id===st.id);
     T.ok(!!kept&&!!kept.bag&&kept.bag.some(it=>it&&it.id==='log')&&G.Z.home&&count(S,'log')===0,'dying at a lead leaves the pack there and the lead on the map');
-    G.Z=null;World.arrive(st.id);T.ok(G.Z.obj.some(o=>o&&o.k==='deathbag'&&o.inv.some(it=>it&&it.id==='log')),'going back finds the pack by the way in')}
+    G.Z=null;World.arrive(st.id);T.ok(G.Z.obj.some(o=>o&&o.k==='deathbag'&&o.inv.some(it=>it&&it.id==='log')),'going back finds the pack by the way in');
+    // taking it in two goes (pack too full the first time) must not leave a copy behind for the next visit
+    const bi=G.Z.obj.findIndex(o=>o&&o.k==='deathbag'),keepInv=S.p.inv;S.p.inv=[];const cap=slotCount(S);for(let k=0;k<cap-1;k++)S.p.inv[k]={id:'hatchet_stone',n:1,d:10};
+    const stacks=G.Z.obj[bi].inv.filter(Boolean).length;G.Z.obj[bi].inv.push({id:'pick_stone',n:1,d:10},{id:'pick_stone',n:1,d:10});lootAll(G.Z,bi);
+    const o=G.Z.obj[bi],left=o?o.inv.filter(Boolean).length:0;T.ok(left===stacks+1,'Take all with a nearly full pack leaves the remainder in the dropped pack ('+left+' stacks)');
+    S.p.inv=[];if(o)for(let k=0;k<o.inv.length;k++)if(o.inv[k]){S.p.inv.push(o.inv[k]);o.inv[k]=null}
+    T.ok(!kept.bag||!kept.bag.some(Boolean),'what is taken out one by one afterwards is gone from the pack the lead remembers');
+    World.leaveZone();G.Z=null;World.arrive(st.id);T.ok(!G.Z.obj.some(o=>o&&o.k==='deathbag'),'and an emptied pack is not there on the next visit');S.p.inv=keepInv}
   G.Z=null;World.arrive('home');S.sites=[];
 });
 // ---- contracts, trade, story bookkeeping

@@ -98,7 +98,7 @@ export function arrive(dest){
   const S=G.S;S.pos=dest;
   if(dest==='home'){goHome(true);emit('save');return}
   const site=S.sites.find(s=>s.id===dest);let Z;
-  if(site){Z=genZone(siteDef(site,site.reg,site.lvl),hash(S.seed,site.id*7919));Z.site=site.id;Z.id='site';Z.name=SITES[site.site].n;Z.siteKind=site.site;if(site.bag&&site.bag.length){const x=Math.floor(Z.w/2)-2,y=Z.h-4;Z.obj[y*Z.w+x]={k:'deathbag',r:0,v:0,inv:site.bag,open:1}}if(SITES[site.site].lead&&leadInfo(S,site).skulls>=4)Z.lt=Math.min(5,Z.lt+1)}
+  if(site){Z=genZone(siteDef(site,site.reg,site.lvl),hash(S.seed,site.id*7919));Z.site=site.id;Z.id='site';Z.name=SITES[site.site].n;Z.siteKind=site.site;if(site.bag&&site.bag.some(Boolean)){const x=Math.floor(Z.w/2)-2,y=Z.h-4;Z.obj[y*Z.w+x]={k:'deathbag',r:0,v:0,inv:site.bag,open:1}}if(SITES[site.site].lead&&leadInfo(S,site).skulls>=4)Z.lt=Math.min(5,Z.lt+1)}
   else{const l=LOC[dest],m=S.loc[dest]=S.loc[dest]||{n:0};Z=genZone(l,hash(S.seed+m.n*101,LOCATIONS.indexOf(l)),{lvl:locLevel(S,l)});if(!m.n)stat('locs');m.n++}
   enterZone(Z,Z.spawn.x,Z.spawn.y);emit('save');
 }
@@ -243,7 +243,7 @@ function leadTick(S){
   // only places that can be made a fair fight for this player; if none can, the least bad one
   const fair=kinds.filter(k=>skullsFor(leadOdds(S,SITES[k],1))<=3),pool=fair.length?fair:[kinds.slice().sort((x,y)=>leadOdds(S,SITES[x],1)-leadOdds(S,SITES[y],1))[0]];
   const site=L.n===0?addLead(S,'lead_grocery',undefined,2):addLead(S,pool[Math.floor(rnd()*pool.length)]);if(!site)return;const I=leadInfo(S,site);
-  L.note=site.id;sfx('radio');toast('Radio: '+I.name+' · '+I.word+' (threat '+I.skulls+' of 5)','info');
+  L.note=site.id;sfx('radio');toast((mast?'Radio: ':'Truck radio: ')+I.name+' · '+I.word+' (threat '+I.skulls+' of 5)','info');
 }
 /** The radio note waiting to be read, shown as a sheet when the player is home and nothing else is going on. */
 export function leadNote(S){const L=S.lead;if(!L.note)return null;const site=S.sites.find(s=>s.id===L.note);if(!site){L.note=null;return null}return site}

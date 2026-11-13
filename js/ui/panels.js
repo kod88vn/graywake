@@ -96,19 +96,23 @@ let craftAt=null,craftTab='hand';const cur_at=()=>craftAt,curTabIsStation=()=>cr
 PANELS.station={can(i){setTimeout(()=>UI().open('craft',i),0);return false}};
 
 // ---------------------------------------------------------------- containers and storage
+// How many slots a container shows. A storage box has its own size. Anything else is as big as what is in it, and away from home (or a dropped pack anywhere)
+// keeps a free slot or more to the end of the row, so that someone with a full pack can put one thing down to pick another up.
+function lootCap(o){const d=OBJ[o.k];if(d.store)return d.store;const n=o.inv.length;return Math.max(8,G.Z.home&&d.special!=='deathbag'?n:8*Math.ceil((o.inv.filter(Boolean).length+1)/8),n)}
 PANELS.loot={title:i=>G.Z&&G.Z.obj[i]?OBJ[G.Z.obj[i].k].n:'Container',live:true,
   open(i){const o=G.Z.obj[i];if(o&&!o.inv){if(OBJ[o.k].store)o.inv=[];else openLoot(G.Z,i)}},
   render(i){
-    const s=S(),o=G.Z.obj[i];if(!o)return'';const d=OBJ[o.k],store=!!d.store,cap=store?d.store:Math.max(8,o.inv.length),pc=slotCount(s);
+    const s=S(),o=G.Z.obj[i];if(!o)return'';const d=OBJ[o.k],store=!!d.store,cap=lootCap(o),pc=slotCount(s);
     let a='',b='';for(let k=0;k<cap;k++)a+=slot(o.inv[k],`data-a="take" data-i="${k}"`);for(let k=0;k<pc;k++)b+=slot(s.p.inv[k],`data-a="put" data-i="${k}"`);
     return`<div class="cols"><div>${sec(esc(d.n)+(store?' '+o.inv.filter(Boolean).length+' / '+cap:''),btn('Take all','all','','go')+(store?' '+btn('Sort','sortc'):''))}<div class="grid">${a}</div></div>
       <div>${sec('Your pack '+s.p.inv.filter(Boolean).length+' / '+pc,store?btn('Stow materials','stow'):'')}<div class="grid">${b}</div><p style="color:var(--dim);font-size:12px">Tap an item on either side to move the whole stack across.${store?' Crafting and building at home draw from every storage box.':G.Z.home?' Anything you leave in here stays here.':' Anything you leave here is gone when you leave the area.'}</p></div></div>`;
   },
   act(a,d){
-    const s=S(),Z=G.Z,i=curLoot,o=Z.obj[i];if(!o)return;const dd=OBJ[o.k],cap=dd.store||Math.max(8,o.inv.length);
+    const s=S(),Z=G.Z,i=curLoot,o=Z.obj[i];if(!o)return;const dd=OBJ[o.k],cap=lootCap(o);
     if(a==='take'){const it=o.inv[+d.i];if(!it)return;const left=addTo(s.p.inv,slotCount(s),it.id,it.n,it.d);if(left===it.n){UI().toast('Pack full','bad');return}s.codex.it[it.id]=1;if(left>0)it.n=left;else o.inv[+d.i]=null;sfxq('pickup')}
     else if(a==='put'){const it=s.p.inv[+d.i];if(!it)return;const left=addTo(o.inv,cap,it.id,it.n,it.d);if(left===it.n){UI().toast('No room in there','bad');return}if(left>0)it.n=left;else s.p.inv[+d.i]=null;sfxq('pickup')}
-    else if(a==='all'){if(dd.store){for(let k=0;k<o.inv.length;k++){const it=o.inv[k];if(!it)continue;const left=addTo(s.p.inv,slotCount(s),it.id,it.n,it.d);if(left>0)it.n=left;else o.inv[k]=null}}else lootAll(Z,i);sfxq('pickup')}
+    else if(a==='all'){if(dd.store){for(let k=0;k<o.inv.length;k++){const it=o.inv[k];if(!it)continue;const left=addTo(s.p.inv,slotCount(s),it.id,it.n,it.d);if(left>0)it.n=left;else o.inv[k]=null}}else lootAll(Z,i);sfxq('pickup');
+      const o2=Z.obj[i],rest=o2&&o2.inv?o2.inv.filter(Boolean).length:0;if(rest)UI().toast('Pack full: '+rest+' '+(rest>1?'stacks':'stack')+' still in there','bad')}
     else if(a==='stow'){for(let k=0;k<s.p.inv.length;k++){const it=s.p.inv[k];if(!it||!['mat','seed','ammo'].includes(ITEMS[it.id].t))continue;const left=addTo(o.inv,cap,it.id,it.n,it.d);if(left>0)it.n=left;else s.p.inv[k]=null}sfxq('pickup')}
     else if(a==='sortc'){sortInv(o.inv,cap)}
     if(a==='all'&&!dd.store&&o.inv&&!o.inv.some(Boolean)){UI().close();return false}

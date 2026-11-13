@@ -77,7 +77,7 @@ strong_food:{n:'Cold Store',solid:1,loot:'lead_food',lock:'guard',m:'fridge'},
 strong_mil:{n:"Quartermaster's Locker",solid:1,loot:'lead_mil',lock:'guard',m:'crate_mil'},
 spore_pod:{n:'Spore Pod',solid:2,r:.36,loot:'pod'},
 stash:{n:'Hidden Stash',solid:0,loot:'stash'},
-deathbag:{n:'Your Pack',solid:0,special:'deathbag'},
+deathbag:{n:'Dropped Pack',solid:0,special:'deathbag'},
 // ================= scenery =================
 doorway:{n:'Doorway',solid:0,open:1},
 w_brick:{n:'Brick Wall',solid:1,wall:1},
