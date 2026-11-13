@@ -130,12 +130,15 @@ B.screen=(x,y,h=0)=>{const s=GW.View.project(x,y,h),r=$('cv').getBoundingClientR
 B.nearestFoe=(maxD=9)=>{const Z=G.Z,p=Z&&Z.pl;if(!p)return null;let b=null,bd=maxD;for(const a of Z.actors){if(a.pl||a.dead||a.team!==1||a.vis<.5)continue;const d=Math.hypot(a.x-p.x,a.y-p.y);if(d<bd){bd=d;b=a}}return b?{x:b.x,y:b.y,d:bd,name:b.def.n,flee:b.def.ai==='flee'}:null};
 /** Who to fight and whether it can be hit from here: the nearest hostile thing, preferring ones in plain view; `blocked` when a wall or
  *  something solid stands between, `reach` how close the weapon in hand needs to be. */
-B.fight=(keep=0)=>{const Z=G.Z,p=Z&&Z.pl;if(!p)return null;const w=weaponDef(G.S),gun=w.t==='gun';let b=null,bs=1e9;
+B.fight=(keep=0,hunt=false)=>{const Z=G.Z,p=Z&&Z.pl;if(!p)return null;const w=weaponDef(G.S),gun=w.t==='gun';let b=null,bs=1e9;
   for(const a of Z.actors){if(a.pl||a.dead||a.team!==1||a.vis<.5)continue;const d=Math.hypot(a.x-p.x,a.y-p.y),mine=a.id===keep&&a.def.ai!=='flee';
     // the one already being gone after is kept however far the way round takes you; otherwise the nearest within fourteen tiles, and animals that run only when beside you
     if(!mine&&(d>14||(a.def.ai==='flee'&&d>3.5)))continue;
+    // one that has not noticed you is left alone unless it is close or you are hunting: charging a sleeping pack is how fights are lost
+    if(!mine&&!hunt&&!a.alert&&d>4.5)continue;
     const blocked=!los(Z,p.x,p.y,a.x,a.y),sc=mine?-99:d+(blocked?4:0)+(a.def.ai==='flee'?3:0)+(a.alert?0:2);if(sc<bs){bs=sc;b={id:a.id,x:a.x,y:a.y,d,name:a.def.n,blocked,flee:a.def.ai==='flee',r:a.r}}}
   if(!b)return null;b.reach=gun?Math.min(w.rng*.8,8):w.rng+b.r+.1;b.gun=gun;return b};
+B.unaware=()=>{const Z=G.Z,p=Z&&Z.pl;if(!p)return 0;let n=0;for(const a of Z.actors)if(!a.pl&&!a.dead&&a.team===1&&a.def.ai!=='flee'&&!a.alert&&Math.hypot(a.x-p.x,a.y-p.y)<16)n++;return n};
 B.find=name=>{const Z=G.Z,p=Z&&Z.pl;if(!p)return null;const q=name.toLowerCase();let b=null,bd=1e9;
   for(let i=0;i<Z.obj.length;i++){const o=Z.obj[i];if(!o||!OBJ[o.k])continue;const d=OBJ[o.k];if(!(d.n||'').toLowerCase().includes(q)&&o.k!==q)continue;const x=i%Z.w,y=(i-x)/Z.w,dist=Math.hypot(x+.5-p.x,y+.5-p.y)+(d.loot&&o.empty?12:0);if(dist<bd){bd=dist;b={x,y,name:d.n+(d.loot&&o.empty?' (already searched)':'')}}}
   for(const dr of Z.drops)if('loot drop bag'.includes(q)){const dist=Math.hypot(dr.x-p.x,dr.y-p.y);if(dist<bd){bd=dist;b={x:dr.x,y:dr.y,name:'loose loot',free:true}}}
