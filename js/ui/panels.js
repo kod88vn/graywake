@@ -38,7 +38,7 @@ PANELS.inv={title:'Pack',live:true,open(){sel=null},
       else if(['melee','gun','tool','throw'].includes(it.t)){a+=btn('Equip','equip','data-slot="w1"','go')+btn('Equip as spare','equip','data-slot="w2"')}
       else if(['head','body','legs','feet','hands','pack'].includes(it.t))a+=btn('Wear','use','','go');
       else if(p.inv[sel.i].id==='flare')a+=btn('Fire','flare','','go');
-      a+=btn('Drop','drop')+(p.inv[sel.i].n>1?btn('Drop all','dropall'):'');card=itemCard(p.inv[sel.i],a)}
+      a+=btn(p.inv[sel.i].n>1?'Drop one':'Drop','drop')+(p.inv[sel.i].n>1?btn('Drop all','dropall'):'');card=itemCard(p.inv[sel.i],a)}
     else if(sel&&sel.src==='eq'&&p.eq[sel.slot]){const e=p.eq[sel.slot],it=ITEMS[e.id];card=itemCard(e,btn('Take off','unequip','','go')+(it.dur&&e.d<it.dur&&count(s,'repair_kit')?btn('Use repair kit','kit'):'')+(sel.slot==='w1'||sel.slot==='w2'?btn('Make active','active'):''))}
     else card=itemCard(null);
     const kv=[['Health',Math.ceil(p.hp)+' / '+ds.maxHp],['Armour',ds.arm+' (−'+Math.round(ds.armRed*100)+'% damage)'],['Cold resistance',Math.round(ds.cold*100)+'%'],['Toxin resistance',Math.round(ds.tox*100)+'%'],['Move speed',ds.spd.toFixed(1)],['Melee damage','×'+ds.melee.toFixed(2)],['Ranged damage','×'+ds.ranged.toFixed(2)],['Set bonus',ds.set?SETS[ds.set].n:'none'],['Vehicle',VEHICLES[s.veh].n],['Scrip',s.scrip]];
