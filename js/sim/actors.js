@@ -317,14 +317,16 @@ function autoTarget(Z,p){
   for(let i=0;i<Z.obj.length;i++){const o=Z.obj[i];if(!o)continue;const d=OBJ[o.k];let ok=false;
     if(d.node){ok=(!d.node.tool||!!findTool(S,d.node.tool,d.node.tier))&&d.node.give.some(g=>roomFor(S,g[0],1))}else if(d.loot&&!o.empty&&!Z.home){ok=!d.lock||o.unlocked||!!o.inv}
     if(!ok)continue;let v=near(i);if(held&&d.node&&d.node.tool===held)v-=6;if(v<bd){bd=v;best=i}}
-  for(const dr of Z.drops){if(dr.full&&Z.time-dr.full<20)continue;const v=f[Math.floor(dr.y)*W+Math.floor(dr.x)];if(v<bd){bd=v;best=-2;p.autoDrop=dr}}
+  // loose loot comes first: anything lying within a short walk is picked up before going back to gathering (it is what a fight leaves behind)
+  let drop=null,dd=Infinity;for(const dr of Z.drops){if(dr.full&&Z.time-dr.full<20)continue;const v=f[Math.floor(dr.y)*W+Math.floor(dr.x)];if(v<dd){dd=v;drop=dr}}
+  if(drop&&(dd<26||dd<bd)){best=-2;p.autoDrop=drop}
   if(best===-1)return null;
   if(best===-2)return{drop:p.autoDrop,f:field(Z,Math.floor(p.autoDrop.x),Math.floor(p.autoDrop.y),true,120)};
   return{i:best,f:field(Z,best%W,Math.floor(best/W),true,120)};
 }
 /** The hostile auto mode should deal with now: the nearest one that has noticed you, within 9 tiles (16 for a few seconds after you are hit, to reach whoever is shooting). */
-function autoFoe(Z,p){
-  const R=p.alarm!==undefined&&Z.time-p.alarm<6?16:9;let best=null,bd=R;
+function autoFoe(Z,p,minR=0){
+  const R=Math.max(minR,p.alarm!==undefined&&Z.time-p.alarm<6?16:9);let best=null,bd=R;
   for(const a of Z.actors){if(a.team!==1||a.dead||!a.alert||a.def.ai==='flee')continue;const d=dist(a.x,a.y,p.x,p.y)-a.r;if(d<bd){bd=d;best=a}}
   return best;
 }
@@ -362,8 +364,13 @@ function autoFight(Z,p,e,dt){
 }
 function autoStep(Z,p,dt){
   const S=G.S;
-  const foe=autoFoe(Z,p);if(foe)return autoFight(Z,p,foe,dt);
-  if(p.fight){if(Z.time-p.fight.t<1.5&&S.p.active!==p.fight.slot){S.p.active=p.fight.slot;emit('eq')}p.fight=null;p.auto=null;toast('Auto: clear, back to gathering','info')}
+  // in a tide: meet whatever comes within reach of the middle; once the last wave is in, go and find the stragglers so the tide can end
+  const tide=Z.home&&S.tide.live,foe=autoFoe(Z,p,tide?13:0)||(tide&&!S.tide.live.q.length?autoFoe(Z,p,400):null);if(foe)return autoFight(Z,p,foe,dt);
+  if(p.fight){if(Z.time-p.fight.t<1.5&&S.p.active!==p.fight.slot){S.p.active=p.fight.slot;emit('eq')}p.fight=null;p.auto=null;toast(Z.home&&S.tide.live?'Auto: clear for now, holding the homestead':'Auto: clear, back to gathering','info')}
+  // during a tide auto mode stops gathering and holds the middle of the homestead, going out only to meet what comes within reach
+  if(tide){p.act=null;p.auto=null;const hx=Z.w/2,hy=Z.h/2;if(dist(p.x,p.y,hx,hy)<2.5)return[0,0];
+    if(!p.homeF||Z.time-p.homeT>1){p.homeT=Z.time;p.homeF=field(Z,Math.floor(hx),Math.floor(hy),true,120)}const n=stepOn(Z,p.homeF,p.x,p.y);if(n<0)return[0,0];
+    const gx=n%Z.w+.5,gy=Math.floor(n/Z.w)+.5,l=Math.hypot(gx-p.x,gy-p.y)||1;return[(gx-p.x)/l,(gy-p.y)/l]}
   if(freeSlots(S)===0&&!p.act){G.auto=false;p.auto=null;toast('Auto stopped: pack full','info');return[0,0]}
   if(p.act)return[0,0];
   let a=p.auto;

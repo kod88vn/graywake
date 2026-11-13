@@ -97,7 +97,7 @@ export function arrive(dest){
 }
 function startAmbush(table,home){
   const S=G.S;
-  if(home&&G.Z&&G.Z.home){const Z=G.Z,side=Math.floor(rnd()*4);for(const k in table)for(let i=0;i<table[k];i++){const[x,y]=edgePoint(Z,side,10);spawnActor(Z,k,x,y,Z.lvl,{alert:true,st:'chase',tide:true})}sfx('warning');return}
+  if(home&&G.Z&&G.Z.home){const Z=G.Z,side=Math.floor(rnd()*4);for(const k in table)for(let i=0;i<table[k];i++){const[x,y]=edgePoint(Z,side,10);spawnActor(Z,k,x,y,Z.lvl,ENEMIES[k]&&ENEMIES[k].ai==='flee'?{}:{alert:true,st:'chase',tide:true})}sfx('warning');return}
   const reg=G.pending&&G.pending.dest?destReg(S,G.pending.dest):regionHere(S),biome=['forest','forest','dust','city','frost','gray'][reg];
   const lvl=Math.max(1,Math.round((LOCATIONS.filter(l=>l.reg===reg).reduce((a,l)=>Math.min(a,l.lvl),99)+S.p.lvl*.6)/1.6));
   const Z=genZone({id:'ambush',n:'Ambush',lay:'wild',biome,reg,lvl,size:[30,30],nodes:biome==='forest'?{tree_pine:14,rock:4,grass_tall:5}:biome==='dust'?{cactus:6,rock:6,tree_joshua:3}:biome==='city'?{car_hull:5}:biome==='frost'?{tree_snow:10,rock:5}:{tree_gray:8,bloom:4},props:biome==='city'?{car_wreck:4,rubble:5}:{}},hash(S.seed,Math.floor(S.t)));
@@ -331,10 +331,13 @@ function startTide(S,Z){
   // allies keep their word: two fighters from every community you have a pact with
   for(const[id,n]of Community.allies(S)){for(let i=0;i<n;i++){const[x,y]=freeNear(Z,Z.w/2+(rnd()-.5)*6,Z.h/2+(rnd()-.5)*6,4);spawnActor(Z,'guard',x,y,lvl,{from:id})}toast(FACTIONS[id].n+' sends two fighters to stand with you','good')}
   for(const a of Z.actors)if(a.team===1&&!a.dead)a.tide=true;
-  emit('ui','tideStart');sfx('horde_horn');G.auto=false;
+  emit('ui','tideStart');sfx('horde_horn');if(G.auto&&Z.pl){Z.pl.auto=null;toast('Auto: holding the homestead','bad')}   // auto mode stays on and defends
 }
 function tickTide(S,Z,dt){
-  const L=S.tide.live;L.t+=dt;let alive=0;for(const a of Z.actors)if(a.team===1&&!a.dead&&a.tide)alive++;
+  // animals that only run away never count as attackers: a herd that wandered in must not keep a tide from ending
+  const L=S.tide.live;L.t+=dt;let alive=0;for(const a of Z.actors)if(a.team===1&&!a.dead&&a.tide&&a.def.ai!=='flee'){alive++;
+    // an attacker that lost sight of you behind your own walls does not wander off and leave the tide hanging: it keeps coming
+    if(!a.alert||a.st==='idle'){a.alert=true;a.st='chase'}}
   const flow=Z.pl&&!Z.pl.dead?playerField(Z):null,can=(x,y)=>!flow||flow[Math.floor(y)*Z.w+Math.floor(x)]<1e9,spot=side=>{let p;for(let k=0;k<12;k++){p=edgePoint(Z,k<8?side:Math.floor(rnd()*4),13);if(can(p[0],p[1]))break}return p};
   L.fix=(L.fix||0)+dt;if(L.fix>3&&flow){L.fix=0;for(const a of Z.actors)if(a.team===1&&!a.dead&&a.tide&&!can(a.x,a.y)){a.boxed=(a.boxed||0)+1;if(a.boxed>=2){const p=spot(Math.floor(rnd()*4));a.x=p[0];a.y=p[1];a.boxed=0}}}
   while(L.q.length&&L.q[0].t<=L.t&&alive<46){const s=L.q.shift(),[x,y]=spot(s.side);const a=spawnActor(Z,s.k,x,y,L.lvl,{alert:true,st:'chase',tide:true});if(a&&s.boss){a.boss=true;sfx('roar',x,y)}alive++}

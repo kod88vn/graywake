@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.7.1 — 2026-11-12
+
+- **Fixed: auto mode switched off when a tide landed.** The character then stood still and was killed. Auto mode now stays on through a tide: it stops gathering, holds the middle of the homestead, goes out to meet whatever comes within reach, and hunts down the stragglers once the last wave is in.
+- **Fixed: tides that never ended.** Two causes. An attacker that lost sight of you behind your own walls went idle and never came back, and the tide waited for it; attackers now keep coming. And a herd that a home event had brought in counted as attackers; animals that only run away no longer do.
+- New tool: `node tools/playbot.mjs [days] [seed]` plays a fresh character at home with only a player's moves and builds a homestead, writing a save each morning. It found the two tide bugs above.
+- **Fixed: auto mode walked past loose loot.** It chose whatever was nearest, so a plant two steps away always beat a dropped bag six steps away, and loot (including what a fight leaves behind) was left lying as it wandered off. Loose loot within a short walk is now collected first.
+
 ## 0.7.0 — 2026-11-12
 
 What you wear is what you see.

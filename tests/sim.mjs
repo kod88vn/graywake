@@ -9,7 +9,7 @@ import {ENEMIES} from '../js/data/enemies.js';
 import {LOCATIONS,SITES} from '../js/data/world.js';
 import {EVENTS} from '../js/data/events.js';
 import {STORY} from '../js/data/progress.js';
-import {G,give,count,craft,place,upgrade,demolish,repair,moveObj,rotateObj,canMove,equip,useItem,quickUse,learnPerk,derive,canPlace,slotCount,freeSlots,sortInv,HOME_W} from '../js/sim/core.js';
+import {G,dropAt,give,count,craft,place,upgrade,demolish,repair,moveObj,rotateObj,canMove,equip,useItem,quickUse,learnPerk,derive,canPlace,slotCount,freeSlots,sortInv,HOME_W} from '../js/sim/core.js';
 import {genZone,field,siteDef,blockAt} from '../js/sim/zone.js';
 import {spawnActor,enemiesAlive,populate,interact,findInteract,lootAll,openLoot,plant} from '../js/sim/actors.js';
 import * as World from '../js/sim/world.js';
@@ -56,6 +56,21 @@ safe('clothing',()=>{
   T.ok(ds.set==='ranger'&&Math.abs(ds.ranged-1.1)<1e-9,'four pieces of a set give its bonus, with gloves of another kind on ('+ds.set+', ranged ×'+ds.ranged.toFixed(2)+')');
   const bad=Object.keys(ITEMS).filter(id=>['head','body','legs','feet','hands','pack'].includes(ITEMS[id].t)&&!(ITEMS[id].look&&ITEMS[id].look.c));T.ok(!bad.length,'every wearable has a look to draw'+(bad.length?': '+bad.join(', '):''));
   for(const k of['head','body','legs','feet','hands'])S.p.eq[k]=eq0[k]||null;S.p.inv=keep;G.ds=derive(S);
+});
+// ---- auto mode picks up loose loot before it goes back to gathering
+safe('auto loot',()=>{
+  const S=G.S,Z=G.Z,p=Z.pl;S.p.inv=S.p.inv.map(()=>null);const d0=Z.drops.length;
+  dropAt(Z,p.x+6,p.y+1,[{id:'scrap',n:4}]);dropAt(Z,p.x-7,p.y-2,[{id:'rope',n:2}]);
+  G.auto=true;let secs=0;while(secs<25&&Z.drops.length>d0){run(1,()=>{S.p.food=80;S.p.water=80});secs++}G.auto=false;
+  T.ok(Z.drops.length===d0&&count(S,'scrap')===4&&count(S,'rope')===2,'loose loot within a short walk is collected first, with plants and piles nearer by ('+secs+' s)');
+});
+// ---- auto mode holds the homestead through a tide instead of switching off
+safe('auto tide',()=>{
+  const S=G.S,Z=G.Z,p=Z.pl,keep=Object.assign({},S.p.eq),n0=S.tide.n;S.p.eq.w1={id:'spear',d:200};S.p.active='w1';G.ds=derive(S);S.p.hp=G.ds.maxHp;
+  S.tide.at=S.t+1;let off=false,secs=0;run(3);T.ok(!!S.tide.live,'a tide lands');G.auto=true;
+  while(S.tide.live&&secs<240){run(2,()=>{S.p.food=80;S.p.water=80;if(!G.auto&&S.tide.live)off=true});secs+=2}
+  T.ok(!off,'auto mode stays on for as long as the tide lasts');T.ok(!S.tide.live&&S.tide.n===n0+1&&!p.dead&&S.p.hp>0,'and fights the first tide off alone with a spear ('+secs+' s, health '+Math.round(S.p.hp)+')');
+  G.auto=false;p.fight=null;S.p.eq.w1=keep.w1||null;S.tide.at=S.t+3*1440;G.ds=derive(S);S.p.hp=G.ds.maxHp;for(const a of Z.actors)if(a.team===1)a.dead=true;
 });
 // ---- auto mode defends itself instead of stopping
 safe('auto defence',()=>{

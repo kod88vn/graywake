@@ -12,6 +12,7 @@
 | `tools/rigs.html` | by hand | Character sheet through the same materials and finishing pass as the game. Open it from `npm start` at `/tools/rigs.html`; `?pose=walk|idle|attack|dead`, `&q=name,name`, `&surv=5` adds survivors, `&low=1&fov=17` a low close camera for faces, `&strip=walk|run|sneak|attack|chop|die|husk` ten successive moments of one motion. |
 | `node tests/audio.mjs` | 40 s | Renders every sound and music scene offline and prints peak and loudness against its group. |
 | `node tools/tidebot.mjs` | 1 min | A crude bot against tides 1-12; see `BALANCE.md`. |
+| `node tools/playbot.mjs 13 7` | 5 s | A crude player: thirteen days at home with only a player's moves (auto-gather, craft, build to a fixed plan, eat, sleep, let auto mode fight). Writes `.out/playbot/day-N.json` each morning and a log; load a snapshot in the game with Menu, Export / import. Runs differ: the game's dice are not seeded. |
 
 `npm test` runs the first five.
 

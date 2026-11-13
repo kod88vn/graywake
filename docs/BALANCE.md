@@ -51,6 +51,10 @@ Numbers are in `COMM` and `FACTIONS` (`js/data/community.js`). None of this has 
 - War party: each fighter is worth 2 + 0.5 per level above I (+1 for Dead shot or Hard to kill); their side is strength/9; both sides are multiplied by a random 0.8 to 1.3. A win takes 14 + party power off their strength; a forward camp cleared in person takes 35; every raid they send costs them 6. On a win 15% of fighters come back hurt; on a loss 45% hurt and 8% dead.
 - Open: whether raids are survivable when they first appear (the Red Ledger is heard of on reaching the Dustline or building a radio), whether routes make scrip too easy, and whether a pact's two fighters matter at high tides.
 
+## What the play bot shows
+
+`tools/playbot.mjs` (one plan, no trips away from home, a flint spear and rags) has the whole palisade, stations, storage, gardens and a plank floor standing by the third morning, reaches level 7 to 9 in thirteen days, holds the first tide about half the time and loses tides 2 to 4 with three or four deaths. Read that as: home alone supplies wood, stone and food quickly, but not rags, leather or metal, so a character who never scavenges is under-armed by the second tide. Whether a person who does go out keeps pace with the tides is still unmeasured.
+
 ## Length
 
 The claim of a hundred hours is a design target, not a measurement. The reasoning:

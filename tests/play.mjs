@@ -123,7 +123,9 @@ try{
   await ev(`GW.G.pending=null;GW.World.travel('home')`);await page.sleep(500);if(await ev(`GW.UI.panel==='event'`)){await ev(`[...document.querySelectorAll('#pb [data-a=opt]:not([disabled])')].pop().click()`);await page.sleep(200);await click('#pb [data-a="done"]');await page.sleep(500)}
   if(await ev(`GW.G.Z&&GW.G.Z.id==='ambush'`)){await ev(`for(const a of GW.G.Z.actors)if(a.team===1)a.dead=true;GW.G.Z.pl.y=GW.G.Z.h-1`);await page.sleep(400);await click('#travel');await page.sleep(800)}
   T.ok(await until(`GW.G.Z&&GW.G.Z.home`,5000),'travel home');T.ok(await ev(`GW.G.Z.obj.some(o=>o&&o.k==='campfire')`),'the base is as it was left');
-  await page.key('p');await until(`GW.UI.panel==='menu'`,1500);await click('#pb [data-a="save"]');await click('#pb [data-a="title"]');T.ok(await until(`!document.getElementById('title').hidden`,2000),'Quit to title');
+  // coming home can open a sheet of its own (an away report, a home event): answer it the way a player would before opening the menu
+  for(let k=0;k<5&&await ev(`!!GW.UI.panel&&GW.UI.panel!=='menu'`);k++){await ev(`(()=>{const b=document.querySelector('#pb [data-a=ok],#pb [data-a=go],#pb [data-a=done],#pb [data-a=opt]:not([disabled]),#px');if(b)b.click()})()`);await page.sleep(300)}
+  await page.key('p');T.ok(await until(`GW.UI.panel==='menu'`,3000),'P opens the menu (open sheet: '+await ev(`GW.UI.panel`)+')');await click('#pb [data-a="save"]');await click('#pb [data-a="title"]');T.ok(await until(`!document.getElementById('title').hidden`,2000),'Quit to title');
   await click('#t-cont');T.ok(await until(`GW.G.mode==='play'&&GW.G.Z&&GW.G.Z.home&&GW.G.Z.obj.some(o=>o&&o.k==='campfire')`,6000),'Continue restores the homestead');
   T.ok(page.errors.length===0,'no page errors'+(page.errors.length?': '+page.errors.slice(0,6).join(' | '):''));
 }catch(e){T.ok(false,'threw: '+e.message+(page.errors.length?' | page: '+page.errors.slice(0,5).join(' | '):''))}
