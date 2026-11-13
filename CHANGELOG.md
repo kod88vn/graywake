@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.2 — 2026-11-12
+
+- **Realistic bodies.** People, husks and raiders are no longer assembled from balls and tubes. The torso is one continuous skinned surface through real cross-sections (shoulders, ribcage, waist, hips, a neck that rises out of the shoulders); arms have a shoulder cap, a tapering upper arm, a forearm and a wrist; legs have thighs, calves and ankles; hands have a palm, fingers and a thumb; boots have a shaft, heel and sole. Clothing sits on the body: open collar, belt and buckle, cuffs, jackets with a hem over the hips, vests and plates that follow the chest.
+- **Proportions.** A little over six heads tall instead of five and a half; the head is smaller against the body.
+- **Two builds.** Male and female builds differ in shoulder, waist and hip width; survivors, raiders and husks are a mix of both.
+- New model-builder primitive `Geo.loft` (a smooth skin through elliptical rings), which is what the bodies are made of.
+
 ## 0.5.1 — 2026-11-12
 
 - **Fluid movement.** Characters have a real skeleton now (hips, waist, chest, with the head and arms riding on the chest), and the motion is rebuilt on it:

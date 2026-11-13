@@ -52,6 +52,21 @@ export class Geo{
   }
   // `lift` (on by default) cleans the palette for the cel look: every colour gets a little more saturation and light.
   // Character rigs turn it off and pass exact colours.
+  /** A smooth skin through elliptical rings: rings = [[y, rx, rz, cx=0, cz=0], ...] in order along the form. Normals run smoothly from ring to ring,
+   *  so a torso or a calf reads as one continuous surface instead of stacked balls. cap: close 'both' ends, the 'start', the 'end' or 'none'. */
+  loft(rings,color,seg=12,cap='both'){
+    _c.set(color);if(this.lift){_c.getHSL(_hsl);_c.setHSL(_hsl.h,Math.min(1,_hsl.s*1.12+.02),_hsl.l+(1-_hsl.l)*.1)}const jt=1+(this._rnd()-.5)*2*this.jit,cr=_c.r*jt,cg=_c.g*jt,cb=_c.b*jt;
+    const n=rings.length,P=[],N=[],flip=rings[n-1][0]<rings[0][0];
+    for(let i=0;i<n;i++){const[y,rx,rz,cx=0,cz=0]=rings[i];for(let j=0;j<seg;j++){const a=j/seg*Math.PI*2;P.push([cx+Math.cos(a)*rx,y,cz+Math.sin(a)*rz])}}
+    const at=(i,j)=>P[i*seg+((j%seg)+seg)%seg];
+    for(let i=0;i<n;i++)for(let j=0;j<seg;j++){const p0=at(i,j-1),p1=at(i,j+1),q0=at(Math.max(0,i-1),j),q1=at(Math.min(n-1,i+1),j);
+      _a.set(p1[0]-p0[0],p1[1]-p0[1],p1[2]-p0[2]);_b.set(q1[0]-q0[0],q1[1]-q0[1],q1[2]-q0[2]);_v.crossVectors(_b,_a);const a=j/seg*Math.PI*2;if(_v.x*Math.cos(a)+_v.z*Math.sin(a)<0)_v.negate();if(_v.lengthSq()<1e-12)_v.set(Math.cos(a),0,Math.sin(a));_v.normalize();N.push([_v.x,_v.y,_v.z])}
+    const put=(p,nr)=>{this.pos.push(p[0],p[1],p[2]);this.nor.push(nr[0],nr[1],nr[2]);this.col.push(cr,cg,cb)},tri=(a,na,b,nb,c,nc)=>{if(flip){put(a,na);put(c,nc);put(b,nb)}else{put(a,na);put(b,nb);put(c,nc)}};
+    for(let i=0;i<n-1;i++)for(let j=0;j<seg;j++){const a=i*seg+j,b=i*seg+(j+1)%seg,c=(i+1)*seg+j,d=(i+1)*seg+(j+1)%seg;tri(P[a],N[a],P[c],N[c],P[d],N[d]);tri(P[a],N[a],P[d],N[d],P[b],N[b])}
+    const end=(i,up)=>{const[y,,,cx=0,cz=0]=rings[i],c=[cx,y,cz],nc=[0,up?1:-1,0];for(let j=0;j<seg;j++){const a=i*seg+j,b=i*seg+(j+1)%seg;if(up!==flip)tri(c,nc,P[b],N[b],P[a],N[a]);else tri(c,nc,P[a],N[a],P[b],N[b])}};
+    if(cap==='both'||cap==='start')end(0,flip);if(cap==='both'||cap==='end')end(n-1,!flip);
+    return this;
+  }
   /** Bake into a BufferGeometry (position, normal, color). */
   build(){
     const g=new THREE.BufferGeometry();

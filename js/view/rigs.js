@@ -1,5 +1,5 @@
 // Character rigs: jointed bodies built from rounded anatomy (not boxes), and the code that poses them every frame.
-// A humanoid is about 1.3 units tall in anime proportions: about five and a half heads tall, big eyes, chunky hair,
+// A humanoid is about 1.28 units tall, a little over six heads: a skinned body with real shoulders, waist, hips and calves, an anime face and chunky hair,
 // slim two-part limbs with elbows and knees. Everything is cel-shaded and outlined by the ink pass (post.js).
 // A rig is a THREE.Group: root → body (leans, crouches, falls) → hips (pelvis, legs) → chest (ribcage, head, arms). Each rig owns its material so it can flash and fade.
 import {THREE,Geo,shade,mix,toon} from './geo.js';
@@ -15,9 +15,9 @@ const HAIR=['#2c2438','#5a3a26','#e6c468','#c8cede','#b8452e','#3a6ea8','#e88aa8
 const SKIN=['#f0c8a4','#d8a882','#f4d4b8','#b07c58','#f8dcc4'],TOPS=['#5f8a4a','#a85a48','#4a6a9a','#b89a3a','#7a5a9a','#3a8a7a','#c05a3a'],SCARF=['#d8433a','#e8b83a','#3a8ac8','#5ab06a','#f0f0e8'];
 const BLOOD='#561210';
 
-// ---- anime head: big eyes, small mouth, chunky hair. Scaled up a little by HEAD so faces read from the game camera,
-// but kept to regular anime proportions (about five and a half heads tall), not chibi: the user dislikes big-head cartoon figures.
-const HEAD=1.14,HC=[0,.115,-.022];
+// ---- anime head: big eyes, small mouth, chunky hair, on a body in near-realistic proportions (a little over six heads tall).
+// Not chibi: the user dislikes big-head cartoon figures and asked for a more realistic body.
+const HEAD=.93,HC=[0,.115,-.022];
 /** A hair spike pointing along (dx,dy,dz) from the hair cap. */
 function spike(g,c,dx,dy,dz,r,h,flat=1,base=.07){const l=Math.hypot(dx,dy,dz)||1;dx/=l;dy/=l;dz/=l;const d=base+h/2;g.cone(r,h,c,HC[0]+dx*d,HC[1]+dy*d,HC[2]+dz*d,7,Math.atan2(dz,dy),0,-Math.asin(dx),flat)}
 function drawHair(g,hr,style,bangs=true){
@@ -56,41 +56,54 @@ function drawHead(g,o,skin){
   if(o.mask&&!o.helm)g.sph(.073,o.mask,0,.043,.02,.94,.8,.96,9,6);
 }
 
-/** Humanoid: o = {skin, top, legs, boots, hair, hairStyle 0..5, eye, head (colour override), helm, helmStyle, vest, vestStyle, sleeves, pack, scarf, fat, scale, mask, weapon, husk, glow, gore, lean} */
+/** Humanoid: o = {skin, top, legs, boots, hair, hairStyle 0..5, eye, head (colour override), helm, helmStyle, vest, vestStyle, sleeves, pack, scarf, glove, build 'm'|'f', fat, scale, mask, weapon, husk, glow, gore, lean}
+ *  The body is skinned, not stacked: torso, pelvis, arms and legs are lofted through anatomical cross-sections (shoulders, ribcage, waist, hips, calf, wrist). */
 export function humanoid(o){
   const mat=newMat(),root=new THREE.Group(),body=new THREE.Group();root.add(body);
   const fat=o.fat||1,skin=o.skin||'#e8bf9c',top=o.top||'#6a7a5a',legs=o.legs||'#3a3f4a',boots=o.boots||shade(legs,.55),jacket=o.vestStyle==='jacket'&&o.vest,sleeve=jacket||o.sleeves||top,P={};
-  // ---- torso: pelvis, narrow waist, ribcage, shoulders, neck (pivot at the hips)
+  const fem=o.build==='f',sh=(fem?.89:1)*fat,wa=(fem?.84:1)*fat,hp=(fem?1.06:1)*fat,dz=fat,lf=Math.min(1.22,fat),skinD=o.husk?shade(skin,.85):skin;
+  // torso cross-sections, hips to neck: [height above the hips, half width, half depth, , forward shift]
+  const TORSO=[[.055,.092*wa,.064*dz],[.13,.09*wa,.063*dz,0,.002],[.2,.104*(wa+sh)/2,.073*dz,0,.004],[.29,.124*sh,(fem?.094:.084)*dz,0,fem?.016:.006],[.355,.132*sh,(fem?.084:.08)*dz,0,fem?.006:.002],[.4,.124*sh,.066*dz,0,-.004],[.428,.074*sh,.05*dz,0,-.004],[.45,.04,.04,0,0]];
+  const over=(k,from,to,dn=0)=>TORSO.filter(r=>r[0]>=from&&r[0]<=to).map((r,i)=>[i?r[0]:r[0]-dn,r[1]*k+.004,r[2]*k+.006,0,r[4]||0]);
   // skeleton: body → hips (pelvis, legs) → chest at the waist (ribcage, head, arms), so the two halves can twist against each other
-  P.hips=grp(body,0,.6,0);P.pelvis=part(mat,g=>{g.sph(.114,legs,0,.02,0,1.1*fat,.78,.86*fat,10,6);g.sph(.112,shade(legs,.6),0,.085,0,1.08*fat,.2,.84*fat,10,4)});P.hips.add(P.pelvis);P.chest=grp(P.hips,0,.1,0);
+  P.hips=grp(body,0,.6,0);P.pelvis=part(mat,g=>{
+    g.loft([[-.088,.046*hp,.05*dz],[-.05,.092*hp,.071*dz],[0,.106*hp,.081*dz,0,-.004],[.05,.1*(hp+wa)/2,.073*dz],[.098,.094*wa,.066*dz]],legs,12);
+    g.loft([[.066,.099*(hp+wa)/2+.004,.074*dz+.004],[.1,.095*wa+.004,.068*dz+.004]],shade(legs,.55),12,'none');g.box(.03,.026,.012,'#b8a060',0,.083,.072*dz+.006);
+    if(jacket)g.loft([[-.03,.116*hp,.09*dz],[.05,.108*(hp+wa)/2,.082*dz],[.1,.102*wa,.076*dz]],jacket,12,'none');
+  });P.hips.add(P.pelvis);P.chest=grp(P.hips,0,.1,0);
   P.torso=part(mat,g=>{
-    g.sph(.106,top,0,.17,.004,1.04*fat,1.2,.8*fat,10,6);g.sph(.138,top,0,.305,0,1.08*fat,.98,.74*fat,10,7);
-    g.sph(.05,sleeve,-.15*fat,.36,0,1.1,.85,1,7,5);g.sph(.05,sleeve,.15*fat,.36,0,1.1,.85,1,7,5);
-    g.cyl(.03,.036,.08,o.head||skin,0,.445,.004,8);
-    if(!o.husk&&!o.vest)g.sph(.06,shade(top,1.2),0,.41,.01,1.3,.35,1.1,8,4);
-    if(o.husk&&o.gore>2)g.sph(.07,skin,.05*fat,.1,.07*fat,1,.6,.5,7,4);
+    g.loft(TORSO,top,14);g.loft([[.43,.037,.037,0,.002],[.505,.033,.035,0,.008]],o.head||skin,10,'none');
+    for(const s of[-1,1])g.sph(.048,sleeve,s*.14*sh,.378,0,1.08,.92,1.12,8,6);
+    if(!o.husk&&!o.vest)g.loft([[.418,.066*sh,.052,0,.002],[.455,.05,.047,0,.004]],shade(top,1.22),10,'none');
+    if(o.husk&&o.gore>2)g.sph(.06,skin,.05*fat,.11,.06*fat,1,.6,.5,7,4);
     if(o.vest){const v=o.vest,s=o.vestStyle;
-      if(s==='plate'){g.sph(.146,v,0,.3,.006,1.12*fat,.95,.82*fat,10,7);g.sph(.118,shade(v,.86),0,.165,.006,1.08*fat,1,.84*fat,10,5);g.sph(.07,shade(v,1.18),-.166*fat,.385,0,1.05,.55,1.1,7,4);g.sph(.07,shade(v,1.18),.166*fat,.385,0,1.05,.55,1.1,7,4);for(let i=0;i<3;i++)g.box(.07,.05,.03,shade(v,.7),-.08+i*.08,.15,.096*fat)}
-      else if(s==='jacket'){g.sph(.143,v,0,.3,0,1.1*fat,1,.78*fat,10,7);g.sph(.114,v,0,.165,.002,1.06*fat,1.2,.84*fat,10,6);g.box(.016,.3,.02,shade(v,.6),0,.24,.103*fat);g.sph(.065,shade(v,1.2),0,.42,.005,1.35,.4,1.15,8,4)}
-      else{g.sph(.142,v,0,.29,.004,1.06*fat,.9,.8*fat,10,7);g.sph(.112,v,0,.17,.004,1.0*fat,.9,.84*fat,10,5);g.box(.05,.06,.03,shade(v,.75),-.07,.2,.094*fat);g.box(.05,.06,.03,shade(v,.75),.07,.2,.094*fat)}}
-    if(o.pack){const p=o.pack;g.sph(.125,p,0,.26,-.165*fat,.98,1.3,.72,9,6);g.sph(.07,shade(p,1.2),0,.19,-.255*fat,1.05,.85,.6,7,4);g.sph(.1,shade(p,.8),0,.4,-.15*fat,1,.35,.7,8,4);g.box(.028,.24,.02,shade(p,.7),-.09,.31,.1*fat);g.box(.028,.24,.02,shade(p,.7),.09,.31,.1*fat)}
-    if(o.scarf){g.torus(.058,.03,o.scarf,0,.432,.002,0,0,0,10);g.sph(.03,shade(o.scarf,.85),.03,.42,-.066,1,1,1,6,4)}
-    if(o.gore){g.sph(.055,BLOOD,-.05*fat,.3,.1*fat,1.2,1.1,.3,6,4);if(o.gore>1)g.sph(.045,BLOOD,.1*fat,.17,.075*fat,.5,1.3,.9,6,4);if(o.gore>2)g.sph(.06,shade(BLOOD,.7),.03,.2,-.1*fat,1.3,.9,.3,6,4)}
+      if(s==='plate'){g.loft(over(1.07,.12,.41),v,14);for(const d of[-1,1])g.sph(.066,shade(v,1.18),d*.158*sh,.392,0,1.08,.5,1.15,8,4);for(let i=0;i<3;i++)g.box(.064,.05,.028,shade(v,.7),-.074+i*.074,.16,.074*dz+.012);g.box(.12,.07,.016,shade(v,.86),0,.3,.092*dz+.01)}
+      else if(s==='jacket'){g.loft(over(1.07,.055,.43,.02),v,14);g.box(.014,.3,.012,shade(v,.6),0,.24,.086*dz+.012);g.loft([[.415,.074*sh,.058,0,.002],[.468,.056,.052,0,.002]],shade(v,1.2),10,'none')}
+      else{g.loft(over(1.06,.12,.4),v,14);for(const d of[-1,1])g.box(.046,.056,.024,shade(v,.75),d*.062,.2,.07*dz+.014)}}
+    if(o.pack){const p=o.pack;g.sph(.125,p,0,.26,-.165*fat,.98,1.3,.72,9,6);g.sph(.07,shade(p,1.2),0,.19,-.255*fat,1.05,.85,.6,7,4);g.sph(.1,shade(p,.8),0,.4,-.15*fat,1,.35,.7,8,4);for(const d of[-1,1])g.box(.026,.24,.016,shade(p,.7),d*.086*sh,.31,.084*dz+.004)}
+    if(o.scarf){g.torus(.056,.028,o.scarf,0,.44,.002,0,0,0,10);g.sph(.03,shade(o.scarf,.85),.03,.43,-.062,1,1,1,6,4)}
+    if(o.gore){g.sph(.055,BLOOD,-.05*fat,.3,.082*fat,1.2,1.1,.3,6,4);if(o.gore>1)g.sph(.045,BLOOD,.094*fat,.17,.05*fat,.5,1.3,.9,6,4);if(o.gore>2)g.sph(.06,shade(BLOOD,.7),.03,.2,-.07*fat,1.3,.9,.3,6,4)}
   });P.torso.position.y=-.1;P.chest.add(P.torso);
   // ---- scarf tails: two strips that trail behind when running
-  if(o.scarf){P.scarf=part(mat,g=>{g.sph(.03,o.scarf,-.022,-.13,0,.95,4.4,.36,7,6);g.sph(.027,shade(o.scarf,.82),.03,-.1,-.008,.95,3.7,.36,7,6)});P.scarf.position.set(.03,.33,-.085);P.scarf.rotation.x=.25;P.chest.add(P.scarf)}
+  if(o.scarf){P.scarf=part(mat,g=>{g.sph(.03,o.scarf,-.022,-.13,0,.95,4.4,.36,7,6);g.sph(.027,shade(o.scarf,.82),.03,-.1,-.008,.95,3.7,.36,7,6)});P.scarf.position.set(.03,.34,-.075);P.scarf.rotation.x=.25;P.chest.add(P.scarf)}
   // ---- head (pivot at the top of the neck)
-  P.head=part(mat,g=>drawHead(g,o,skin));P.head.position.y=.37;P.head.scale.setScalar(HEAD);P.chest.add(P.head);
-  // ---- arms: upper arm from the shoulder, forearm and hand from the elbow
-  const arm=side=>{const up=part(mat,g=>{g.limb(.045,.038,.215,sleeve,0,0,0,0,0,0,7);if(o.gore>1&&side<0)g.sph(.04,BLOOD,0,-.12,.02,1.1,1.4,.8,6,4)});up.position.set(side*(.164*fat+.012),.255,0);P.chest.add(up);
-    const el=grp(up,0,-.215,0),fore=part(mat,g=>{g.limb(.037,.03,.2,jacket||(o.sleeves?sleeve:skin),0,0,0,0,0,0,7);if(!o.husk)g.cyl(.036,.034,.05,shade(o.glove||sleeve,.72),0,-.17,0,7);g.sph(.04,o.husk?shade(skin,.85):o.glove||skin,0,-.228,.006,.85,1.12,1,7,5)});el.add(fore);return[up,el]};
+  P.head=part(mat,g=>drawHead(g,o,skin));P.head.position.y=.385;P.head.scale.setScalar(HEAD);P.chest.add(P.head);
+  // ---- arms: upper arm from the shoulder, forearm, wrist and hand from the elbow
+  const arm=side=>{const up=part(mat,g=>{g.loft([[.026,.026*lf,.028*lf],[-.004,.046*lf,.048*lf],[-.07,.045*lf,.047*lf,0,.002],[-.145,.039*lf,.04*lf],[-.215,.035,.036]],sleeve,10,'start');if(o.gore>1&&side<0)g.sph(.04,BLOOD,0,-.12,.02,1.1,1.4,.8,6,4)});up.position.set(side*(.134*sh+.034),.262,0);P.chest.add(up);
+    const fc=jacket||(o.sleeves?sleeve:skinD),hc=o.husk?skinD:o.glove||skin,el=grp(up,0,-.215,0),fore=part(mat,g=>{
+      g.loft([[.014,.027,.028],[-.008,.037,.038],[-.05,.039,.039,0,.002],[-.12,.032,.032],[-.19,.026,.025],[-.204,.025,.024]],fc,10);
+      if(!o.husk)g.loft([[-.148,.032,.031],[-.198,.029,.028]],shade(o.glove||sleeve,.72),10,'none');
+      g.sph(.031,hc,0,-.226,.004,.6,1.05,.95,8,6);g.sph(.027,hc,0,-.258,.01,.55,.92,.8,7,5);g.sph(.012,hc,-side*.004,-.232,.03,1,1.5,1,6,4)});el.add(fore);return[up,el]};
   [P.armL,P.elbowL]=arm(-1);[P.armR,P.elbowR]=arm(1);
-  // ---- legs: thigh from the hip, shin and boot from the knee
-  const leg=side=>{const th=part(mat,g=>g.limb(.063*Math.min(1.25,fat),.048,.3,legs,0,0,0,0,0,0,7));th.position.set(side*.074,0,0);P.hips.add(th);
-    const kn=grp(th,0,-.3,0),sh=part(mat,g=>{g.limb(.048,.037,.25,legs,0,0,0,0,0,0,7);g.limb(.05,.048,.1,boots,0,-.16,0,0,0,0,7);g.sph(.056,boots,0,-.272,.036,.92,.72,1.75,8,5);g.sph(.056,shade(boots,.6),0,-.296,.036,.94,.22,1.78,8,4)});kn.add(sh);return[th,kn]};
+  // ---- legs: thigh from the hip, shin with a calf, boot from the knee
+  const leg=side=>{const th=part(mat,g=>g.loft([[.03,.05*lf,.052*lf],[0,.067*lf*(fem?1.04:1),.07*lf],[-.08,.065*lf,.068*lf,0,.004],[-.19,.054*lf,.056*lf,0,.002],[-.28,.047,.048],[-.3,.046,.047]],legs,10,'start'));th.position.set(side*.072*(fem?1.04:1),0,0);P.hips.add(th);
+    const kn=grp(th,0,-.3,0),sh2=part(mat,g=>{
+      g.loft([[.014,.036,.038],[-.008,.046,.047],[-.07,.046,.05,0,-.009],[-.13,.04,.042,0,-.006],[-.2,.031,.032],[-.25,.03,.03]],legs,10);
+      g.loft([[-.128,.045,.047,0,-.005],[-.2,.037,.038],[-.264,.037,.042,0,.004]],boots,10,'none');g.loft([[-.122,.047,.049,0,-.005],[-.14,.046,.048,0,-.005]],shade(boots,1.25),10,'none');
+      g.sph(.05,boots,0,-.276,.04,.84,.62,1.9,9,6);g.sph(.037,boots,0,-.278,-.012,1,.78,1,7,5);g.sph(.052,shade(boots,.55),0,-.299,.036,.88,.2,1.98,9,4)});kn.add(sh2);return[th,kn]};
   [P.legL,P.kneeL]=leg(-1);[P.legR,P.kneeR]=leg(1);
   const hand=grp(P.elbowR,0,-.228,.012);hand.rotation.x=Math.PI/2;
-  const rig={root,body,P,hand,mat,type:'human',ph:Math.random()*6,sd:Math.random()*6,scale:o.scale||1,weapon:null,lean:o.lean||0,husk:!!o.husk,h:1.32*(o.scale||1),death:0};
+  const rig={root,body,P,hand,mat,type:'human',ph:Math.random()*6,sd:Math.random()*6,scale:o.scale||1,weapon:null,lean:o.lean||0,husk:!!o.husk,h:1.3*(o.scale||1),death:0};
   root.scale.setScalar(rig.scale);if(o.weapon)setWeapon(rig,o.weapon);
   return rig;
 }
@@ -129,12 +142,12 @@ export function rigFor(def,seed=0){
   const[type,o]=def.rig;if(type==='quad')return quadruped(o);if(type==='blob')return blob(o);
   const h=n=>(((seed*2654435761)>>>0)>>>n)%1000/1000;
   const pick=(a,n)=>a[Math.floor(h(n)*a.length)];
-  if(type==='human'&&def.ai==='follow')return humanoid({skin:pick(SKIN,3),top:pick(TOPS,7),legs:pick(['#3a4460','#5a4a3a','#2e4a3a','#4a4a6a'],11),hair:pick(HAIR,15),hairStyle:Math.floor(h(5)*6),eye:pick(EYES,19),scarf:h(21)<.45?pick(SCARF,23):null,fat:.94+h(9)*.14});
+  if(type==='human'&&def.ai==='follow')return humanoid({skin:pick(SKIN,3),top:pick(TOPS,7),legs:pick(['#3a4460','#5a4a3a','#2e4a3a','#4a4a6a'],11),hair:pick(HAIR,15),hairStyle:Math.floor(h(5)*6),eye:pick(EYES,19),scarf:h(21)<.45?pick(SCARF,23):null,fat:.94+h(9)*.14,build:h(27)<.5?'f':'m',scale:h(27)<.5?.96:1});
   let oo=o;
   if(o.vary){const ZT=['#6a5040','#4a5a7a','#7a3a3a','#3a5a3a','#8a8a70','#2e3a54','#6a5a8a','#9a6a3a','#4a4a52'],ZL=['#3a3f4a','#4a4032','#2e2e36','#4a4a5a','#3a3028'];
-    oo={...o,top:h(3)<.75?pick(ZT,7):o.top,legs:pick(ZL,11),scale:(o.scale||1)*(.93+h(5)*.14),fat:(o.fat||1)*(.9+h(13)*.26),hair:h(9)<.6?pick(HAIR_DULL,15):null,hairStyle:Math.floor(h(17)*6),gore:1+Math.floor(h(19)*3),lean:(o.lean||0)+h(21)*.14}}
+    oo={...o,top:h(3)<.75?pick(ZT,7):o.top,legs:pick(ZL,11),scale:(o.scale||1)*(.93+h(5)*.14),fat:(o.fat||1)*(.9+h(13)*.26),hair:h(9)<.6?pick(HAIR_DULL,15):null,hairStyle:Math.floor(h(17)*6),gore:1+Math.floor(h(19)*3),lean:(o.lean||0)+h(21)*.14,build:h(25)<.4?'f':'m'}}
   else if(type==='husk'||type==='crawler')oo={...o,gore:o.helm?1:2};
-  else if(type==='human')oo={...o,hair:o.hair||pick(HAIR_DULL,15),hairStyle:Math.floor(h(17)*6),eye:'#b8452e'};
+  else if(type==='human')oo={...o,hair:o.hair||pick(HAIR_DULL,15),hairStyle:Math.floor(h(17)*6),eye:'#b8452e',build:!o.vest&&h(25)<.3?'f':'m'};
   const husk=type==='husk'||type==='crawler',r=humanoid({...oo,husk,glow:husk&&o.head?shade(o.head,1.5):null,vestStyle:oo.vest?'plate':null,helmStyle:oo.helm?'helm':null});
   if(type==='crawler'){r.type='crawler';r.h=.5;r.body.position.z=-.6}return r;
 }
