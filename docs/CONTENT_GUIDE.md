@@ -14,6 +14,17 @@ smoked_fish:{n:'Smoked Fish',t:'food',ic:['fish','#8a5a30'],v:12,food:30,hp:4},
 - Weapons and tools need `dur`. Held weapons need `mdl`, a key of `HAND` in `js/view/props.js`.
 - Armour that should show on the character needs `look:{c:'#colour', s:'hood|cap|helm|visor|mask'}` for heads or `s:'vest|jacket|plate'` for bodies.
 
+## Something to wear
+
+A wearable is an item with `t` of `head`, `body`, `legs`, `feet`, `hands` or `pack` and a `look`: `{c colour, s style, c2 accent}` (packs: `{c, z}` with size `z` 1..5). The style names a drawing in `humanoid()` / `drawHead()` in `js/view/rigs.js`:
+
+- head: `hood cap helm visor mask furhat combat gasmask exo brim skull bandana`
+- body: `shirt vest jacket coat duster plate riot carrier suit exo spiked`
+- legs: `pants wrap greaves guards cargo suit exo fur chaps kilt`
+- feet: `boots wraps heavy rubber fur exo` · hands: `gloves wraps gauntlet exo`
+
+To add a new style, draw it in `rigs.js` next to the others (it only runs when an item asks for it) and add its name to `STYLES` in `tools/check.mjs`. Look at `tools/rigs.html?low=1&q=<outfit>` (add the outfit to the `outfits` list there). Four pieces sharing a `set` (head, body, legs, feet) give the bonus in `SETS`; gloves carry no set.
+
 ## A recipe (`recipes.js`)
 
 ```js

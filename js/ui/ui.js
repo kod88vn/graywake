@@ -3,6 +3,7 @@ import {G,VERSION,weaponDef,count,quickUse,place,upgrade,repair,demolish,rotateO
 import * as World from '../sim/world.js';
 import {story,goalProgress,goalText,contractReady} from '../sim/quests.js';
 import {autoPlan} from '../sim/actors.js';
+import {Portrait} from '../view/portrait.js';
 import {ITEMS} from '../data/items.js';
 import {OBJ,BUILD_CATS} from '../data/objects.js';
 import {TIDE_KINDS,WEATHER} from '../data/events.js';
@@ -109,6 +110,7 @@ function refresh(){
   $('panel').className=P.narrow?'narrow':'';$('ph').querySelector('.ttl').textContent=typeof P.title==='function'?P.title(curArg):P.title;
   $('tabs').innerHTML=tabs?tabs.map(([id,l,dot])=>`<button data-t="${id}" class="${id===curTab?'on':''}">${l}${dot?' <span style="color:var(--amber2)">●</span>':''}</button>`).join(''):'';
   $('px').hidden=!!P.modal;$('pb').innerHTML=P.render(curArg,curTab);needHud=true;
+  if(cur==='inv')Portrait.mount($('doll'),G.S.p.eq,G.S.p.active);
 }
 function closeQuiet(){if(!cur)return;const P=PANELS[cur],a=curArg;cur=null;curArg=null;$('shade').hidden=true;G.paused=false;G.busy=false;if(P.close)P.close(a)}
 function close(){if(!cur)return;sfx('ui_close');closeQuiet();if(G.mode==='map')MapScreen.draw()}
@@ -183,7 +185,7 @@ function buildFrame(){
 
 // ---------------------------------------------------------------- HUD
 const setBar=(el,v,max,warn)=>{el.firstElementChild.style.width=Math.max(0,Math.min(100,v/max*100))+'%';el.querySelector('.num').textContent=Math.ceil(v)+(max!==100?' / '+max:'');el.classList.toggle('warn',!!warn)};
-function frame(dt){
+function frame(dt){if(cur==='inv')Portrait.frame(dt||.016);
   const S=G.S,Z=G.Z;if(!S||!Z)return;const p=Z.pl,ds=G.ds;
   if(deathT>0){deathT-=dt;if(deathT<=0)open('death')}
   if(cur&&PANELS[cur].tick&&PANELS[cur].tick(curArg,dt||1/60)){const keep=$('pb').scrollTop;refresh();$('pb').scrollTop=keep}

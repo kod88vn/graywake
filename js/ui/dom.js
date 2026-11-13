@@ -39,4 +39,4 @@ export function tags(it,s){
   if(s&&s.d!==undefined&&it.dur)add('condition '+Math.round(s.d/it.dur*100)+'%');if(it.v)add(it.v+' scrip');
   return`<div class="tags">${t.join('')}</div>`;
 }
-export const TYPE_NAMES={mat:'Material',food:'Food & drink',med:'Medicine',tool:'Tool',melee:'Melee weapon',gun:'Ranged weapon',throw:'Thrown',ammo:'Ammunition',head:'Headgear',body:'Body armour',legs:'Leg armour',feet:'Footwear',pack:'Backpack',seed:'Seed',bp:'Schematic',key:'Key item',misc:'Gear'};
+export const TYPE_NAMES={mat:'Material',food:'Food & drink',med:'Medicine',tool:'Tool',melee:'Melee weapon',gun:'Ranged weapon',throw:'Thrown',ammo:'Ammunition',head:'Headgear',body:'Body armour',legs:'Leg armour',feet:'Footwear',hands:'Gloves',pack:'Backpack',seed:'Seed',bp:'Schematic',key:'Key item',misc:'Gear'};

@@ -22,7 +22,7 @@ export const PANELS={};
 
 // ---------------------------------------------------------------- pack
 let sel=null;
-const EQ=[['w1','Hand'],['w2','Spare'],['head','Head'],['body','Body'],['legs','Legs'],['feet','Feet'],['pack','Pack']];
+const EQ=[['w1','Hand'],['w2','Spare'],['head','Head'],['body','Body'],['hands','Hands'],['legs','Legs'],['feet','Feet'],['pack','Pack']];
 function itemCard(s,actions){
   if(!s)return`<div class="card"><p>Select something to see what it does.</p></div>`;const it=ITEMS[s.id];
   return`<div class="card"><div class="row" style="align-items:flex-start;flex-wrap:nowrap"><div style="width:52px;flex:none">${slot({id:s.id})}</div><div style="min-width:0"><h3>${esc(it.n)}${s.n>1?' × '+s.n:''}</h3><small style="color:var(--dim)">${TYPE_NAMES[it.t]||''}</small></div></div>${it.d?`<p>${esc(it.d)}</p>`:''}${tags(it,s)}${it.set?`<p>${esc(SETS[it.set].n)} (all four pieces): ${esc(SETS[it.set].d)}</p>`:''}<div class="row">${actions}</div></div>`;
@@ -35,14 +35,14 @@ PANELS.inv={title:'Pack',live:true,open(){sel=null},
     if(sel&&sel.src==='inv'&&p.inv[sel.i]){const it=ITEMS[p.inv[sel.i].id];let a='';
       if(it.t==='food')a+=btn(it.water>(it.food||0)?'Drink':'Eat','use','','go');else if(it.t==='med')a+=btn('Use','use','','go');else if(it.t==='bp')a+=btn('Learn','use','','go');
       else if(['melee','gun','tool','throw'].includes(it.t)){a+=btn('Equip','equip','data-slot="w1"','go')+btn('Equip as spare','equip','data-slot="w2"')}
-      else if(['head','body','legs','feet','pack'].includes(it.t))a+=btn('Wear','use','','go');
+      else if(['head','body','legs','feet','hands','pack'].includes(it.t))a+=btn('Wear','use','','go');
       else if(p.inv[sel.i].id==='flare')a+=btn('Fire','flare','','go');
       a+=btn('Drop','drop')+(p.inv[sel.i].n>1?btn('Drop all','dropall'):'');card=itemCard(p.inv[sel.i],a)}
     else if(sel&&sel.src==='eq'&&p.eq[sel.slot]){const e=p.eq[sel.slot],it=ITEMS[e.id];card=itemCard(e,btn('Take off','unequip','','go')+(it.dur&&e.d<it.dur&&count(s,'repair_kit')?btn('Use repair kit','kit'):'')+(sel.slot==='w1'||sel.slot==='w2'?btn('Make active','active'):''))}
     else card=itemCard(null);
     const kv=[['Health',Math.ceil(p.hp)+' / '+ds.maxHp],['Armour',ds.arm+' (−'+Math.round(ds.armRed*100)+'% damage)'],['Cold resistance',Math.round(ds.cold*100)+'%'],['Toxin resistance',Math.round(ds.tox*100)+'%'],['Move speed',ds.spd.toFixed(1)],['Melee damage','×'+ds.melee.toFixed(2)],['Ranged damage','×'+ds.ranged.toFixed(2)],['Set bonus',ds.set?SETS[ds.set].n:'none'],['Vehicle',VEHICLES[s.veh].n],['Scrip',s.scrip]];
     return`<div class="cols w3"><div>${sec('Carried '+p.inv.filter(Boolean).length+' / '+cap,btn('Sort','sort'))}<div class="grid">${g}</div><div style="height:10px"></div>${card}</div>
-      <div>${sec('Equipped')}<div class="grid" style="grid-template-columns:repeat(4,minmax(0,1fr))">${eq}</div><div style="height:12px"></div>${sec('You')}<div class="kv">${kv.map(([a,b])=>`<span>${a}</span><span class="num">${b}</span>`).join('')}</div></div></div>`;
+      <div>${sec('Equipped')}<div class="grid" style="grid-template-columns:repeat(4,minmax(0,1fr))">${eq}</div><div style="height:12px"></div>${sec('You',ds.set?SETS[ds.set].n+': '+SETS[ds.set].d:(['body','legs','feet'].every(k=>!p.eq[k])?'Nothing on: make rag clothes by hand':''))}<div id="doll" style="height:300px;background:radial-gradient(ellipse at 50% 60%,rgba(255,255,255,.07),rgba(0,0,0,0) 70%);border:1px solid var(--line);margin-bottom:8px"></div><div class="kv">${kv.map(([a,b])=>`<span>${a}</span><span class="num">${b}</span>`).join('')}</div></div></div>`;
   },
   act(a,d){
     const s=S(),p=s.p;

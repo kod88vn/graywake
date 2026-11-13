@@ -63,6 +63,9 @@ for(const a of ACHIEVEMENTS)fx(a.rw,'achievement '+a.id);
 for(const r of TRADE){item(r[0],'trade');got.add(r[0])}for(const t in TRADE_BP)for(const id of TRADE_BP[t]){item(id,'trade schematics');got.add(id)}
 for(const j in JOBS)for(const r of[...(JOBS[j].out||[]),...(JOBS[j].rare||[])]){item(r[0],'job '+j);got.add(r[0])}
 for(const id of['water','canned_beans','rags','scrap','rope','bandage','berries','stick','flint'])got.add(id);
+// wearables: each needs a look the rig knows how to draw
+const STYLES={head:['hood','cap','helm','visor','mask','furhat','combat','gasmask','exo','brim','skull','bandana'],body:['shirt','vest','jacket','coat','duster','plate','riot','carrier','suit','exo','spiked'],legs:['pants','wrap','greaves','guards','cargo','suit','exo','fur','chaps','kilt'],feet:['boots','wraps','heavy','rubber','fur','exo'],hands:['gloves','wraps','gauntlet','exo'],pack:[undefined]};
+for(const id in ITEMS){const it=ITEMS[id];if(!STYLES[it.t])continue;if(!it.look||!it.look.c)E(`wearable ${id}: no look`);else if(it.t==='pack'){if(!(it.look.z>=1&&it.look.z<=5))E(`pack ${id}: look.z must be 1..5`)}else if(!STYLES[it.t].includes(it.look.s))E(`wearable ${id}: unknown ${it.t} style '${it.look.s}'`)}
 // neighbouring communities
 for(const id in FACTIONS){const F=FACTIONS[id],w='community '+id;for(const x of F.likes)item(x,w+' likes');for(const x of F.stock){item(x,w+' stock');got.add(x)}for(const r of F.route){item(r[0],w+' route');got.add(r[0])}for(const r of F.spoils){item(r[0],w+' spoils');got.add(r[0])}for(const k in F.raid)foe(k,w+' raid');
   if(!(F.reg>=1&&F.reg<=5))E(w+': bad region');if(F.start>F.cap)E(w+': start standing above its cap')}

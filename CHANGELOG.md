@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.7.0 — 2026-11-12
+
+What you wear is what you see.
+
+- **Bare without clothes.** With nothing in the Body, Legs and Feet slots the character has a bare chest, bare legs and bare feet, and stands in underwear. A new survivor starts that way.
+- **First clothes.** Rag Shirt, Rag Trousers, Foot Wraps, Bandana and Hand Wraps are made by hand from rags and fibre. The wreck beside your clearing now holds ten rags and some fibre, enough for a shirt and trousers.
+- **Every set has its own look.** Each piece is drawn on the body in its own design instead of a recolour:
+  - Trapper (hide): hood, laced vest over bare arms with fur shoulders, bound leggings, wrapped feet.
+  - Drifter (leather): cap, zipped jacket with a collar and hem, trousers, boots.
+  - Junk Knight (scrap): crested helm, riveted chest plate with one big pauldron and rust, bracer, thigh, knee and shin plates, capped boots.
+  - Line Holder (riot): visor helmet, padded vest with shoulder and elbow pads and a neck guard, leg guards.
+  - Mountaineer (fur): flapped fur hat, long coat with a fur ruff and cuffs, fur-cuffed trousers and boots.
+  - Operator (military): helmet with goggles, plate carrier with magazine pouches and a radio, cargo trousers with knee pads.
+  - Clean Room (hazard): sealed hood, baggy suit with an air unit and hose, taped wrists, tall rubber boots.
+  - Wake Walker (exo): sealed helm with a lit visor, armour over an undersuit with a lit core, pauldrons, spine and limb struts, lit knees and boots.
+  - Gas mask: worn over your hair, with twin filters.
+- **Two new sets.** Long Rider (Rider's Hat, Long Duster with a bandolier, Riding Chaps, Riding Boots: +10% ranged damage, +5% speed; sewn from leather and cloth around level 22) and Red Reaver (Skull Mask, Spiked Harness, War Kilt, Stomper Boots: +12% melee damage, −5% damage taken; forged from bone, scrap and leather around level 27, and dropped by raider enforcers and Captain Voss).
+- **Gloves.** A new Hands slot with seven pairs, from Hand Wraps to Exo Gauntlets. They add armour, warmth or toxin resistance, show on the hands and forearms, and belong to no set.
+- **Packs show their size**: the rope sack is a small bag, the hiker's pack carries a bedroll, the assault pack has side pouches, the expedition frame is tall with a pot and a pole.
+- **A close look at yourself.** The Pack sheet shows your character in 3D, turning slowly, wearing exactly what is equipped and holding the active weapon.
+
 ## 0.6.0 — 2026-11-12
 
 Back to a realistic look. The anime style is gone; the new movement and the community layer stay.

@@ -29,7 +29,7 @@ Needs Node 22 or newer. There is nothing to install.
 - **A homestead that persists.** 86 buildable pieces: five tiers of walls and doors, floors, 13 kinds of crafting station with upgrades, storage, beds, gardens, rain catchers, wells, coops, hives, traps, five turrets, guard posts, lights, a generator, a radio, a kennel.
 - **A map of five regions** and 33 places to scavenge, each generated fresh on every visit: forest, dry plains, a ruined city, snow passes and the toxic Gray. Regions open as you build vehicles, from a hand cart to a sealed truck.
 - **Tides.** Assaults on your base that grow every time, in seven flavours, down one of four trails. They are fought live if you are home and resolved against your defences if you are not.
-- **243 items and 176 recipes**: tools, 14 melee weapons, 13 ranged, throwables, eight armour sets that show on your character, food, medicine, schematics.
+- **263 items and 195 recipes**: tools, 14 melee weapons, 13 ranged, throwables, food, medicine, schematics, and ten armour sets, gloves and packs that are each drawn on your character in their own design. With nothing on, the character is bare; the Pack sheet shows you in 3D.
 - **36 creatures**, six bosses with telegraphed attacks, raiders who shoot back, animals to hunt.
 - **A community.** People you rescue ask to join; you recruit them, house them and keep them fed and watered. Six other communities (run by the game, not by other players) can be gifted, traded with over standing routes, allied with, paid off or fought, and the hostile ones raid you.
 - **Survivors** who move in, take jobs (forager, farmer, guard, cook, mechanic, medic, hunter, scavenger) and need feeding.

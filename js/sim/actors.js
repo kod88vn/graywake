@@ -73,7 +73,7 @@ export function hurtPlayer(Z,dmg,o={}){
   S.p.hp-=dmg;p.hurtT=.35;p.act=null;
   emit('hit',p.x,p.y,dmg,0,1);
   if(!o.dot){sfx('hurt');emit('shake',Math.min(.5,.12+dmg/120));emit('fx','blood',p.x,p.y,'#b02a2a');
-    const slots=['head','body','legs','feet'].filter(s=>S.p.eq[s]);if(slots.length)wear(S,slots[Math.floor(rnd()*slots.length)],1);
+    const slots=['head','body','legs','feet','hands'].filter(s=>S.p.eq[s]);if(slots.length)wear(S,slots[Math.floor(rnd()*slots.length)],1);
     if(o.kb&&!ds.steady){p.kx=(o.kx||0)*o.kb;p.ky=(o.ky||0)*o.kb}}
   if(o.tox)S.p.tox=clamp(S.p.tox+o.tox*(1-ds.tox),0,100);
   if(o.slow)p.slowT=Math.max(p.slowT,o.slow);
@@ -249,7 +249,7 @@ export function interact(Z,target){
 export function openLoot(Z,i){
   const o=Z.obj[i],d=OBJ[o.k],S=G.S;if(!o)return;
   if(!o.inv){
-    if(o.starter===1)o.inv=[{id:'rags',n:4},{id:'scrap',n:3},{id:'water',n:2},{id:'canned_beans',n:2},{id:'rope',n:1}];
+    if(o.starter===1)o.inv=[{id:'rags',n:10},{id:'fiber',n:4},{id:'scrap',n:3},{id:'water',n:2},{id:'canned_beans',n:2},{id:'rope',n:1}];
     else if(o.starter===2)o.inv=[{id:'bandage',n:2},{id:'berries',n:5},{id:'stick',n:4},{id:'flint',n:2}];
     else{const fam=d.loot;o.inv=rollLoot(fam,Z.lt,rnd,Z.def&&Z.def.endless?1:0);if(fam==='airdrop'&&rnd()<.5)o.inv.push(...rollLoot('gear',Z.lt,rnd))}
     if(o.qi){o.inv.unshift({id:o.qi,n:1});S.flags[o.qf]=1;toast('Found: '+ITEMS[o.qi].n,'good');sfx('quest')}

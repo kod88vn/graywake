@@ -43,6 +43,20 @@ safe('gather',()=>{
   T.ok(count(S,'log')>logs0,'auto-gather with a hatchet fells trees (+'+(count(S,'log')-logs0)+' logs)');
   G.auto=false;T.ok((S.stats.wood||0)>0&&S.p.xp+S.p.lvl>1,'gathering gives stats and xp (level '+S.p.lvl+')');
 });
+// ---- clothing: you start with nothing on, rags are the first clothes, gloves have their own slot, sets give bonuses
+safe('clothing',()=>{
+  const S=G.S,keep=S.p.inv.slice(),eq0=Object.assign({},S.p.eq);
+  T.ok(['head','body','legs','feet','hands'].every(k=>!eq0[k]),'a new survivor starts with nothing on');
+  S.p.inv=S.p.inv.map(()=>null);give(S,'rags',12);give(S,'fiber',6);
+  T.ok(craft(S,'rag_shirt')&&craft(S,'rag_pants')&&craft(S,'rag_wraps')&&craft(S,'hand_wraps'),'rag clothes and hand wraps are made by hand from rags and fibre');
+  for(const id of['rag_shirt','rag_pants','rag_wraps','hand_wraps'])equip(S,S.p.inv.findIndex(x=>x&&x.id===id));
+  T.ok(S.p.eq.body&&S.p.eq.body.id==='rag_shirt'&&S.p.eq.legs&&S.p.eq.feet&&S.p.eq.hands&&S.p.eq.hands.id==='hand_wraps','they go on, gloves into the Hands slot');
+  const a0=derive(S).arm;T.ok(a0===4,'every worn piece counts toward armour, gloves included ('+a0+')');
+  for(const[id,slot]of[['ranger_hat','head'],['ranger_duster','body'],['ranger_chaps','legs'],['ranger_boots','feet']])S.p.eq[slot]={id,d:ITEMS[id].dur};const ds=derive(S);
+  T.ok(ds.set==='ranger'&&Math.abs(ds.ranged-1.1)<1e-9,'four pieces of a set give its bonus, with gloves of another kind on ('+ds.set+', ranged ×'+ds.ranged.toFixed(2)+')');
+  const bad=Object.keys(ITEMS).filter(id=>['head','body','legs','feet','hands','pack'].includes(ITEMS[id].t)&&!(ITEMS[id].look&&ITEMS[id].look.c));T.ok(!bad.length,'every wearable has a look to draw'+(bad.length?': '+bad.join(', '):''));
+  for(const k of['head','body','legs','feet','hands'])S.p.eq[k]=eq0[k]||null;S.p.inv=keep;G.ds=derive(S);
+});
 // ---- auto mode defends itself instead of stopping
 safe('auto defence',()=>{
   const S=G.S,Z=G.Z,p=Z.pl;S.p.inv=S.p.inv.map(()=>null);S.p.eq.w1={id:'hatchet_stone',d:60};S.p.eq.w2=null;S.p.active='w1';G.ds=derive(S);S.p.hp=G.ds.maxHp;give(S,'bandage',2);

@@ -6,7 +6,7 @@ import {RECIPES,VEHICLES} from '../data/recipes.js';
 import {PERK,xpFor,MAX_LEVEL} from '../data/progress.js';
 import {clamp,rnd} from './util.js';
 
-export const VERSION='0.6.0';
+export const VERSION='0.7.0';
 export const SAVE_V=1;
 export const HOME_W=46,HOME_H=46,EXIT_RING=2,NO_BUILD=4;
 export const MIN_PER_SEC=1.5;            // game minutes per real second: a day is 16 real minutes
@@ -22,7 +22,7 @@ export const statMax=(k,v)=>{const s=G.S.stats;if(!(s[k]>=v))s[k]=v};
 
 export function blankState(seed){
   return{v:SAVE_V,seed:seed>>>0,t:7*60,created:Date.now(),
-    p:{hp:100,food:80,water:80,tox:0,lvl:1,xp:0,sp:0,perks:{},inv:[],eq:{w1:null,w2:null,head:null,body:null,legs:null,feet:null,pack:null},active:'w1',known:{},buffs:[],bed:null},
+    p:{hp:100,food:80,water:80,tox:0,lvl:1,xp:0,sp:0,perks:{},inv:[],eq:{w1:null,w2:null,head:null,body:null,legs:null,feet:null,hands:null,pack:null},active:'w1',known:{},buffs:[],bed:null},
     home:{obj:[],fl:[],regrow:[],pile:{},report:null},
     loc:{},sites:[],siteN:0,at:'home',from:'home',
     tide:{n:0,at:0,kind:'shamble',dir:0,weak:0,warned:0,live:null},
@@ -44,7 +44,7 @@ export function derive(S){
   const p=S.p,pk={};
   for(const id in p.perks){const P=PERK[id];if(P)for(const k in P.fx)pk[k]=(pk[k]||0)+P.fx[k]*p.perks[id]}
   let arm=0,cold=pk.cold||0,tox=pk.tox||0,spd=0;const sets={};
-  for(const s of['head','body','legs','feet']){const e=p.eq[s];if(!e)continue;const it=ITEMS[e.id];arm+=it.arm||0;cold+=it.cold||0;tox+=it.tox||0;spd+=it.spd||0;if(it.set)sets[it.set]=(sets[it.set]||0)+1}
+  for(const s of['head','body','legs','feet','hands']){const e=p.eq[s];if(!e)continue;const it=ITEMS[e.id];if(!it)continue;arm+=it.arm||0;cold+=it.cold||0;tox+=it.tox||0;spd+=it.spd||0;if(it.set)sets[it.set]=(sets[it.set]||0)+1}
   let set=null;for(const k in sets)if(sets[k]===4)set=k;
   const sf=set?SETS[set].fx:{};
   const w=weaponDef(S),veh=VEHICLES[S.veh||0],pack=p.eq.pack?ITEMS[p.eq.pack.id].slots:0;
@@ -128,7 +128,7 @@ export function wearTool(S,tool,n=1){
 export function equip(S,i,slot){
   const s=S.p.inv[i];if(!s)return false;const it=ITEMS[s.id];
   let dst=slot;
-  if(!dst){if(['head','body','legs','feet','pack'].includes(it.t))dst=it.t;else if(['melee','gun','tool','throw'].includes(it.t))dst=!S.p.eq.w1?'w1':!S.p.eq.w2?'w2':S.p.active;else return false}
+  if(!dst){if(['head','body','legs','feet','hands','pack'].includes(it.t))dst=it.t;else if(['melee','gun','tool','throw'].includes(it.t))dst=!S.p.eq.w1?'w1':!S.p.eq.w2?'w2':S.p.active;else return false}
   const old=S.p.eq[dst];
   if(dst==='pack'&&old){const lose=ITEMS[old.id].slots-(it.slots||0);if(lose>0){const cap=slotCount(S)-lose;for(let k=cap;k<S.p.inv.length;k++)if(S.p.inv[k]&&k!==i){toast('Empty the last '+lose+' slots first','bad');return false}}}
   S.p.eq[dst]=it.t==='throw'?{id:s.id,n:s.n}:{id:s.id,d:s.d};
@@ -310,7 +310,7 @@ export function useItem(S,i){
     sfx(it.t==='med'?'heal':it.water>(it.food||0)?'drink':'eat');if(it.hp>0)emit('fx','heal',G.Z&&G.Z.pl?G.Z.pl.x:0,G.Z&&G.Z.pl?G.Z.pl.y:0);G.ds=derive(S);return true;
   }
   if(s.id==='repair_kit'){toast('Open your gear and tap a worn piece to repair it','info');return false}
-  if(['melee','gun','tool','throw','head','body','legs','feet','pack'].includes(it.t))return equip(S,i);
+  if(['melee','gun','tool','throw','head','body','legs','feet','hands','pack'].includes(it.t))return equip(S,i);
   return false;
 }
 /** Eat/drink/heal with the best thing in the pack for a need: 'food' | 'water' | 'hp' | 'tox'. */
