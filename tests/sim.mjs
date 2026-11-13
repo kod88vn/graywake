@@ -408,6 +408,8 @@ safe('world',()=>{
   World.worldNews(S,W([{id:'w1-l1',kind:'lead_police',ang:1,far:.5,until:S.t+600,by:'Them'}]),{name:'Me',hold:60,rank:2,of:2});T.ok(!S.sites.some(s=>s.wid),'a lead a rival has opened is struck off the map');
   World.worldNews(S,W([{id:'w1-l1',kind:'lead_police',ang:1,far:.5,until:S.t+600,by:null}]),{name:'Me',hold:60,rank:2,of:2});T.ok(!S.sites.some(s=>s.wid),'and is not put back');
   World.worldNews(S,W([],3),{name:'Me',hold:60,rank:2,of:2});T.ok(Math.abs(World.tideBudget(S,3)/b0-1.3)<1e-9&&S.world.stage===3,'a later stage of the world makes tides heavier (×1.3)');
+  {const gone=World.addLead(S,'lead_grocery');S.sites=S.sites.filter(s=>s!==gone);let threw=null;try{World.arrive(gone.id)}catch(e){threw=e}T.ok(!threw&&G.mode==='map'&&!G.Z,'arriving at a place that went off the map on the way returns to the map instead of crashing')}
+  G.mode='play';World.arrive('home');
   const seed=S.seed;S.tide.n=5;give(S,'log',9);World.exile(S);T.ok(S.seed!==seed&&S.tide.n===0&&G.Z.home&&S.p.lvl===6&&count(S,'log')===9&&S.world===null&&S.sites.length===0,'exile gives a new homestead and keeps the character and what it carries');
   G.Z=null;
 });

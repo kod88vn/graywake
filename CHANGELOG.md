@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased
+## 0.10.5 — 2026-11-13
+
+- **Fixed: the game froze on a black screen** when a radio lead went off the map while you were on the road to it (a rival opened its strongroom first, or it ran out). You are now returned to the map with a message.
 
 - Bot sessions: Chrome is closed politely and given time to write its storage, and `ctl end` holds the world still for a few seconds first. Killed at once, it could lose the last minute of the save: a bot took in its first survivor (Ada) and found nobody there the next session.
 
