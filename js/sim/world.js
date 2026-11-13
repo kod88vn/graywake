@@ -3,7 +3,7 @@
 import {ITEMS} from '../data/items.js';
 import {OBJ} from '../data/objects.js';
 import {RECIPES,VEHICLES} from '../data/recipes.js';
-import {LOC,LOCATIONS,SITES,REGIONS} from '../data/world.js';
+import {LOC,LOCATIONS,SITES,REGIONS,LEADS} from '../data/world.js';
 import {EVENTS,WEATHER,WEATHER_BY_REG,TIDE_KINDS,TIDE_COST} from '../data/events.js';
 import {SURV_NAMES,SURV_TRAITS,JOBS,TRADE,TRADE_BP} from '../data/progress.js';
 import {ENEMIES} from '../data/enemies.js';
@@ -91,7 +91,7 @@ export function arrive(dest){
   const S=G.S;S.pos=dest;
   if(dest==='home'){goHome(true);emit('save');return}
   const site=S.sites.find(s=>s.id===dest);let Z;
-  if(site){Z=genZone(siteDef(site,site.reg,site.lvl),hash(S.seed,site.id*7919));Z.site=site.id;Z.id='site';Z.name=SITES[site.site].n;Z.siteKind=site.site}
+  if(site){Z=genZone(siteDef(site,site.reg,site.lvl),hash(S.seed,site.id*7919));Z.site=site.id;Z.id='site';Z.name=SITES[site.site].n;Z.siteKind=site.site;if(SITES[site.site].lead&&site.lvl-S.p.lvl>=3)Z.lt=Math.min(5,Z.lt+1)}
   else{const l=LOC[dest],m=S.loc[dest]=S.loc[dest]||{n:0};Z=genZone(l,hash(S.seed+m.n*101,LOCATIONS.indexOf(l)),{lvl:locLevel(S,l)});if(!m.n)stat('locs');m.n++}
   enterZone(Z,Z.spawn.x,Z.spawn.y);emit('save');
 }
@@ -187,6 +187,33 @@ function addSite(S,kind,reg){
   const s={id:1000+(++S.siteN),site:kind,x:clamp(a.x+Math.cos(ang)*r,30,970),y:clamp(a.y+Math.sin(ang)*r,25,615),until:S.t+def.dur*60,reg,lvl};S.sites.push(s);return s;
 }
 
+// ---------------------------------------------------------------- radio leads: special places to loot, announced with their danger
+const THREAT=['','Easy pickings','A fair fight','Dangerous','Very dangerous','Deadly'];
+/** Everything a player is told about a lead before going: how hard (1 to 5 skulls against their own level), who holds it, what is in the strongroom, how long it lasts. */
+export function leadInfo(S,site){
+  const def=SITES[site.site];if(!def||!def.lead)return null;const gap=site.lvl-S.p.lvl,boss=def.boss?ENEMIES[def.boss]:null;
+  let n=0;for(const t of[def.en,def.inn])for(const k in t||{})n+=t[k];
+  const skulls=clamp(Math.round(2.2+gap/2)+(boss?1:0),1,5);
+  return{id:site.id,kind:site.site,name:def.n,lvl:site.lvl,gap,skulls,word:THREAT[skulls],who:def.who,prize:def.prize,boss:boss?boss.n:null,raiders:!!def.raiders,count:n+(boss?1:0),left:Math.max(0,site.until-S.t),radio:def.radio,d:def.d};
+}
+/** Put a lead on the map. Its level is rolled around the player's own, inside the lead's range, so the same shop can be a stroll or a siege. */
+export function addLead(S,kind,offset){
+  const def=SITES[kind];if(!def||!def.lead)return null;const site=addSite(S,kind,Math.max(1,maxRegion(S)-(rnd()<.5?1:0)));if(!site)return null;
+  const[a,b]=def.tier||[-1,2],off=offset!==undefined?offset:a+Math.floor(rnd()*(b-a+1));site.lvl=Math.max(1,S.p.lvl+off);S.lead.last=kind;S.lead.n++;stat('leads');return site;
+}
+/** Leads come over the truck's radio a couple of times a day; a Radio Mast at home hears more of them and keeps two on the map at once. */
+function leadTick(S){
+  const L=S.lead;if(!L.next){L.next=S.t+(5+rnd()*4)*60;return}if(S.t<L.next)return;
+  const mast=homeHas(S,'radio'),day=dayOf(S.t),active=S.sites.filter(s=>SITES[s.site]&&SITES[s.site].lead).length;
+  L.next=S.t+(mast?7+rnd()*5:11+rnd()*7)*60;if(active>=(mast?2:1)||S.tide.live)return;
+  const kinds=LEADS.filter(k=>(SITES[k].minDay||0)<=day&&k!==L.last&&!S.sites.some(s=>s.site===k));if(!kinds.length)return;
+  const site=addLead(S,kinds[Math.floor(rnd()*kinds.length)]);if(!site)return;const I=leadInfo(S,site);
+  L.note=site.id;sfx('radio');toast('Radio: '+I.name+' · '+I.word+' (threat '+I.skulls+' of 5)','info');
+}
+/** The radio note waiting to be read, shown as a sheet when the player is home and nothing else is going on. */
+export function leadNote(S){const L=S.lead;if(!L.note)return null;const site=S.sites.find(s=>s.id===L.note);if(!site){L.note=null;return null}return site}
+export function leadRead(S){S.lead.note=null}
+
 // ---------------------------------------------------------------- survivors
 export function survCap(S){let beds=0;for(const o of S.home.obj)if(o&&OBJ[o.k].bed)beds+=OBJ[o.k].bed>=3?2:1;return Math.min(14,Math.max(0,beds-1)+(homeHas(S,'beacon')?2:0)+perk('surv'))}
 /** Add someone to the homestead. `who` ({n, trait}) is a person who was waiting to be recruited; without it a stranger is made up. */
@@ -263,7 +290,8 @@ export function advance(S,m,mode='live'){
   if(S.t>=S.weather.until)rollWeather(S);
   // map sites come and go
   if(S.sites.length&&S.sites.some(s=>s.until<S.t))S.sites=S.sites.filter(s=>s.until>=S.t||(Z&&Z.site===s.id));
-  S._site=(S._site||0)+m;if(S._site>=240){S._site=0;const day=dayOf(S.t),cap=homeHas(S,'radio')?4:2;if(S.sites.length<cap&&rnd()<.45){const kinds=Object.keys(SITES).filter(k=>!SITES[k].manual&&(SITES[k].minDay||0)<=day);const k=kinds[Math.floor(rnd()*kinds.length)];if(addSite(S,k)&&homeHas(S,'radio'))toast('Radio: '+SITES[k].n+' reported','info')}}
+  S._site=(S._site||0)+m;if(S._site>=240){S._site=0;const day=dayOf(S.t),cap=homeHas(S,'radio')?4:2;if(S.sites.length<cap&&rnd()<.45){const kinds=Object.keys(SITES).filter(k=>!SITES[k].manual&&!SITES[k].lead&&(SITES[k].minDay||0)<=day&&!S.sites.some(s=>s.site===k));const k=kinds[Math.floor(rnd()*kinds.length)];if(k&&addSite(S,k)&&homeHas(S,'radio'))toast('Radio: '+SITES[k].n+' reported','info')}}
+  leadTick(S);
   for(let d=dayOf(t0)+1;d<=dayOf(S.t);d++)dawn(S);
   Community.tick(S);
   // the tide
@@ -404,6 +432,9 @@ export function tick(dt){
       const side=Math.floor(rnd()*4),[x,y]=edgePoint(Z,side,16);
       if(G.night&&hostile<4&&dayOf(S.t)>1){const k=S.tide.n>=2&&rnd()<.3?'runner':S.tide.n>=4&&rnd()<.15?'crawler':'shambler',n=1+Math.floor(rnd()*Math.min(3,1+S.tide.n/2));for(let i=0;i<n;i++){const a=spawnActor(Z,k,x+rnd(),y+rnd(),Z.lvl);a.hx=Z.w/2+(rnd()-.5)*14;a.hy=Z.h/2+(rnd()-.5)*14;a.wx=a.hx;a.wy=a.hy;a.t=20}}
       else if(!G.night&&calm<3){const a=spawnActor(Z,rnd()<.6?'rabbit':'deer',x,y,1);a.hx=Z.w/2+(rnd()-.5)*24;a.hy=Z.h/2+(rnd()-.5)*24}}
+    // a radio note is read when the player has stood still for a couple of seconds (never in the middle of doing something), or after half a minute regardless
+    if(S.lead.note&&!G.busy&&!G.build&&enemiesAlive(Z)===0&&!pl.dead&&!S.tide.live){Z.noteWait=(Z.noteWait||0)+1;Z.noteIdle=pl.mv<.1&&!pl.act&&!pl.atk?(Z.noteIdle||0)+1:0;
+      if(Z.noteIdle>=2||Z.noteWait>=30){const st=leadNote(S);Z.noteWait=Z.noteIdle=0;if(st)emit('ui','lead',st.id)}}
     if(S.t>=S.nextEv&&!G.busy&&enemiesAlive(Z)===0&&!pl.dead&&S.tide.at-S.t>150){S.nextEv=Infinity;const ev=pickEvent(S,'home',1);if(ev&&rnd()<.75)emit('ui','event',ev.id)}}
   checkStory(S);checkAch(S);statMax('mutation',S.mut);
   S._save=(S._save||0)+1;if(S._save>=45&&Z.home&&!S.tide.live){S._save=0;emit('save')}

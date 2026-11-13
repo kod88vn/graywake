@@ -35,7 +35,7 @@ function init(a){
   $('btns').addEventListener('click',e=>{const el=e.target.closest('[data-h]');if(el)hot(el.dataset.h)});
   $('weap').addEventListener('click',e=>{const el=e.target.closest('[data-w]');if(!el)return;if(el.dataset.w==='auto'){hot('auto')}else if(el.dataset.w==='w1'||el.dataset.w==='w2'){G.S.p.active=el.dataset.w;bus.emitEq();needHud=true}});
   $('build').addEventListener('click',e=>{const el=e.target.closest('[data-b]');if(!el)return;const[k,v]=el.dataset.b.split(':');
-    if(k==='tool'){if(v==='done')return buildClose();if(v==='rot'){hot('rotate');return}B.tool=v;B.moving=null}else if(k==='cat'){B.cat=v;const first=pieces()[0];if(first)B.kind=first.id;B.tool='place'}else if(k==='kind'){B.kind=v;B.tool='place'}
+    B.just=null;if(k==='tool'){if(v==='done')return buildClose();if(v==='rot'){hot('rotate');return}B.tool=v;B.moving=null}else if(k==='cat'){B.cat=v;const first=pieces()[0];if(first)B.kind=first.id;B.tool='place'}else if(k==='kind'){B.kind=v;B.tool='place'}
     renderBuild();sfx('ui_tap')});
   // the mouse wheel moves the build bar sideways, and wheel or keys over a sheet scroll it rather than the game
   $('bpieces').addEventListener('wheel',e=>{e.preventDefault();$('bpieces').scrollLeft+=e.deltaY||e.deltaX},{passive:false});
@@ -89,6 +89,7 @@ function onEvent(e){
     else if(n==='questDone'){const q=STORY.find(q=>q.id===a),nx=story(S);banner('Done',q?q.t:'');if(nx)setTimeout(()=>toast('New in your journal: '+nx.t,'info'),1800);questT=0}
     else if(n==='ach'){const A=ACHIEVEMENTS.find(x=>x.id===a);toast('Achievement: '+A.n,'good')}
     else if(n==='map'){closeQuiet();MapScreen.open()}
+    else if(n==='lead'){if(!cur&&!G.build&&G.mode==='play')open('lead',a)}
     else if(n==='death'){deathT=1.6}
     else if(n==='tideWarn'){const k=TIDE_KINDS.find(k=>k.id===S.tide.kind);banner('Tide coming',k.n+' from the '+DIRS[S.tide.dir]);if(G.mode==='map')MapScreen.draw()}
     else if(n==='tideStart'){const k=TIDE_KINDS.find(k=>k.id===S.tide.kind);banner('The tide',k.n+' · from the '+DIRS[S.tide.dir]);closeQuiet();buildClose()}
@@ -153,7 +154,7 @@ function buildTarget(tx,ty){const Z=G.Z,i=ty*Z.w+tx;if(tx<0||ty<0||tx>=Z.w||ty>=
 function buildApply(tx,ty){
   const S=G.S,Z=G.Z,i=ty*Z.w+tx;if(tx<0||ty<0||tx>=Z.w||ty>=Z.h)return;let ok=false;
   const T=buildTarget(tx,ty);
-  if(B.tool==='place')ok=isEdgeKind(B.kind)?place(S,B.kind,tx,ty,B.side):place(S,B.kind,tx,ty,B.rot);
+  if(B.tool==='place'){ok=isEdgeKind(B.kind)?place(S,B.kind,tx,ty,B.side):place(S,B.kind,tx,ty,B.rot);if(ok)B.just=tx+'_'+ty+'_'+B.side}
   else if(B.tool==='move'){
     if(B.moving==null){const o=T.o;if(o&&OBJ[o.k].cost){B.moving=T.ref;if(!T.edge)B.rot=o.r||0;sfx('ui_tap');toast('Picked up '+OBJ[o.k].n.toLowerCase()+(T.edge?': tap the side of a cell where it should stand':': tap where it should go'),'info')}else{toast('Tap one of your structures to pick it up','info')}}
     else if(!structAt(Z,B.moving))B.moving=null;
@@ -171,8 +172,8 @@ function buildPointer(type,x,y,down){
   if(type==='up'){B.last=-1;B.run=null;return}
   // walls: press to set the first piece, then drag along it to run a straight line
   if(B.tool==='place'&&isEdgeKind(B.kind)){const S=G.S,Z=G.Z;
-    if(type==='down'){const horiz=B.side===0||B.side===2;B.run={horiz,line:horiz?(B.side===0?ty:ty+1):(B.side===3?tx:tx+1)};if(place(S,B.kind,tx,ty,B.side))renderBuild();return}
-    if(type==='move'&&down&&B.run){const r=B.run,cx=r.horiz?tx:r.line,cy=r.horiz?r.line:ty,sd=r.horiz?0:3,key=cx+'_'+cy;if(key!==B.last&&cx>=0&&cy>=0&&cx<Z.w&&cy<Z.h){B.last=key;if(canPlace(S,B.kind,cx,cy,sd)===null&&place(S,B.kind,cx,cy,sd))renderBuild()}}
+    if(type==='down'){const horiz=B.side===0||B.side===2;B.run={horiz,line:horiz?(B.side===0?ty:ty+1):(B.side===3?tx:tx+1)};if(place(S,B.kind,tx,ty,B.side)){B.just=tx+'_'+ty+'_'+B.side;renderBuild()}return}
+    if(type==='move'&&down&&B.run){const r=B.run,cx=r.horiz?tx:r.line,cy=r.horiz?r.line:ty,sd=r.horiz?0:3,key=cx+'_'+cy;if(key!==B.last&&cx>=0&&cy>=0&&cx<Z.w&&cy<Z.h){B.last=key;if(canPlace(S,B.kind,cx,cy,sd)===null&&place(S,B.kind,cx,cy,sd)){B.just=tx+'_'+ty+'_'+B.side;renderBuild()}}}
     return}
   // painting by dragging is for placing and clearing; moving and turning act once per tap
   if((type==='down'||(type==='move'&&down&&B.tool!=='move'&&B.tool!=='turn'))&&i!==B.last){B.last=i;buildApply(tx,ty)}
@@ -184,7 +185,8 @@ function buildFrame(){
   if((B.tool==='place'&&!isEdgeKind(B.kind))||(B.tool==='move'&&B.moving!=null&&B.moving<EREF))info+=` · facing ${FACING[B.rot]}`;
   if(h){const[tx,ty]=h,i=ty*Z.w+tx,T=buildTarget(tx,ty);let why=null,kind='*',edge=T.edge?B.side:-1;
     if(tx<0||ty<0||tx>=Z.w||ty>=Z.h)why='Out of bounds';
-    else if(B.tool==='place'){kind=B.kind;why=canPlace(S,B.kind,tx,ty,B.side);edge=isEdgeKind(B.kind)?B.side:-1}
+    else if(B.tool==='place'){kind=B.kind;why=canPlace(S,B.kind,tx,ty,B.side);edge=isEdgeKind(B.kind)?B.side:-1;
+      const here=tx+'_'+ty+'_'+B.side;if(B.just&&B.just!==here&&!(B.just.startsWith(tx+'_'+ty+'_')&&!isEdgeKind(B.kind)))B.just=null;if(B.just&&why&&/already|Occupied|floored/i.test(why)){why=null;kind='*';info+=' · <span class="okc">placed</span>'}}
     else if(B.tool==='move'){const m=B.moving!=null&&structAt(Z,B.moving);if(m){const ed=B.moving>=EREF;kind=m.k;why=canMove(S,B.moving,tx,ty,ed?B.side:B.rot);edge=ed?B.side:-1}else{const o=T.o;if(!(o&&OBJ[o.k].cost))why='Nothing of yours here'}}
     else if(B.tool==='turn'){const o=T.o;if(!(o&&OBJ[o.k].cost))why='Nothing of yours here';else if(!T.edge)info+=` · ${esc(OBJ[o.k].n)} faces ${FACING[o.r||0]}`}
     else if(B.tool==='upgrade'){why=T.o?canUpgrade(S,T.ref,false):canUpgrade(S,i,!!Z.fl[i]);const k=T.o?T.o.k:Z.fl[i];if(k&&OBJ[k].up)info=`${esc(OBJ[k].n)} → <b style="color:var(--ink)">${esc(OBJ[OBJ[k].up].n)}</b> ${chips(buildCost(OBJ[k].up))}`}
@@ -233,7 +235,7 @@ function minimap(Z,p){
   const x0=Math.max(0,Math.floor(px-range)),x1=Math.min(Z.w-1,Math.ceil(px+range)),y0=Math.max(0,Math.floor(py-range)),y1=Math.min(Z.h-1,Math.ceil(py+range));
   for(let ty=y0;ty<=y1;ty++)for(let tx=x0;tx<=x1;tx++){const o=Z.obj[ty*Z.w+tx];if(!o)continue;const d=OBJ[o.k];
     if(d.wall||d.door){x.fillStyle=d.cost?'#b8a070':'#6a6f66';x.fillRect(X(tx),Y(ty),k+.5,k+.5)}else if(d.loot&&!o.empty){x.fillStyle='#e3a432';x.fillRect(X(tx+.25),Y(ty+.25),k*.5,k*.5)}else if(d.station||d.store||d.turret){x.fillStyle='#8a9a78';x.fillRect(X(tx+.15),Y(ty+.15),k*.7,k*.7)}else if(d.special==='deathbag'){x.fillStyle='#fff';x.fillRect(X(tx),Y(ty),k,k)}}
-  if(Z.ed.length){const col=w=>OBJ[w.k].cost?'#b8a070':OBJ[w.k].low?'#55594f':'#8a8f84';for(let ty=y0;ty<=y1+1;ty++)for(let tx=x0;tx<=x1+1;tx++){const e=(ty*Z.w+tx)*2,a=Z.ed[e],b=Z.ed[e+1];if(a){x.fillStyle=col(a);x.fillRect(X(tx),Y(ty)-1,k+.5,2.5)}if(b){x.fillStyle=col(b);x.fillRect(X(tx)-1,Y(ty),2.5,k+.5)}}}
+  if(Z.ed.length){const col=w=>OBJ[w.k].cost?'#b8a070':OBJ[w.k].low?'#55594f':'#8a8f84';for(let ty=y0;ty<=y1+1;ty++)for(let tx=x0;tx<=x1+1;tx++){const e=(ty*Z.w+tx)*2,a=Z.ed[e],b=Z.ed[e+1];if(a&&!OBJ[a.k].open){x.fillStyle=col(a);x.fillRect(X(tx),Y(ty)-1,k+.5,2.5)}if(b&&!OBJ[b.k].open){x.fillStyle=col(b);x.fillRect(X(tx)-1,Y(ty),2.5,k+.5)}}}
   for(const d of Z.drops){x.fillStyle='#fff';x.fillRect(X(d.x)-2,Y(d.y)-2,4,4)}
   for(const a of Z.actors){if(a.pl||a.dead)continue;if(a.team===1&&!a.alert&&Math.hypot(a.x-px,a.y-py)>range*.6)continue;if(a.vis<.5)continue;x.fillStyle=a.team===0?'#60c0ff':a.def.ai==='flee'?'#c8c8a0':a.def.boss?'#ff9030':'#e04030';x.beginPath();x.arc(X(a.x),Y(a.y),a.def.boss?6:3.5,0,7);x.fill()}
   x.translate(R,R);x.rotate(p.a+Math.PI/2);x.fillStyle='#fff';x.beginPath();x.moveTo(0,-8);x.lineTo(6,7);x.lineTo(0,4);x.lineTo(-6,7);x.closePath();x.fill();x.restore();

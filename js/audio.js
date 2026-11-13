@@ -87,6 +87,7 @@ def('world',{
   mine:[.2,(k,t)=>{N(k,t,'hp',3500,0,.7,.03,.3);O(k,t,'sine',1900,1700,.06,.3);O(k,t,'triangle',320,170,.05,.4);N(k,t+.01,'bp',2400,1500,2,.12,.7)},.9], // tick, ping and chips
   rustle:[.25,(k,t)=>{[0,.055,.12].forEach((d,i)=>N(k,t+d,'bp',3800+i*900,2600,.8,.06,.4,.02))},1.6],              // three leafy brushes
   open_crate:[.35,(k,t)=>{O(F(k,t,'lp',1400),t,'sawtooth',170,270,.12,.3,.03);N(k,t+.14,'bp',900,500,1.5,.06,.6);O(k,t+.14,'sine',125,75,.11,.7)}], // lid creak then thunk
+  radio:[.5,(k,t)=>{N(k,t,'bp',2200,1400,1.2,.36,.45,.01);const m=F(k,t,'bp',1500,0,0,2);O(m,t+.08,'square',920,920,.05,.28,.004,.03);O(m,t+.21,'square',690,690,.05,.28,.004,.03);N(k,t+.3,'hp',3200,0,.7,.14,.22)}], // a burst of static and two tuning blips
   door:[.4,(k,t)=>{O(F(k,t,'bp',900,600,.2,3),t,'sawtooth',230,165,.14,.5,.04);N(k,t+.18,'hp',2600,0,.7,.02,.4);O(k,t+.19,'sine',110,65,.1,.7);N(k,t+.19,'lp',700,250,.7,.08,.4)}], // hinge creak, latch, thud
   break:[.6,(k,t)=>{N(k,t,'lp',2400,260,.7,.4,.7);O(k,t,'sine',105,42,.32,.7);[[.03,1300],[.09,850],[.16,1900],[.24,1100]].forEach(([d,f])=>N(k,t+d,'bp',f,f*.6,2,.05,.5))},.85], // collapse rumble + splintering cracks
   splash:[.5,(k,t)=>{N(k,t,'bp',800,2800,.9,.32,.6,.03);N(k,t,'lp',500,200,.7,.16,.5);O(k,t,'sine',310,115,.1,.4)},1.5], // plop + spray

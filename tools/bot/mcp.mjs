@@ -15,7 +15,7 @@ const TOOLS=[
   T('dodge','Roll (Space), optionally in a direction. You cannot be hit during the roll.',{direction:str(DIR)}),
   T('sneak','Hold or release Shift: slower, and much harder for enemies to notice.',{on:{type:'boolean'}},['on']),
   T('key','Press a keyboard key. i pack · c craft by hand · b build mode · j journal · l camp ledger · m leave area (at the edge) · f auto mode on/off · q swap weapon · r rotate (build) · 1 2 3 4 quick heal/eat/drink/antidote · esc close · tab pack.',{key:str('One key name.'),seconds:numb('How long to let the game run afterwards. Default 0.45.')},['key']),
-  T('tap','Click numbered thing N from the latest "Clickable now" list. The numbers change whenever the screen changes: use the list from your most recent result.',{n:numb('The number in square brackets.')},['n']),
+  T('tap','Click something from the latest "Clickable now" list, by its label text (safest: the numbers change whenever the screen changes) or by its number.',{text:str('Part of the label, enough to be the only match, e.g. "MAKE — Stone Pickaxe" or "Stick Wall".'),n:numb('Or the number in square brackets from your most recent result.')}),
   T('tile','Click the ground at a tile: in build mode this places, moves, upgrades or removes. For walls and doors give the side of the cell (n, e, s, w).',{x:numb('tile x'),y:numb('tile y'),side:str('n, e, s or w: only for walls and doors.')},['x','y']),
   T('dragtile','Press on one tile and drag to another: in build mode with a wall selected this runs a straight line of wall.',{x1:numb(''),y1:numb(''),x2:numb(''),y2:numb(''),side:str('n, e, s or w')},['x1','y1','x2','y2']),
   T('click','Click at page pixels (the screen is 1280 × 720). Only for things that have no number, such as a point on the map.',{x:numb(''),y:numb(''),button:str('left (default) or right')},['x','y']),
@@ -30,7 +30,7 @@ const call=async(name,a)=>{
   let cmd=name,args=[];
   if(name==='look'){if(a.full)args.push('full');if(a.picture)args.push('picture')}
   else if(name==='walk')args=[a.direction,a.seconds??''];else if(name==='goto')args=String(a.target).trim().split(/[\s,]+/);else if(name==='use')args=[a.seconds??''];else if(name==='attack')args=[a.seconds??''];
-  else if(name==='dodge')args=[a.direction??''];else if(name==='sneak')args=[a.on?'on':'off'];else if(name==='key')args=[a.key,a.seconds??''];else if(name==='tap')args=[a.n];
+  else if(name==='dodge')args=[a.direction??''];else if(name==='sneak')args=[a.on?'on':'off'];else if(name==='key')args=[a.key,a.seconds??''];else if(name==='tap')args=a.text?[a.text]:[a.n];
   else if(name==='tile')args=[a.x,a.y,a.side??''];else if(name==='dragtile')args=[a.x1,a.y1,a.x2,a.y2,a.side??''];else if(name==='click')args=[a.x,a.y,a.button??''];else if(name==='scroll')args=[a.amount??''];else if(name==='wait')args=[a.seconds??''];
   else if(name==='report_bug'){cmd='bug';args=[a.severity,a.title+' :: '+(a.details||'')]}else if(name==='suggest'){cmd='idea';args=[a.text]}else if(name==='note')args=[a.text];else if(name==='notebook')args=a.text?[a.text]:[];
   const r=await (await fetch(BASE+'/api/cmd',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({name:cmd,args:args.map(String).filter((v,i,l)=>v!==''||i<l.length-1),who:'bot'})})).json();

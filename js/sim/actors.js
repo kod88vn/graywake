@@ -58,6 +58,7 @@ export function kill(Z,e){
   if(e.dead)return;e.dead=true;e.deadT=0;e.hp=0;const S=G.S,def=e.def;
   if(e.team===1){
     addXp(S,e.xp);stat('kills');stat('k_'+e.kind);S.codex.en[e.kind]=(S.codex.en[e.kind]||0)+1;noteKill(e.kind);
+    if(def.boss&&Z.def&&Z.def.lead){toast('The keys were on it: the strongroom is open','good');sfx('quest');stat('guardians')}
     if(def.boss&&!def.rescale){stat('bosses');if(S.codex.en[e.kind]===1)stat('bossKinds');toast(def.n+' is dead','good');sfx('quest')}
     const items=[],animal=def.rig[0]==='quad',mult=animal?1+G.ds.butcher:1;
     for(const[id,a,b,ch]of def.drop||[])if(rnd()<(ch||1)){let n=a+Math.floor(rnd()*(b-a+1));if(animal&&mult>1)n=Math.round(n*mult+rnd()*.5);if(n>0){const it={id,n};if(ITEMS[id].dur)it.d=Math.round(ITEMS[id].dur*(.4+rnd()*.5));items.push(it)}}
@@ -224,7 +225,7 @@ export function interactInfo(Z,i){
   const o=Z.obj[i];if(!o)return null;const d=OBJ[o.k];
   if(d.node)return{type:'gather',label:GATHER_VERB[d.node.tool]||(o.k==='pond'?'Fill':'Gather')};
   if(d.special==='deathbag')return{type:'loot',label:'Recover'};
-  if(d.loot)return o.empty?null:{type:'loot',label:o.inv?'Search':d.lock&&!o.unlocked?(d.lock==='pry'?'Pry open':d.lock==='pick'?'Pick lock':'Unlock'):'Search'};
+  if(d.loot)return o.empty?null:{type:'loot',label:o.inv?'Search':d.lock&&!o.unlocked?(d.lock==='pry'?'Pry open':d.lock==='pick'?'Pick lock':d.lock==='guard'?(guardDown(Z)?'Open':'Locked'):'Unlock'):'Search'};
   if(d.special==='cage')return o.held?{type:'cage',label:'Free'}:null;
   if(!Z.home)return null;
   if(d.station)return{type:'station',label:o.out?'Collect':'Use'};
@@ -237,6 +238,8 @@ export function interactInfo(Z,i){
   return null;
 }
 export const cropReady=o=>o.seed&&G.S.t>=o.ripe;
+/** Is whoever guards this place's strongroom dead? With a boss: the boss. Without one: everything that was here. */
+export const guardDown=Z=>Z.def&&Z.def.boss?!Z.spawns.some(s=>s.boss&&!s.done)&&!Z.actors.some(a=>!a.dead&&a.team===1&&a.def.boss):!!Z.cleared;
 /** Is there a wall of yours between two points? Nothing is used, searched or gathered across one (a door is no bar: you walk through those). */
 const walled=(Z,x0,y0,x1,y1)=>Z.ed.length>0&&edgeCross(Z,x0,y0,x1,y1,true)>=0;
 export function findInteract(Z){
@@ -263,6 +266,7 @@ export function interact(Z,target){
       if(d.lock==='pry'){const tool=findTool(S,'pry');if(!tool){toast('Needs a crowbar','bad');sfx('error');return false}wearTool(S,tool,3);o.unlocked=1;sfx('break',t.x,t.y,{vol:.6});noise(Z,t.x,t.y,8)}
       else if(d.lock==='pick'){if(!take(S,'lockpick',1)){toast('Needs a lockpick','bad');sfx('error');return false}
         if(rnd()<.5+perk('lock')*.5+.0){o.unlocked=1;sfx('door',t.x,t.y)}else{toast('The pick snaps','bad');sfx('trap_snap',t.x,t.y,{vol:.5});return false}}
+      else if(d.lock==='guard'){if(!guardDown(Z)){const b=Z.def&&Z.def.boss&&ENEMIES[Z.def.boss];toast(b?'Locked. '+b.n+' carries the keys':'Barred from inside. Clear the place first','bad');sfx('error');return false}o.unlocked=1;sfx('door',t.x,t.y)}
       else{if(count(S,d.lock)<1){toast('Locked. Needs '+ITEMS[d.lock].n,'bad');sfx('error');return false}o.unlocked=1;sfx('door',t.x,t.y)}
     }
     p.act={type:'open',i:t.i,t:0,dur:o.inv?.15:.7};return true}
@@ -617,7 +621,9 @@ export function step(dt){
   // keep bodies apart
   for(let i=0;i<A.length;i++){const a=A[i];if(a.dead||a.st==='pounce')continue;for(let j=i+1;j<A.length;j++){const b=A[j];if(b.dead||b.st==='pounce')continue;const dx=b.x-a.x,dy=b.y-a.y,rr=a.r+b.r;if(Math.abs(dx)>rr||Math.abs(dy)>rr)continue;const d=Math.hypot(dx,dy);if(d>=rr||d<1e-4)continue;
     const push=(rr-d)*.5,nx=dx/d,ny=dy/d,wa=a.pl?.25:a.def&&(a.def.boss||a.def.rooted)?0:1,wb=b.pl?.25:b.def&&(b.def.boss||b.def.rooted)?0:1,tot=wa+wb||1;
-    a.x-=nx*push*2*wa/tot;a.y-=ny*push*2*wa/tot;b.x+=nx*push*2*wb/tot;b.y+=ny*push*2*wb/tot}}
+    // a shove never carries anyone across a wall: with walls this thin a crowd would otherwise squeeze through them
+    const ax=a.x-nx*push*2*wa/tot,ay=a.y-ny*push*2*wa/tot,bx=b.x+nx*push*2*wb/tot,by=b.y+ny*push*2*wb/tot,ed=Z.ed.length>0;
+    if(!ed||edgeCross(Z,a.x,a.y,ax,ay,a.team===0)<0){a.x=ax;a.y=ay}if(!ed||edgeCross(Z,b.x,b.y,bx,by,b.team===0)<0){b.x=bx;b.y=by}}}
   stepProjs(Z,dt);stepAreas(Z,dt);if(Z.home)stepTurrets(Z,dt);
   // interaction hint for the HUD
   Z.hintT=(Z.hintT||0)-dt;if(Z.hintT<=0&&p&&!p.dead){Z.hintT=.12;Z.hint=findInteract(Z)}

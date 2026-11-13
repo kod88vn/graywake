@@ -30,7 +30,7 @@ for(const r of RECIPE_LIST){if(!r.fx){item(r.o,'recipe '+r.id);got.add(r.o)}for(
 // objects
 for(const k in OBJ){const o=OBJ[k];for(const c in o.cost||{}){item(c,'object '+k+' cost');used.add(c)}if(o.up)obj(o.up,'object '+k+' up');
   if(o.node)for(const g of o.node.give){item(g[0],'object '+k+' yield');got.add(g[0])}
-  if(o.loot&&!LOOT[o.loot])E(`object ${k}: unknown loot family "${o.loot}"`);if(o.lock&&!['pry','pick'].includes(o.lock))item(o.lock,'object '+k+' lock');
+  if(o.loot&&!LOOT[o.loot])E(`object ${k}: unknown loot family "${o.loot}"`);if(o.lock&&!['pry','pick','guard'].includes(o.lock))item(o.lock,'object '+k+' lock');
   if(o.prod){item(o.prod.item,'object '+k+' prod');got.add(o.prod.item);if(o.prod.extra){item(o.prod.extra[0],'object '+k);got.add(o.prod.extra[0])}}
   if(o.turret&&o.turret.ammo){item(o.turret.ammo,'object '+k+' turret');used.add(o.turret.ammo)}
   if(o.cost&&!o.cat)E(`object ${k}: buildable without a category`);if(o.cat&&!BUILD_CATS.some(c=>c[0]===o.cat))E(`object ${k}: unknown category ${o.cat}`);

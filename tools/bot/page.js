@@ -28,10 +28,14 @@ function label(el){
   let t=(el.innerText||'').replace(/\s+/g,' ').trim();const ti=el.getAttribute('title')||el.getAttribute('aria-label')||'';
   if(el.classList.contains('sl')){const n=el.querySelector('u');t=(ti||'empty slot')+(n&&n.textContent?' ×'+n.textContent:'')+(el.querySelector('em')?' ['+el.querySelector('em').textContent+']':'')}
   else if(!t)t=ti;else if(ti&&ti!==t&&t.length<24)t+=' ('+ti+')';
+  if(/^×\d+$/.test(t))t='MAKE '+t+' (that many batches at once)';
   if(el.tagName==='SELECT')t=(ti||'choice')+': '+(el.selectedOptions[0]?el.selectedOptions[0].textContent:'');
+  // costs are drawn as icons with a number; spell them out ("needs 2 Log (have 5)")
+  const costs=root=>[...root.querySelectorAll('.ing span[title]')].map(c=>{const[nm,have]=c.getAttribute('title').split(': ');return c.textContent.trim()+' '+nm+(have?' ('+have+')':'')}).join(', ');
+  if(el.classList.contains('bp')){const nm=el.querySelector('b'),c=costs(el),lock=el.querySelector('.ing .no');t=(nm?nm.textContent:t)+(c?' — needs '+c:lock?' — '+lock.textContent:'');return t.slice(0,140)}
   // a button in a row of a list ("MAKE", "×5", "Recruit") says nothing without the row's name
-  const row=!el.classList.contains('sl')&&el.closest('.rec,.perk,.goal,.card');if(row&&row!==el){const h=row.querySelector('b,h3');const ht=h&&h.textContent.replace(/\s+/g,' ').trim();if(ht&&!t.includes(ht)&&t.length<40)t+=' — '+ht.slice(0,40)}
-  return t.slice(0,90)}
+  const row=!el.classList.contains('sl')&&el.closest('.rec,.perk,.goal,.card');if(row&&row!==el){const h=row.querySelector('b,h3');const ht=h&&h.textContent.replace(/\s+/g,' ').trim();if(ht&&!t.includes(ht)&&t.length<40){t+=' — '+ht.slice(0,40);const c=row.classList.contains('rec')&&/^make$/i.test((el.innerText||'').trim())?costs(row):'';if(c)t+=' (needs '+c+')'}}
+  return t.slice(0,150)}
 function layer(){
   if(vis($('title')))return['title',[$('title')]];
   if(vis($('shade')))return['sheet',[$('panel')]];
@@ -48,6 +52,8 @@ function elements(full){
       B.els.push(el);out.push({n:B.els.length,label:lab||'empty slot',flags});if(!full&&out.length>=70)break}}
   if(name==='map')for(const s of MapScreen.spots()){B.els.push({spot:s});out.push({n:B.els.length,label:'place on the map: '+s.name,flags:[s.here?'you are here':'',s.sel?'selected':''].filter(Boolean)})}
   return[name,out]}
+/** The number of the one clickable thing whose label contains this text (case does not matter), 0 if none, -1 if several do. */
+B.byText=q=>{q=String(q).toLowerCase().trim();const hit=[];B.els.forEach((el,i)=>{const l=(el.spot?el.spot.name:label(el)).toLowerCase();if(l.includes(q))hit.push([i+1,l])});const exact=hit.filter(h=>h[1]===q||h[1].startsWith(q+' '));return hit.length===1?hit[0][0]:exact.length===1?exact[0][0]:hit.length?-1:0};
 /** Where to click for numbered element n (scrolling it into view first), or null. */
 B.target=n=>{const el=B.els[n-1];if(!el)return null;if(el.spot)return{x:el.spot.x,y:el.spot.y,label:el.spot.name};
   if(!document.contains(el))return null;el.scrollIntoView({block:'center',inline:'center'});const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2,label:label(el),disabled:!!el.disabled}};
@@ -67,8 +73,15 @@ function around(full){
   foes.sort((a,b)=>a.dist-b.dist);others.sort((a,b)=>a.dist-b.dist);
   const list=[...things.values()].sort((a,b)=>a.dist-b.dist).slice(0,full?40:18).map(t=>({name:t.name,act:t.act,yours:t.yours,n:t.n,x:t.x,y:t.y,dist:r1(t.dist),dir:compass(t.x+.5-p.x,t.y+.5-p.y)}));
   const drops=Z.drops.map(d=>({x:r1(d.x),y:r1(d.y),dist:r1(Math.hypot(d.x-p.x,d.y-p.y)),dir:compass(d.x-p.x,d.y-p.y),what:(d.items||[]).map(it=>(ITEMS[it.id]?ITEMS[it.id].n:it.id)+(it.n>1?' ×'+it.n:'')).join(', ')})).sort((a,b)=>a.dist-b.dist).slice(0,6);
-  let walls=0;if(Z.ed)for(const w of Z.ed)if(w&&OBJ[w.k]&&OBJ[w.k].cost)walls++;
-  return{things:list,foes:foes.slice(0,12),others:others.slice(0,8),drops,walls}}
+  let walls=0;const doorways=[],SIDE=['N','W'];
+  if(Z.ed)for(let e=0;e<Z.ed.length;e++){const w=Z.ed[e];if(!w||!OBJ[w.k])continue;if(OBJ[w.k].cost)walls++;
+    if(OBJ[w.k].open||OBJ[w.k].door){const t=e>>1,x=t%W,y=(t-x)/W,mx=e&1?x:x+.5,my=e&1?y+.5:y,dist=Math.hypot(mx-p.x,my-p.y);if(dist<R+2)doorways.push({x,y,side:SIDE[e&1],dist:r1(dist),dir:compass(mx-p.x,my-p.y),yours:!!OBJ[w.k].door})}}
+  doorways.sort((a,b)=>a.dist-b.dist);
+  // in build mode at home, where every wall piece of yours stands, so strays can be found and lines checked
+  let yours=null;if(Z.home&&G.build){const rows={},cols={};for(let e=0;e<Z.ed.length;e++){const w=Z.ed[e];if(!w||!OBJ[w.k]||!OBJ[w.k].cost)continue;const t=e>>1,x=t%W,y=(t-x)/W;if(e&1)(cols[x]=cols[x]||[]).push(y);else(rows[y]=rows[y]||[]).push(x)}
+    const runs=a=>{a.sort((p,q)=>p-q);const out=[];let s=a[0],l=a[0];for(let i=1;i<=a.length;i++){if(a[i]===l+1){l=a[i];continue}out.push(s===l?''+s:s+'-'+l);s=l=a[i]}return out.join(',')};
+    yours=[...Object.keys(rows).map(y=>`north side of row y=${y}: x ${runs(rows[y])}`),...Object.keys(cols).map(x=>`west side of column x=${x}: y ${runs(cols[x])}`)].slice(0,24)}
+  return{things:list,foes:foes.slice(0,12),others:others.slice(0,8),drops,walls,doorways:doorways.slice(0,6),yours}}
 
 B.observe=(full=false)=>{
   const S=G.S,Z=G.Z,o={mode:G.mode,version:window.GW&&GW.VERSION,hold:!!G.hold,paused:!!G.paused,screen:[innerWidth,innerHeight]};
@@ -77,7 +90,10 @@ B.observe=(full=false)=>{
   if(lay==='title')o.text=txt($('title')).slice(0,900);
   if(lay==='sheet'){o.sheet={title:txt($('panel').querySelector('.ttl')),name:GW.UI.panel,text:txt($('pb')).slice(0,full?6000:1600)}}
   if(lay==='map')o.text=(txt($('maptop'))+'\n'+txt($('mapinfo'))).slice(0,900);
-  if(lay==='build')o.buildInfo=txt($('binfo'));
+  if(lay==='build'){o.buildInfo=txt($('binfo'));
+    // the ground that can be clicked right now: what the camera shows, less the interface along the top and the build bar along the bottom
+    const top=$('build').getBoundingClientRect().top,a=GW.View.pick(innerWidth*.08,130),b=GW.View.pick(innerWidth*.92,130),c=GW.View.pick(innerWidth*.08,top-24),d=GW.View.pick(innerWidth*.92,top-24);
+    if(a&&b&&c&&d)o.buildView={x0:Math.ceil(Math.max(a.x,c.x)),x1:Math.floor(Math.min(b.x,d.x))-1,y0:Math.ceil(a.y),y1:Math.floor(c.y)-1}}
   if(S&&G.mode!=='menu'){
     const p=S.p,ds=G.ds||{},e=p.eq[p.active],it=e&&ITEMS[e.id],sp=p.eq[p.active==='w1'?'w2':'w1'];
     o.you={hp:Math.round(p.hp),maxHp:Math.round(ds.maxHp||100),food:Math.round(p.food),water:Math.round(p.water),tox:Math.round(p.tox),level:p.lvl,perkPoints:p.sp||0,

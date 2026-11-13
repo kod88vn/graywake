@@ -11,7 +11,7 @@ import {EVENTS} from '../js/data/events.js';
 import {STORY} from '../js/data/progress.js';
 import {G,EREF,edgeIdx,structAt,dropAt,give,count,craft,place,upgrade,demolish,repair,moveObj,rotateObj,canMove,equip,useItem,quickUse,learnPerk,derive,canPlace,slotCount,freeSlots,sortInv,HOME_W} from '../js/sim/core.js';
 import {genZone,field,siteDef,blockAt,collide,los,edgeCross} from '../js/sim/zone.js';
-import {spawnActor,enemiesAlive,populate,interact,findInteract,lootAll,openLoot,plant,damageObj} from '../js/sim/actors.js';
+import {spawnActor,enemiesAlive,populate,interact,interactInfo,guardDown,findInteract,lootAll,openLoot,plant,damageObj} from '../js/sim/actors.js';
 import * as World from '../js/sim/world.js';
 import {goalProgress,story,genContract,contractText,turnIn} from '../js/sim/quests.js';
 import {dayOf,hourOf} from '../js/sim/util.js';
@@ -175,9 +175,11 @@ safe('worldgen',()=>{
     const okc=cont===0||reach/cont>=.9,okn=nodes===0||nreach/nodes>=.85,oke=es===0||er/es>=.9;
     if(!(okc&&okn&&oke&&bossOk)){bad++;T.info(`${name} seed ${seed}: containers ${reach}/${cont}, nodes ${nreach}/${nodes}, spawns ${er}/${es}, boss ${bossOk}`)}
     if(def.boss&&!def.bossChance&&!boss){bad++;T.info(name+': boss missing')}
+    for(const k in def.lock||{}){const n=Z.obj.filter(o=>o&&o.k===k).length;if(n<def.lock[k]){bad++;T.info(`${name} seed ${seed}: locked container ${k} ${n}/${def.lock[k]}`)}}
     return Z};
   for(const l of LOCATIONS){if(l.id==='home')continue;for(const seed of[1,77,9001])test(l,l.id,seed)}
   for(const k in SITES)for(let reg=1;reg<=5;reg++)test(siteDef({site:k},reg,5),'site '+k,reg*13);
+  for(const k in SITES)if(SITES[k].lead)for(let s=1;s<=40;s++)test(siteDef({site:k},1+s%3,5),'lead '+k,s*977);
   T.ok(bad===0,`all ${total} generated zones are reachable from the arrival point`);
 });
 // ---- live play in every location: enemies wake, fight, nothing throws
@@ -304,6 +306,23 @@ safe('sleep death save',()=>{
     T.ok(at(6,6,0)&&at(6,6,3)&&at(10,10,1)&&at(10,10,2)&&at(8,10,2).k==='door_stick'&&at(8,10,2).hp===77&&!at(8,10,0),'the ring keeps its outline on the outward faces, the door and its health with it');
     T.ok(at(12,6,3)&&at(12,7,3)&&at(12,8,3)&&at(12,7,3).k==='wall_plank','a loose run becomes one straight line')}
   World.resume(S2);run(2,god);T.ok(G.Z&&G.Z.home,'resumed game runs');
+});
+// ---- radio leads: special places to loot, with the danger told beforehand
+safe('radio leads',()=>{
+  const S=G.S;G.Z=null;World.arrive('home');S.sites=[];S.p.lvl=6;S.tide.at=S.t+9999;
+  const site=World.addLead(S,'lead_police',2),I=World.leadInfo(S,site);
+  T.ok(!!site&&site.lvl===8&&I.skulls===4&&I.boss==='The Desk Sergeant'&&I.count>10&&/firearms/.test(I.prize)&&I.left>0,'a lead says ahead of time how hard it is ('+I.word+', '+I.skulls+' skulls, level '+I.lvl+' against yours '+S.p.lvl+', about '+I.count+' inside, '+I.boss+')');
+  const easy=World.addLead(S,'lead_grocery',-3),E=World.leadInfo(S,easy);T.ok(E.skulls===1&&!E.boss&&E.lvl===3,'and an easy one says so too ('+E.word+', level '+E.lvl+')');
+  S.sites=S.sites.filter(x=>x.id===site.id);S.lead.next=S.t+1;S.lead.last='';S.lead.note=null;run(3,god);
+  const heard=S.sites.find(x=>x.id!==site.id);T.ok(!heard&&S.lead.next>S.t,'only one lead is on the map at a time without a radio mast');
+  S.sites=[];S.lead.next=S.t+1;run(3,god);T.ok(S.sites.length===1&&SITES[S.sites[0].site].lead&&S.lead.note===S.sites[0].id,'a lead comes over the radio by itself and waits to be read ('+SITES[S.sites[0].site].n+')');
+  World.leadRead(S);S.sites=[site];G.Z=null;World.arrive(site.id);const Z=G.Z,si=Z.obj.findIndex(o=>o&&o.k==='strong_guns'),tgt={i:si,x:si%Z.w+.5,y:Math.floor(si/Z.w)+.5,type:'loot'};
+  T.ok(Z.site===site.id&&si>=0&&(Z.spawns.some(s=>s.boss)||Z.actors.some(a=>a.def&&a.def.boss)),'the place has a strongroom and a guardian');
+  T.ok(!guardDown(Z)&&interactInfo(Z,si).label==='Locked'&&interact(Z,tgt)===false&&!Z.obj[si].unlocked,'the strongroom stays shut while the guardian lives');
+  for(const sp of Z.spawns)sp.done=true;for(const a of Z.actors)if(a.team===1)a.dead=true;
+  T.ok(guardDown(Z)&&interactInfo(Z,si).label==='Open'&&interact(Z,tgt)===true,'and opens once it is dead');run(2,god);
+  const inv=(Z.obj[si].inv||[]).filter(Boolean);T.ok(inv.length>=3,'with a strongroom worth the trip ('+inv.map(it=>ITEMS[it.id].n+(it.n>1?' ×'+it.n:'')).join(', ')+')');
+  G.Z=null;World.arrive('home');S.sites=[];
 });
 // ---- contracts, trade, story bookkeeping
 safe('misc',()=>{

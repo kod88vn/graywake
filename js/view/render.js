@@ -210,7 +210,7 @@ function flush(){
   dirty.clear();lightSrc.length=0;lightSrc.dirty=true;
   // contact shadows follow the objects
   let n=0;for(let i=0;i<Z.obj.length&&n<3190;i++){const o=Z.obj[i];if(!o)continue;const d=OBJ[o.k];if(!d||!d.solid)continue;const x=i%W,y=(i-x)/W,s=d.solid===1?(d.low?1.5:1.75):(d.r||.3)*3.2+.45;_m.makeScale(s,1,s);_m.setPosition(x+.5,.008,y+.5);aoMesh.setMatrixAt(n++,_m)}
-  for(let e=0;e<Z.ed.length&&n<3190;e++){if(!Z.ed[e])continue;const ti=e>>1,x=ti%W,y=(ti-x)/W;_m.makeScale(e&1?.62:1.5,1,e&1?1.5:.62);_m.setPosition(e&1?x:x+.5,.008,e&1?y+.5:y);aoMesh.setMatrixAt(n++,_m)}
+  for(let e=0;e<Z.ed.length&&n<3190;e++){if(!Z.ed[e]||OBJ[Z.ed[e].k].open)continue;const ti=e>>1,x=ti%W,y=(ti-x)/W;_m.makeScale(e&1?.62:1.5,1,e&1?1.5:.62);_m.setPosition(e&1?x:x+.5,.008,e&1?y+.5:y);aoMesh.setMatrixAt(n++,_m)}
   aoMesh.count=quality==='low'?0:n;aoMesh.instanceMatrix.needsUpdate=true;
 }
 function collectLights(){

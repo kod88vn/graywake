@@ -42,6 +42,9 @@ function scatter(Z,R,rng,k,count,seed,avoid){
 // ---------------------------------------------------------------- buildings
 /** A wall of the world (a building's, a fence) on one side of a cell: 0 north, 1 east, 2 south, 3 west. It has no health: nothing breaks it. */
 const wallOn=(Z,x,y,side,k,rng)=>{if(x>=0&&y>=0&&x<Z.w&&y<Z.h)Z.ed[edgeIdx(Z.w,x,y,side)]={k,v:rng.int(0,2)}};
+/** A doorway: the side of a cell left open in a wall, marked with a frame so it can be seen from any angle. It blocks nothing. */
+const WALL_KINDS=['w_brick','w_concrete','w_wood','w_metal','w_log','w_lab','w_ice','w_bloom'];
+const doorwayOn=(Z,x,y,side,wall)=>{Z.ed[edgeIdx(Z.w,x,y,side)]={k:'doorway',v:Math.max(0,WALL_KINDS.indexOf(wall))}};
 const walledCell=(Z,x,y)=>!!(Z.ed[edgeIdx(Z.w,x,y,0)]||Z.ed[edgeIdx(Z.w,x,y,1)]||Z.ed[edgeIdx(Z.w,x,y,2)]||Z.ed[edgeIdx(Z.w,x,y,3)]);
 /** True when every open tile inside the rectangle can still be walked to from (sx,sy), and (px,py) can be reached from an open neighbour (walls on cell edges count). */
 function roomOk(Z,x0,y0,x1,y1,sx,sy,px,py){
@@ -62,10 +65,10 @@ function stamp(Z,R,rng,x0,y0,w,h,tpl,side){
   for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++){const i=y*W+x;Z.g[i]=fl;R[i]=2;Z.obj[i]=null;inner.push([x,y])}
   for(let x=x0;x<=x1;x++){wallOn(Z,x,y0,0,k,rng);wallOn(Z,x,y1,2,k,rng)}for(let y=y0;y<=y1;y++){wallOn(Z,x0,y,3,k,rng);wallOn(Z,x1,y,1,k,rng)}
   const door=s=>{let dx,dy;if(s===0){dx=rng.int(x0+1,x1-1);dy=y0}else if(s===2){dx=rng.int(x0+1,x1-1);dy=y1}else if(s===1){dx=x1;dy=rng.int(y0+1,y1-1)}else{dx=x0;dy=rng.int(y0+1,y1-1)}
-    Z.ed[edgeIdx(W,dx,dy,s)]=null;doors.push([dx,dy]);const ox=s===1?1:s===3?-1:0,oy=s===0?-1:s===2?1:0;for(let n=1;n<=2;n++){const j=(dy+oy*n)*W+dx+ox*n;if(!R[j])R[j]=1;Z.obj[j]=null}};
+    doorwayOn(Z,dx,dy,s,k);doors.push([dx,dy]);const ox=s===1?1:s===3?-1:0,oy=s===0?-1:s===2?1:0;for(let n=1;n<=2;n++){const j=(dy+oy*n)*W+dx+ox*n;if(!R[j])R[j]=1;Z.obj[j]=null}};
   door(side);if(rng.chance(.4))door((side+2)%4);
   // a second room: a wall down the west side of one column, with one cell of it left open
-  if(tpl.rooms===2&&w>=9){const px=x0+Math.floor(w/2)+rng.int(-1,0),gap=rng.int(y0+1,y1-1);for(let y=y0;y<=y1;y++)if(y!==gap)wallOn(Z,px,y,3,k,rng);doors.push([px,gap],[px-1,gap])}
+  if(tpl.rooms===2&&w>=9){const px=x0+Math.floor(w/2)+rng.int(-1,0),gap=rng.int(y0+1,y1-1);for(let y=y0;y<=y1;y++)if(y!==gap)wallOn(Z,px,y,3,k,rng);else doorwayOn(Z,px,y,3,k);doors.push([px,gap],[px-1,gap])}
   const nearDoor=(x,y)=>doors.some(d=>Math.abs(d[0]-x)+Math.abs(d[1]-y)<=1);
   const cand=rng.shuffle(inner.filter(([x,y])=>!Z.obj[y*W+x]&&walledCell(Z,x,y)&&!nearDoor(x,y)));
   const bnd=[x0,y0,x1,y1,doors[0][0],doors[0][1]];
@@ -108,7 +111,10 @@ function genOutdoor(Z,R,rng,def,seed,town){
     else scatter(Z,R,rng,k,def.props[k],seed+7,avoid)}
   let s=seed+11;for(const k in def.nodes||{})scatter(Z,R,rng,k,def.nodes[k],s++,avoid);
   for(const k in b.deco||{}){const n=Math.round(b.deco[k]*W*H);scatter(Z,R,rng,k,n,s++,avoid)}
-  const inner=[];for(const bl of blds)for(const p of bl.inner)inner.push(p);
+  // locked containers a place promises (the Ranger Station's armoury cage) stand inside one of its buildings, against a wall, away from the door
+  for(const k in def.lock||{})for(let n=0;n<def.lock[k];n++){let ok=false;for(const bl of rng.shuffle(blds.slice())){if(ok)break;const bnd=[bl.x0,bl.y0,bl.x0+bl.w-1,bl.y0+bl.h-1,bl.doors[0][0],bl.doors[0][1]];
+    for(const[x,y]of rng.shuffle(bl.inner.filter(([x,y])=>!Z.obj[y*W+x]&&walledCell(Z,x,y)&&!bl.doors.some(d=>Math.abs(d[0]-x)+Math.abs(d[1]-y)<=1)))){if(putIn(Z,x,y,k,rng,bnd)){ok=true;break}}}}
+  const inner=[];for(const bl of blds)for(const p of bl.inner)if(!Z.obj[p[1]*W+p[0]])inner.push(p);
   spawnList(Z,R,rng,def.en,null,false);spawnList(Z,R,rng,def.inn,inner.length?inner:null,false,5);spawnList(Z,R,rng,def.night,null,true);
   Z.blds=blds;return inner;
 }
@@ -123,7 +129,7 @@ function genComplex(Z,R,rng,def,seed){
   for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++){const i=y*W+x;Z.g[i]=fl;R[i]=2}
   for(let x=x0;x<=x1;x++){wallOn(Z,x,y0,0,wall,rng);wallOn(Z,x,y1,2,wall,rng)}for(let y=y0;y<=y1;y++){wallOn(Z,x0,y,3,wall,rng);wallOn(Z,x1,y,1,wall,rng)}
   for(let y=y0+h;y<H;y++)for(let x=Math.floor(W/2)-1;x<=Math.floor(W/2)+1;x++)Z.g[y*W+x]=GT.path;
-  const ex=Math.floor(W/2);for(const dx of[-1,0,1]){Z.ed[edgeIdx(W,ex+dx,y1,2)]=null;doors.push([ex+dx,y1])}
+  const ex=Math.floor(W/2);for(const dx of[-1,0,1]){doorwayOn(Z,ex+dx,y1,2,wall);doors.push([ex+dx,y1])}
   const nearDoor=(x,y)=>doors.some(d=>Math.abs(d[0]-x)+Math.abs(d[1]-y)<=1);
   const split=(ax,ay,bx,by,depth)=>{ // interior rectangle inclusive
     const rw=bx-ax+1,rh=by-ay+1;
@@ -131,10 +137,10 @@ function genComplex(Z,R,rng,def,seed){
     const vert=rw>rh?true:rh>rw?false:rng.chance(.5);
     if(vert){if(rw<9){rooms.push({ax,ay,bx,by});return}const p=rng.int(ax+4,bx-4),gaps=[rng.int(ay,by)];if(rh>10)gaps.push(rng.int(ay,by));
       // the wall runs down the west side of column p; that column is the first of the room to the east
-      for(let y=ay;y<=by;y++)if(!gaps.includes(y))wallOn(Z,p,y,3,wall,rng);for(const g of gaps)doors.push([p,g],[p-1,g]);
+      for(let y=ay;y<=by;y++)if(!gaps.includes(y))wallOn(Z,p,y,3,wall,rng);else doorwayOn(Z,p,y,3,wall);for(const g of gaps)doors.push([p,g],[p-1,g]);
       split(ax,ay,p-1,by,depth+1);split(p,ay,bx,by,depth+1)}
     else{if(rh<9){rooms.push({ax,ay,bx,by});return}const p=rng.int(ay+4,by-4),gaps=[rng.int(ax,bx)];if(rw>10)gaps.push(rng.int(ax,bx));
-      for(let x=ax;x<=bx;x++)if(!gaps.includes(x))wallOn(Z,x,p,0,wall,rng);for(const g of gaps)doors.push([g,p],[g,p-1]);
+      for(let x=ax;x<=bx;x++)if(!gaps.includes(x))wallOn(Z,x,p,0,wall,rng);else doorwayOn(Z,x,p,0,wall);for(const g of gaps)doors.push([g,p],[g,p-1]);
       split(ax,ay,bx,p-1,depth+1);split(ax,p,bx,by,depth+1)}
   };
   split(x0,y0,x1,y1,0);
@@ -147,7 +153,9 @@ function genComplex(Z,R,rng,def,seed){
   const putC=(t,k)=>{for(let tries=0;tries<4&&t;tries++){if(putIn(Z,t[0],t[1],k,rng,bnd))return true;t=pickTile(rng.pick(fillRooms),true)}return false};
   for(const k in def.fill||{})for(let n=0;n<def.fill[k];n++){const d=OBJ[k],t=pickTile(rng.pick(fillRooms),!(d.node&&d.solid===2));putC(t,k)}
   const deep=rooms.slice(Math.floor(rooms.length*.5));
-  for(const k in def.lock||{})for(let n=0;n<def.lock[k];n++){const t=pickTile(rng.pick(deep),true);putC(t,k)}
+  // locked prizes go in the far half; one that finds no place there is tried in every room, farthest first, until it stands somewhere
+  for(const k in def.lock||{})for(let n=0;n<def.lock[k];n++){let ok=putC(pickTile(rng.pick(deep),true),k);
+    for(let r=rooms.length-1;r>=0&&!ok;r--)for(const t of rng.shuffle(tilesOf(rooms[r]))){if(putIn(Z,t[0],t[1],k,rng,bnd)){ok=true;break}}}
   for(const k in def.hazard||{})for(let n=0;n<def.hazard[k];n++){const t=pickTile(rng.pick(fillRooms),false);if(t)put(Z,t[0],t[1],k,rng)}
   // outdoors
   const avoid=[Z.spawn.x,Z.spawn.y,3];let s=seed+3;for(const k in def.props||{})scatter(Z,R,rng,k,def.props[k],s++,avoid);
@@ -244,7 +252,7 @@ export function collide(Z,x,y,r,ally){
   if(Z.ed.length)for(let pass=0;pass<2;pass++){
     const tx0=Math.floor(x-r-WT),tx1=Math.floor(x+r+WT),ty0=Math.floor(y-r-WT),ty1=Math.floor(y+r+WT),W=Z.w;
     for(let ty=ty0;ty<=ty1;ty++)for(let tx=tx0;tx<=tx1;tx++){if(tx<0||ty<0||tx>=W||ty>=Z.h)continue;const e=(ty*W+tx)*2;
-      for(let s=0;s<2;s++){const w=Z.ed[e+s];if(!w||(ally&&OBJ[w.k].door))continue;
+      for(let s=0;s<2;s++){const w=Z.ed[e+s];if(!w||OBJ[w.k].open||(ally&&OBJ[w.k].door))continue;
         const x0=s?tx-WT:tx,x1=s?tx+WT:tx+1,y0=s?ty:ty-WT,y1=s?ty+1:ty+WT,nx=x<x0?x0:x>x1?x1:x,ny=y<y0?y0:y>y1?y1:y,dx=x-nx,dy=y-ny,d2=dx*dx+dy*dy;
         if(d2<r*r){if(d2>1e-8){const d=Math.sqrt(d2);x=nx+dx/d*r;y=ny+dy/d*r}else if(s)x=x<tx?tx-WT-r:tx+WT+r;else y=y<ty?ty-WT-r:ty+WT+r}}}
   }
@@ -270,12 +278,12 @@ export const WT=.09;
  *  they stop feet (collide, path fields), not eyes, shots or reach. */
 export function edgeCross(Z,x0,y0,x1,y1,ally=false){
   const ed=Z.ed;if(!ed.length)return-1;const W=Z.w,H=Z.h,dx=x1-x0,dy=y1-y0;let best=-1,bt=2;
-  if(dx){const a=Math.floor(Math.min(x0,x1))+1,b=Math.floor(Math.max(x0,x1));for(let k=a;k<=b;k++){const t=(k-x0)/dx;if(t<0||t>1||t>=bt)continue;const ty=Math.floor(y0+dy*t);if(k<0||k>=W||ty<0||ty>=H)continue;const e=(ty*W+k)*2+1,w=ed[e];if(w&&!OBJ[w.k].low&&!(ally&&OBJ[w.k].door)){bt=t;best=e}}}
-  if(dy){const a=Math.floor(Math.min(y0,y1))+1,b=Math.floor(Math.max(y0,y1));for(let k=a;k<=b;k++){const t=(k-y0)/dy;if(t<0||t>1||t>=bt)continue;const tx=Math.floor(x0+dx*t);if(tx<0||tx>=W||k<0||k>=H)continue;const e=(k*W+tx)*2,w=ed[e];if(w&&!OBJ[w.k].low&&!(ally&&OBJ[w.k].door)){bt=t;best=e}}}
+  if(dx){const a=Math.floor(Math.min(x0,x1))+1,b=Math.floor(Math.max(x0,x1));for(let k=a;k<=b;k++){const t=(k-x0)/dx;if(t<0||t>1||t>=bt)continue;const ty=Math.floor(y0+dy*t);if(k<0||k>=W||ty<0||ty>=H)continue;const e=(ty*W+k)*2+1,w=ed[e];if(w&&!OBJ[w.k].low&&!OBJ[w.k].open&&!(ally&&OBJ[w.k].door)){bt=t;best=e}}}
+  if(dy){const a=Math.floor(Math.min(y0,y1))+1,b=Math.floor(Math.max(y0,y1));for(let k=a;k<=b;k++){const t=(k-y0)/dy;if(t<0||t>1||t>=bt)continue;const tx=Math.floor(x0+dx*t);if(tx<0||tx>=W||k<0||k>=H)continue;const e=(k*W+tx)*2,w=ed[e];if(w&&!OBJ[w.k].low&&!OBJ[w.k].open&&!(ally&&OBJ[w.k].door)){bt=t;best=e}}}
   return best;
 }
 /** The wall or door on the edge between two cells that share a side: its edge index, or -1. */
-export function edgeBetween(Z,x0,y0,x1,y1){const W=Z.w,e=y1<y0?(y0*W+x0)*2:y1>y0?(y1*W+x0)*2:x1<x0?(y0*W+x0)*2+1:(y0*W+x1)*2+1;return Z.ed[e]?e:-1}
+export function edgeBetween(Z,x0,y0,x1,y1){const W=Z.w,e=y1<y0?(y0*W+x0)*2:y1>y0?(y1*W+x0)*2:x1<x0?(y0*W+x0)*2+1:(y0*W+x1)*2+1;return Z.ed[e]&&!OBJ[Z.ed[e].k].open?e:-1}
 /** Does any wall touch the corner shared by two diagonal cells? (Nothing cuts a corner a wall ends on.) */
 function cornerWalled(Z,x0,y0,x1,y1){const W=Z.w,cx=Math.max(x0,x1),cy=Math.max(y0,y1),ed=Z.ed;return!!(ed[(cy*W+cx-1)*2]||ed[(cy*W+cx)*2]||ed[((cy-1)*W+cx)*2+1]||ed[(cy*W+cx)*2+1])}
 /** Does a wall stand between two points? Low cover (barricades, furniture) does not block sight or shots. */

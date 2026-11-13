@@ -23,6 +23,7 @@ const tileXY=async(tx,ty)=>J(`(()=>{const s=GW.View.project(${tx}+.5,${ty}+.5,0)
 try{
   await page.sleep(700);await ev(`window.__noIntro=true;localStorage.clear()`);await click('#t-new');
   T.ok(await until(`GW.G.mode==='play'&&!!GW.G.Z&&!document.getElementById('fade').classList.contains('on')`),'New game button starts the game');
+  await ev(`GW.G.S.lead.next=1e12`);   // radio leads are tested on their own at the end; none may interrupt the scripted path
   // ---- gather by hand
   for(const[kind,item]of[[['stone_pile'],'stone'],[['log_pile'],'stick'],[['grass_tall'],'fiber'],[['stone_pile'],'stone'],[['log_pile'],'stick'],[['grass_tall'],'fiber']]){const before=await count(item);await use(kind);await until(`GW.G.S.p.inv.reduce((n,s)=>n+(s&&s.id==='${item}'?s.n:0),0)>${before}`,4000)}
   T.ok(await count('stone')>=4&&await count('stick')>=3&&await count('fiber')>=4,'E gathers stones, sticks and fibre by hand ('+await count('stone')+' stone, '+await count('stick')+' stick, '+await count('fiber')+' fibre)');
@@ -106,7 +107,7 @@ try{
   const st0=await ev(`GW.World.Community.fac(GW.G.S,'mill').st`);await click('#pb [data-a="gift"]');T.ok(await ev(`GW.World.Community.fac(GW.G.S,'mill').st`)>st0,'clicking Gift raises standing');
   await click('#tabs [data-t="farm"]');await page.sleep(200);T.ok(await ev(`document.getElementById('pb').innerText.length>40`),'the Farm tab renders');await page.key('Escape');await ev(`GW.G.S.surv.length=0`);
   // ---- sleep
-  await ev(`GW.G.S.t=Math.floor(GW.G.S.t/1440)*1440+21.5*60;GW.G.S.tide.at=GW.G.S.t+4000`);await use(['bed_roll']);T.ok(await until(`GW.UI.panel==='bed'`,4000),'E on the bedroll opens Rest');
+  await ev(`GW.G.S.t=Math.floor(GW.G.S.t/1440)*1440+21.5*60;GW.G.S.tide.at=GW.G.S.t+4000`);await use(['bed_roll']);{const ok=await until(`GW.UI.panel==='bed'`,4000);if(!ok)T.info('bedroll: '+await ev(`(()=>{const Z=GW.G.Z,p=Z.pl,h=Z.hint;return JSON.stringify({panel:GW.UI.panel,hint:h&&{i:h.i,type:h.type,label:h.label,k:h.i!==undefined&&Z.obj[h.i]&&Z.obj[h.i].k},at:[+p.x.toFixed(2),+p.y.toFixed(2)],act:p.act&&p.act.type,auto:GW.G.auto,build:!!GW.G.build,paused:GW.G.paused,foes:Z.actors.filter(a=>a.team===1&&!a.dead).length,toasts:[...document.getElementById('toasts').children].map(e=>e.textContent).slice(-3)})})()`));T.ok(ok,'E on the bedroll opens Rest')}
   const d0=await ev(`Math.floor(GW.G.S.t/1440)`);await click('#pb [data-a="sleep"]');T.ok(await until(`Math.floor(GW.G.S.t/1440)===${d0+1}`,3000),'Sleep passes the night');
   // ---- leave, map, travel, event, arrive
   const gate=await J(`[GW.G.Z.w/2,GW.G.Z.h-1.2]`);await walkTo(c[0]-1.5,c[1]+1.2,.45);await walkTo(c[0]-1.5,c[1]+3.6,.45);await walkTo(gate[0],c[1]+4.2,.5);T.ok(await walkTo(gate[0],gate[1],.8),'walk out through the gap and down the south trail to the edge');T.ok(await until(`!document.getElementById('travel').hidden`,2000),'the Leave button appears');
@@ -140,6 +141,12 @@ try{
   T.ok(await until(`GW.G.Z&&GW.G.Z.home`,5000),'travel home');T.ok(await ev(`GW.G.Z.obj.some(o=>o&&o.k==='campfire')`),'the base is as it was left');
   // coming home can open a sheet of its own (an away report, a home event): answer it the way a player would before opening the menu
   for(let k=0;k<5&&await ev(`!!GW.UI.panel&&GW.UI.panel!=='menu'`);k++){await ev(`(()=>{const b=document.querySelector('#pb [data-a=ok],#pb [data-a=go],#pb [data-a=done],#pb [data-a=opt]:not([disabled]),#px');if(b)b.click()})()`);await page.sleep(300)}
+  // ---- a radio lead: the note opens by itself once you stand still, says how dangerous the place is, and the place is on the map
+  await ev(`(()=>{const{G,World}=GW,S=G.S;S.nextEv=Infinity;S.tide.at=S.t+9e4;for(const a of G.Z.actors)if(a.team===1)a.dead=true;const st=World.addLead(S,'lead_pharmacy',1);window.__lead=st.id;S.lead.note=st.id})()`);
+  T.ok(await until(`GW.UI.panel==='lead'`,8000),'a radio note opens by itself when you are standing still at home');
+  {const txt=await ev(`document.getElementById('pb').innerText`);T.ok(/Pharmacy/i.test(txt)&&/Threat/i.test(txt)&&/The Chemist/.test(txt)&&/Strongroom/i.test(txt)&&/Gone in/i.test(txt),'it names the place, its threat, its guardian, its strongroom and how long it lasts');
+    T.ok(await ev(`(()=>{const p=document.getElementById('panel').getBoundingClientRect();return p.bottom<=innerHeight+1&&p.top>=-1})()`),'the note fits the screen')}
+  await click('#pb [data-a="done"]');T.ok(await ev(`GW.UI.panel===null&&GW.G.S.lead.note===null&&GW.G.S.sites.some(s=>s.id===window.__lead)`),'Noted closes it and the place stays marked on the map');
   await page.key('p');T.ok(await until(`GW.UI.panel==='menu'`,3000),'P opens the menu (open sheet: '+await ev(`GW.UI.panel`)+')');await click('#pb [data-a="save"]');await click('#pb [data-a="title"]');T.ok(await until(`!document.getElementById('title').hidden`,2000),'Quit to title');
   await click('#t-cont');T.ok(await until(`GW.G.mode==='play'&&GW.G.Z&&GW.G.Z.home&&GW.G.Z.obj.some(o=>o&&o.k==='campfire')`,6000),'Continue restores the homestead');
   T.ok(page.errors.length===0,'no page errors'+(page.errors.length?': '+page.errors.slice(0,6).join(' | '):''));

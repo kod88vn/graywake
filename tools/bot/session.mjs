@@ -145,17 +145,26 @@ C.attack=async a=>{const secs=clamp(num(a[0],3),.3,12);let quiet=0,swung=false;
 C.dodge=async a=>{const way=WAYS[String(a[0]||'').toLowerCase()];if(way)await steerKeys(way[0],way[1]);await sleep(60);await press('space');const r=await during(.6,{fight:true});await steerKeys(0,0);return{msg:'rolled'+(way?' '+String(a[0]).toUpperCase():'')+(r.why?': '+r.why:'')}};
 C.sneak=async a=>{sneak=String(a[0]).toLowerCase()!=='off';if(sneak)await keyDown('shift');else await keyUp('shift');return{msg:'sneaking '+(sneak?'on (slower, harder to notice)':'off')}};
 C.key=async a=>{if(!keyDef(a[0]))return{msg:'unknown key "'+a[0]+'". Keys: i c b j l m f q r e 1 2 3 4 esc tab space enter'};await press(a[0]);const r=await during(clamp(num(a[1],.45),.2,5));return{msg:'pressed '+String(a[0]).toUpperCase()+(r.why?': '+r.why:'')}};
-C.tap=async a=>{const n=parseInt(a[0]);const t=await ev(`__bot.target(${n})`);if(!t)return{msg:`there is no clickable thing numbered ${a[0]} any more: look again`};await sleep(120);const t2=await ev(`__bot.target(${n})`)||t;
+C.tap=async a=>{let n=parseInt(a[0]);
+  if(!(n>0)){const q=a.join(' ');n=await ev(`(__bot.observe(),__bot.byText(${JSON.stringify(q)}))`);if(n===0)return{msg:`nothing clickable is labelled "${q}" right now: look again`};if(n<0)return{msg:`several clickable things contain "${q}": be more exact (include the row name, e.g. "MAKE — Stone Pickaxe"), or use its number`}}
+  const t=await ev(`__bot.target(${n})`);if(!t)return{msg:`there is no clickable thing numbered ${a[0]} any more: look again`};await sleep(120);const t2=await ev(`__bot.target(${n})`)||t;
   await click(clamp(t2.x,2,W-2),clamp(t2.y,2,H-2));const r=await during(.5);return{msg:`clicked "${t.label}"`+(t.disabled?' (it is greyed out)':'')+(r.why?': '+r.why:'')}};
 C.click=async a=>{const x=num(a[0],-1),y=num(a[1],-1);if(x<0||y<0||x>W||y>H)return{msg:`click needs page pixels inside ${W}×${H}`};await click(x,y,a[2]==='right'?'right':'left');const r=await during(.45);return{msg:`clicked at ${x}, ${y}`+(r.why?': '+r.why:'')}};
 const SIDE={n:[0,-.42],e:[.42,0],s:[0,.42],w:[-.42,0]};
+// how much stands at home, so a build click can say whether anything was actually placed or removed
+const builtCount=()=>ev(`(()=>{const Z=GW.G.Z;if(!Z||!Z.home)return null;let e=0,o=0,f=0;for(const w of Z.ed)if(w)e++;for(const q of Z.obj)if(q&&q.hp>0)o++;for(const k of Z.fl)if(k)f++;return[e,o,f]})()`);
+const builtDelta=(a,b)=>{if(!a||!b)return'';const d=[b[0]-a[0],b[1]-a[1],b[2]-a[2]],names=['wall or door piece','structure','floor tile'],out=[];d.forEach((n,i)=>{if(n)out.push((n>0?'+':'')+n+' '+names[i]+(Math.abs(n)>1?'s':''))});return out.length?' — placed/removed: '+out.join(', '):' — nothing was placed or removed'};
 const tileXY=async(x,y,side)=>{const o=SIDE[String(side||'').toLowerCase()]||[0,0];return ev(`__bot.screen(${Math.floor(x)+.5+o[0]},${Math.floor(y)+.5+o[1]},0)`)};
-C.tile=async a=>{const x=num(a[0],NaN),y=num(a[1],NaN);if(!(x>=0&&y>=0))return{msg:'tile needs X Y (and optionally a side n e s w for walls)'};const s=await tileXY(x,y,a[2]);
+const needBuild=async()=>(await ev('!!GW.G.build'))?null:{msg:'build mode is not open (it closes on Esc or Done): press `key b` first. Clicking the ground outside build mode swings your weapon.'};
+C.tile=async a=>{const nb=await needBuild();if(nb)return nb;const x=num(a[0],NaN),y=num(a[1],NaN);if(!(x>=0&&y>=0))return{msg:'tile needs X Y (and optionally a side n e s w for walls)'};const s=await tileXY(x,y,a[2]);
   if(!s.on||s.y>H-8)return{msg:`tile (${x}, ${y}) is not on the screen: walk closer first`};const cover=await ev(`(()=>{const e=document.elementFromPoint(${s.x},${s.y});return e&&e.id!=='cv'?(e.id||e.className||e.tagName):''})()`);
   if(cover)return{msg:`tile (${x}, ${y}) is hidden behind the interface (${cover}) at this camera position: walk so it is nearer the middle of the screen`};
-  await click(s.x,s.y);const r=await during(.45);return{msg:`clicked the ground at tile (${x}, ${y})${a[2]?' on its '+a[2].toUpperCase()+' side':''}`+(r.why?': '+r.why:'')}};
-C.dragtile=async a=>{const[x1,y1,x2,y2]=a.slice(0,4).map(v=>num(v,NaN));if([x1,y1,x2,y2].some(v=>!(v>=0)))return{msg:'dragtile needs X1 Y1 X2 Y2 (and optionally a side)'};const s1=await tileXY(x1,y1,a[4]),s2=await tileXY(x2,y2,a[4]);
-  if(!s1.on||!s2.on)return{msg:'both ends must be on the screen'};await mouseTo(s1.x,s1.y);await mousePress();for(let i=1;i<=14;i++){await mouseTo(s1.x+(s2.x-s1.x)*i/14,s1.y+(s2.y-s1.y)*i/14);await sleep(45)}await mouseRelease();const r=await during(.45);return{msg:`dragged from tile (${x1}, ${y1}) to (${x2}, ${y2})`+(r.why?': '+r.why:'')}};
+  const n0=await builtCount();await click(s.x,s.y);const r=await during(.45),n1=await builtCount();
+  return{msg:`clicked the ground at tile (${x}, ${y})${a[2]?' on its '+a[2].toUpperCase()+' side':''}`+builtDelta(n0,n1)+(r.why?': '+r.why:'')}};
+C.dragtile=async a=>{const nb=await needBuild();if(nb)return nb;const[x1,y1,x2,y2]=a.slice(0,4).map(v=>num(v,NaN));if([x1,y1,x2,y2].some(v=>!(v>=0)))return{msg:'dragtile needs X1 Y1 X2 Y2 (and optionally a side)'};const s1=await tileXY(x1,y1,a[4]),s2=await tileXY(x2,y2,a[4]);
+  if(!s1.on||!s2.on)return{msg:'both ends must be on the screen: see "Ground you can click right now" in build mode and stand nearer the middle of what you are building'};
+  const n0=await builtCount();await mouseTo(s1.x,s1.y);await mousePress();const steps=Math.max(14,Math.round(Math.hypot(x2-x1,y2-y1)*4));for(let i=1;i<=steps;i++){await mouseTo(s1.x+(s2.x-s1.x)*i/steps,s1.y+(s2.y-s1.y)*i/steps);await sleep(40)}await mouseRelease();const r=await during(.45),n1=await builtCount();
+  return{msg:`dragged from tile (${x1}, ${y1}) to (${x2}, ${y2})`+builtDelta(n0,n1)+(r.why?': '+r.why:'')}};
 C.scroll=async a=>{const dy=num(a[0],300);const at=await ev(`(()=>{const e=document.getElementById('pb');const s=document.getElementById('shade');if(s&&!s.hidden){const r=e.getBoundingClientRect();return[r.left+r.width/2,r.top+r.height/2]}return[${W/2},${H/2}]})()`);
   await mouseTo(at[0],at[1]);await gate();await send('Input.dispatchMouseEvent',{type:'mouseWheel',x:at[0],y:at[1],deltaX:0,deltaY:dy});await during(.3);return{msg:'scrolled '+(dy>0?'down':'up')}};
 C.wait=async a=>{const secs=clamp(num(a[0],5),.5,30);if(S.paused){await sleep(secs*1000);return{msg:'the person watching has paused the session; waited '+secs+' s of real time'}}const r=await during(secs);return{msg:`let ${r.secs.toFixed(1)} s pass`+(r.why?', then: '+r.why:'')}};
@@ -198,8 +207,10 @@ function describe(o){
     if(o.drops&&o.drops.length)L.push('Loose on the ground: '+o.drops.map(d=>`${d.what||'loot'} ${d.dist} ${d.dir} at (${d.x}, ${d.y})`).join(' | '));
     if(o.things&&o.things.length){L.push('Around you (tile x,y; N is up the screen; nearest of each kind):');for(const t of o.things)L.push(`  ${t.name}${t.n>1?' ×'+t.n:''} — ${t.dist} tiles ${t.dir} at (${t.x}, ${t.y})${t.act?' — '+t.act:''}${t.yours?' (you built it)':''}`)}
     else L.push('Nothing to use, search or gather within ten tiles.');
-    if(o.walls)L.push(`Your walls and doors standing: ${o.walls}.`)}
-  if(o.layer==='build')L.push('BUILD MODE is open. '+(o.buildInfo||'')+' Pick a tool and a piece from the numbered list, then click the ground with `tile X Y` (walls and doors: `tile X Y n|e|s|w` for the side of the cell, `dragtile` for a line). Esc or Done leaves.');
+    if(o.doorways&&o.doorways.length)L.push((o.zone.home?'Your doors: ':'Doorways into buildings: ')+o.doorways.map(d=>`${d.dist} tiles ${d.dir}, between (${d.side==='N'?d.x+', '+(d.y-1):(d.x-1)+', '+d.y}) and (${d.x}, ${d.y})`).join(' | '));
+    if(o.yours&&o.yours.length)L.push('Where your wall and door pieces stand (a piece on the south side of a cell is listed as the north side of the cell below it, east as the west side of the next column): '+o.yours.join(' · '));
+    if(o.walls)L.push(`Wall and door pieces you have standing in the whole homestead (not only what is on screen): ${o.walls}.`)}
+  if(o.layer==='build')L.push('BUILD MODE is open. '+(o.buildInfo||'')+(o.buildView?` Ground you can click right now: x ${o.buildView.x0} to ${o.buildView.x1}, y ${o.buildView.y0} to ${o.buildView.y1} (walk to move this window).`:'')+' Pick a tool and a piece from the numbered list, then click the ground with `tile X Y` (walls and doors: `tile X Y n|e|s|w` for the side of the cell, `dragtile` for a line). Esc or Done leaves.');
   if(o.sheet){L.push(`SHEET OPEN: "${o.sheet.title}" — the world is paused while it is open; Esc closes it.`);if(o.sheet.text)L.push(o.sheet.text)}
   if(o.layer==='map'&&o.text)L.push('MAP SCREEN. '+o.text);
   if(o.els&&o.els.length){L.push('Clickable now (`tap N`):');let row='';for(const e of o.els){const s=`[${e.n}] ${e.label}${e.flags.length?' {'+e.flags.join(', ')+'}':''}`;if(row.length+s.length>150){L.push('  '+row);row=s}else row+=(row?'   ':'')+s}if(row)L.push('  '+row)}

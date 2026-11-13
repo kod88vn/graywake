@@ -6,7 +6,7 @@ import {RECIPES,VEHICLES} from '../data/recipes.js';
 import {PERK,xpFor,MAX_LEVEL} from '../data/progress.js';
 import {clamp,rnd} from './util.js';
 
-export const VERSION='0.8.2';
+export const VERSION='0.9.0';
 export const SAVE_V=2;
 export const HOME_W=46,HOME_H=46,EXIT_RING=2,NO_BUILD=4;
 export const MIN_PER_SEC=1.5;            // game minutes per real second: a day is 16 real minutes
@@ -24,7 +24,7 @@ export function blankState(seed){
   return{v:SAVE_V,seed:seed>>>0,t:7*60,created:Date.now(),
     p:{hp:100,food:80,water:80,tox:0,lvl:1,xp:0,sp:0,perks:{},inv:[],eq:{w1:null,w2:null,head:null,body:null,legs:null,feet:null,hands:null,pack:null},active:'w1',known:{},buffs:[],bed:null},
     home:{obj:[],fl:[],ed:[],regrow:[],pile:{},report:null},
-    loc:{},sites:[],siteN:0,at:'home',from:'home',
+    loc:{},sites:[],siteN:0,lead:{next:0,note:null,last:'',n:0},at:'home',from:'home',
     tide:{n:0,at:0,kind:'shamble',dir:0,weak:0,warned:0,live:null},
     weather:{id:'clear',until:0},
     surv:[],survN:0,morale:60,wait:[],fac:{},clog:[],
@@ -221,7 +221,8 @@ export const idx=(Z,x,y)=>y*Z.w+x;
 export const maxHp=k=>Math.round((OBJ[k].hp||0)*(1+(OBJ[k].cost?perk('wallhp'):0)));
 export function buildCost(k){const c=OBJ[k].cost||{},m=1-perk('cheap'),out={};for(const i in c)out[i]=Math.max(1,Math.round(c[i]*m));return out}
 export function buildUnlocked(S,k){const d=OBJ[k];if(!d.cost)return false;if(d.bp)return!!S.p.known[d.bp];return S.p.lvl>=d.lv}
-const afford=(S,cost)=>{for(const i in cost)if(count(S,i,true)<cost[i])return ITEMS[i].n;return null};
+/** What is short for a cost, said so a player can act on it ("Log: need 4, have 1"), or null when it can be paid. */
+const afford=(S,cost)=>{for(const i in cost){const have=count(S,i,true);if(have<cost[i])return`${ITEMS[i].n}: need ${cost[i]}, have ${have}`}return null};
 const pay=(S,cost)=>{for(const i in cost)take(S,i,cost[i],true)};
 export function inBuildArea(Z,x,y){return x>=NO_BUILD&&y>=NO_BUILD&&x<Z.w-NO_BUILD&&y<Z.h-NO_BUILD}
 // ---- walls stand on the edges between cells

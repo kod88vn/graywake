@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.9.0 — 2026-11-13
+
+Radio leads: special places to loot, with the danger told before you go.
+
+- **Leads come over the radio.** A couple of times a day the dead truck's radio picks something up: a corner grocery, a hardware store, a pharmacy, a fire station, a police station, a gun shop held by raiders, an army checkpoint. A sheet at home tells you what was heard, and the place is marked on your map for about a day. One lead at a time; a Radio Mast hears them more often and keeps two.
+- **You know what you are walking into.** Every lead says, on the radio sheet and on the map: a threat rating of one to five skulls measured against your own level, the place's level, who holds it (husks, a boss by name, or raiders with guns and their captain), about how many, what is in the strongroom, how long until it is gone, and how long the trip is. The same shop can come up as easy pickings or as a siege.
+- **A strongroom worth the trip.** Each lead is one building with rooms and a strongroom: a gun cage, a dispensary safe, a stock cage, a cold store or a quartermaster's locker, with a generous roll of exactly what that place is for. It stays locked until the guardian is dead (the keys are on it); where there is no guardian, until the place is clear. Leads well above your level roll loot one tier better.
+- **Three new guardians**, each sized to the level of the place: the Desk Sergeant (slams, calls riot husks), the Chemist (sprays toxin, calls crawlers) and the Chief (charges, slams). Raider leads are held by a crew and Captain Voss.
+- **Doorways can be seen.** Openings in building walls now have jambs, a lintel and a threshold in the wall's material. Before, a doorway in a wall seen end-on looked like more wall.
+- **Fixed: a crowd could squeeze someone through a thin wall.** Bodies shoving each other apart no longer carry anyone across a wall.
+- **Fixed: the Ranger Station's armoury cage never appeared**, although the place description promised it and its key exists. Locked containers a place promises are now placed in outdoor places as well as big buildings (found by a new check, not by a player).
+- **Clearer refusals.** "Missing Log" now reads "Missing Log: need 4, have 1". After a piece is placed, the hint says "placed" instead of a red "already a wall on that side".
+- Seven leads, 474 generated places checked for reachability, bosses and strongrooms.
+
 ## 0.8.2 — 2026-11-13
 
 Every wall in the game stands on the side of a cell.

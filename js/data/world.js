@@ -134,6 +134,29 @@ export const SITES={
   horde_nest:{n:'Tide Nest',dur:20,lay:'wild',d:'This is where they gather before they come for you. Thin them here and the next tide is smaller.',props:{corpse:6,bones:10,spore_growth:5,crate:2},en:{shambler:14,runner:6,brute:1,screamer:1},ic:'skull',minDay:9,fx:{hordeWeak:.35}},
 };
 
+// Radio leads: special places to loot, heard about over the radio and gone again within a day or so. Each is one building with rooms
+// (the `complex` generator) and a strongroom (`lock`) that opens only when its guardian is dead; where `boss` is missing, when the place is clear.
+// Extra fields: lead:1 · minDay · tier [lowest, highest] offset of the place's level from the player's (how hard it may be rolled) ·
+// who (who holds it, said beforehand) · prize (what the strongroom holds, said beforehand) · radio (what the voice on the set says).
+Object.assign(SITES,{
+  lead_grocery:{lead:1,n:'Corner Grocery',dur:20,lay:'complex',size:[30,28],wall:'w_brick',floor:'tile',tier:[-3,1],who:'husks among the shelves',prize:'tinned food, water, seed',radio:'"...shutters are still down on the corner shop. Nobody has been in since the first week..."',
+    d:'A small shop with its shutters down. The shelves were never emptied.',fill:{shelf:6,fridge:3,counter:1,register:1,crate:3,vending:1},lock:{strong_food:1},props:{car_wreck:2,trashcan:3,sign:1},en:{shambler:4},inn:{shambler:6,crawler:4},ic:'box',minDay:1},
+  lead_hardware:{lead:1,n:'Hardware Store',dur:22,lay:'complex',size:[32,30],wall:'w_metal',floor:'concrete',tier:[-2,2],who:'a pack of husks and a Brute in the stockroom',prize:'nails, bolts, tools, planks',radio:'"...the builders\' yard on the ring road. Racks full, gates chained. Something big is walking the aisles..."',
+    d:'Racks of fixings and tools behind chained gates.',fill:{shelf:5,toolbox:3,crate:4,pallet:4,barrel:2,machine:1},lock:{strong_tools:1},props:{car_wreck:2,pallet:3,barrel:2},en:{shambler:4,runner:2},inn:{shambler:6,runner:3,brute:1},ic:'gear',minDay:2},
+  lead_pharmacy:{lead:1,n:'Pharmacy',dur:20,lay:'complex',size:[30,28],wall:'w_concrete',floor:'tile',tier:[-1,3],boss:'chemist',who:'spitters and bloaters, and the Chemist behind the counter',prize:'medicine: kits, antidote, antibiotics',radio:'"...the chemist on Marsh Street never closed. Do not breathe in there..."',
+    d:'Shelves of medicine, and the air inside is wrong.',tox:.3,fill:{shelf:5,medbox:4,counter:1,register:1,cabinet:2,fridge:1},lock:{strong_meds:1},props:{car_wreck:2,trashcan:2,sign:1},en:{shambler:4,spitter:1},inn:{bloater:2,spitter:3,crawler:4},ic:'tox',minDay:3},
+  lead_firehouse:{lead:1,n:'Fire Station',dur:22,lay:'complex',size:[32,30],wall:'w_brick',floor:'concrete',tier:[-1,3],boss:'fire_chief',who:'a crew of husks and the Chief, who still answers the bell',prize:'axes and tools, medical kits',radio:'"...engine house on the hill, doors open, bell still ringing some nights..."',
+    d:'An engine house with its doors open and its lockers shut.',fill:{locker:5,toolbox:3,medbox:2,crate:3,barrel:2},lock:{strong_tools:1,strong_meds:1},props:{car_wreck:2,barrel:3,streetlight:2},en:{shambler:5,runner:2},inn:{shambler:6,runner:4,armored:1},ic:'gear',minDay:3},
+  lead_police:{lead:1,n:'Police Station',dur:24,lay:'complex',size:[34,32],wall:'w_concrete',floor:'tile',tier:[0,4],boss:'sergeant',who:'riot husks in the corridors and the Desk Sergeant by the armoury',prize:'firearms and ammunition',radio:'"...station house on Fourth. Armoury was locked when they left. The night shift never went home..."',
+    d:'A station house. The armoury was locked when they left.',fill:{locker:5,file_cab:4,desk:3,ammo_box:3,footlocker:2,cabinet:2},lock:{strong_guns:1},props:{car_wreck:4,trashcan:2,streetlight:2},en:{shambler:4,armored:2},inn:{armored:5,shambler:5,runner:2},ic:'skull',minDay:4},
+  lead_gunshop:{lead:1,n:'Gun Shop',dur:20,lay:'complex',size:[30,28],wall:'w_brick',floor:'boards',tier:[0,4],boss:'raider_boss',raiders:1,who:'raiders: a crew with guns and their captain',prize:'firearms, ammunition, schematics',radio:'"...Dutch\'s place, the gun shop. A crew moved in yesterday and they are stripping it. They shoot at anything on the road..."',
+    d:'A gun shop, and a raider crew taking it apart.',fill:{shelf:4,counter:2,register:1,ammo_box:4,crate:3,footlocker:2},lock:{strong_guns:1},props:{car_wreck:3,barrel_fire:1,pallet:2,tent:1},en:{raider:3,raider_gun:2},inn:{raider:4,raider_gun:3},ic:'skull',minDay:5},
+  lead_checkpoint:{lead:1,n:'Army Checkpoint',dur:26,lay:'complex',size:[36,34],wall:'w_metal',floor:'concrete',tier:[1,5],boss:'raider_boss',raiders:1,who:'raiders dug in behind the barriers, enforcers among them, and a captain',prize:'military weapons, armour, ammunition',radio:'"...the checkpoint at the bridge is flying a new flag. They have the quartermaster\'s stores..."',
+    d:'Sandbags, a barrier, and stores nobody signed out.',fill:{crate_mil:4,ammo_box:4,locker:3,footlocker:3,barrel:3,pallet:3},lock:{strong_mil:1},props:{car_wreck:3,barrel_fire:2,pallet:3,tent:2},en:{raider:4,raider_gun:3},inn:{raider:5,raider_gun:4,raider_heavy:2},ic:'skull',minDay:8},
+});
+/** The ids of every radio lead. */
+export const LEADS=Object.keys(SITES).filter(k=>SITES[k].lead);
+
 // Loot. Each family is a list of [item, weight, min, max, firstTier=1, lastTier=5]; ROLLS gives how many picks per open.
 const T=(rows)=>rows.map(r=>({i:r[0],w:r[1],a:r[2],b:r[3],t0:r[4]||1,t1:r[5]||5}));
 export const LOOT={
@@ -160,4 +183,12 @@ pod:T([['spore_resin',10,1,3],['mutagen',4,1,1],['gray_crystal',4,1,2],['biogel'
 stash:T([['old_coin',8,2,5],['ammo_9',5,3,8,2],['arrow',5,3,8,1,1],['canned_beans',6,1,2],['water',5,1,2],['bandage',6,1,2],['medkit',2,1,1,2],['lockpick',4,1,2],['gold_watch',1.5,1,1],['jerky',5,1,3],['moonshine',3,1,1],['repair_kit',3,1,1],['tape',3,1,2],['gunpowder',3,1,3,2],['painkillers',2,1,1],['bp_crossbow',.8,1,1,1,2]]),
 snack:T([['soda',10,1,3],['chips',10,1,3],['energy_bar',6,1,2],['water',6,1,2],['old_coin',3,1,3]]),
 };
-export const ROLLS={junk:[2,4],food:[2,3],home:[2,3],tool:[2,4],med:[2,3],trash:[0,2],car:[2,3],corpse:[1,3],barrel:[1,2],cash:[1,2],paper:[1,2],ammo:[1,3],gear:[1,2],mil:[3,4],vault:[3,4],armory:[4,6],lab:[3,5],relic:[4,5],airdrop:[6,8],pod:[1,2],stash:[3,4],snack:[2,3]};
+// what a radio lead's strongroom holds: its whole point, so the rolls are generous
+Object.assign(LOOT,{
+lead_guns:T([['ammo_9',10,12,28],['ammo_rifle',6,8,18,2],['shell',7,6,14],['arrow',5,10,20,1,2],['xbolt',5,8,14,1,3],['bow',4,1,1,1,1],['crossbow',4,1,1,1,2],['pipe_pistol',6,1,1,1,2],['revolver',5,1,1,2,4],['shotgun',4,1,1,2,4],['rifle',3,1,1,3,5],['smg',2,1,1,3,5],['bp_shotgun',3,1,1,1,3],['bp_revolver',3,1,1,1,2],['repair_kit',4,1,2],['machete',3,1,1,1,2]]),
+lead_meds:T([['bandage',10,3,6],['medkit',7,1,3],['antitoxin',7,1,3],['painkillers',6,1,3],['charcoal_tabs',6,2,4],['first_aid',4,1,2,2],['herb',3,2,4,1,2],['chem',4,1,3],['vitamins',3,1,2],['cloth',5,2,4]]),
+lead_tools:T([['nails',10,10,24],['bolts',8,6,14],['scrap',8,4,10],['plank',7,4,10,1,3],['rope',6,2,5],['tape',5,1,3],['wire',4,2,5],['spring',4,1,3],['gear',4,1,3],['repair_kit',5,1,3],['crowbar',3,1,1],['wrench',3,1,1,2],['hatchet_iron',3,1,1,1,3],['pick_iron',3,1,1,1,3],['lockpick',4,1,3],['cloth',5,2,5]]),
+lead_food:T([['canned_beans',10,2,5],['canned_soup',9,2,5],['jerky',6,2,4],['honey',4,1,2],['soda',6,2,4],['energy_bar',6,2,4],['water',8,3,6],['salt',4,1,3],['seed_potato',3,2,4],['seed_corn',3,2,4],['cloth',3,1,3]]),
+lead_mil:T([['ammo_9',8,16,36],['ammo_rifle',8,12,28,2],['shell',6,8,16],['grenade',4,1,3,2],['medkit',5,1,3],['rifle',4,1,1,2,5],['shotgun',4,1,1,2,4],['smg',3,1,1,3,5],['riot_vest',3,1,1,2,4],['riot_helm',3,1,1,2,4],['repair_kit',4,2,3],['fuel',4,1,3,2]]),
+});
+export const ROLLS={lead_guns:[6,8],lead_meds:[6,8],lead_tools:[7,9],lead_food:[7,9],lead_mil:[7,9],junk:[2,4],food:[2,3],home:[2,3],tool:[2,4],med:[2,3],trash:[0,2],car:[2,3],corpse:[1,3],barrel:[1,2],cash:[1,2],paper:[1,2],ammo:[1,3],gear:[1,2],mil:[3,4],vault:[3,4],armory:[4,6],lab:[3,5],relic:[4,5],airdrop:[6,8],pod:[1,2],stash:[3,4],snack:[2,3]};

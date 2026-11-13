@@ -35,14 +35,17 @@ function findChrome(){
 }
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 
+// On a Mac, headless Chrome draws on the real GPU, which makes the browser tests several times faster and steady when the machine is busy
+// (a bot session running beside them, for one). Elsewhere, or with GW_GL=sw, WebGL runs on the software rasteriser.
+const GL=process.platform==='darwin'&&process.env.GW_GL!=='sw'?[]:['--use-angle=swiftshader','--enable-unsafe-swiftshader','--ignore-gpu-blocklist'];
 /* Launch headless Chrome on a page of the project and drive it over the DevTools protocol.
-   WebGL runs on the software rasteriser, so frame rates here say nothing about real devices.
+   Frame rates measured here say nothing about other devices (and with the software rasteriser, nothing at all).
    Returns a page with: eval(js) (awaits promises), click(x,y), tap(selector), key(k), shot(name), errors[], close(). */
 export async function launch({width=1280,height=720,pathName='/',quiet=false,mobile=false,scale=1}={}){
   fs.mkdirSync(OUT,{recursive:true});
   const {server,port}=await serve();
   const profile=path.join(OUT,'chrome-'+process.pid+'-'+Date.now());
-  const proc=spawn(findChrome(),['--headless=new','--no-first-run','--no-default-browser-check','--mute-audio','--use-angle=swiftshader','--enable-unsafe-swiftshader','--ignore-gpu-blocklist','--remote-debugging-port=0','--user-data-dir='+profile,`--window-size=${width},${height}`,'about:blank'],{stdio:'ignore'});
+  const proc=spawn(findChrome(),['--headless=new','--no-first-run','--no-default-browser-check','--mute-audio',...GL,'--remote-debugging-port=0','--user-data-dir='+profile,`--window-size=${width},${height}`,'about:blank'],{stdio:'ignore'});
   const close=async()=>{try{proc.kill('SIGKILL')}catch(e){}server.close();await sleep(150);fs.rmSync(profile,{recursive:true,force:true})};
   try{
     const portFile=path.join(profile,'DevToolsActivePort');

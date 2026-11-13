@@ -27,7 +27,7 @@ try{
   T.ok(await ev(`GW.G.Z&&GW.G.Z.id==='birch_hollow'&&GW.G.Z.actors.length>3`),'arrive at Birch Hollow with creatures in it');
   await ev(`GW.UI.close()`);await page.sleep(1500);
   T.ok(await ev(`GW.View.post`),'finishing pass (ambient occlusion, film grade) is active');
-  T.ok(await ev(`GW.View.fps>0`),'renderer is producing frames ('+await ev(`GW.View.fps`)+' fps on the software rasteriser)');
+  T.ok(await ev(`GW.View.fps>0`),'renderer is producing frames ('+await ev(`GW.View.fps`)+' fps in the test browser)');
   // save and reload
   await ev(`GW.api.save()`);T.ok(await ev(`!!localStorage.getItem('graywake.save.v1')`),'save is written');
   T.ok(await ev(`GW.api.continueGame()`),'save loads');await page.sleep(800);

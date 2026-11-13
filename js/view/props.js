@@ -190,6 +190,9 @@ stash(g,v=0){at(g,0,0,0,V(v,.2,-.3,1.2),()=>{g.ico(.42,C.dirt,0,0,0,1,.16,.9,v);
 deathbag(g){const c='#a8672e';g.box(.32,.28,.22,c,0,.14,0,0,.3);g.box(.34,.08,.24,shade(c,.78),0,.3,0,0,.3);g.box(.2,.14,.06,shade(c,1.2),.04,.12,.13,0,.3);g.box(.1,.04,.05,C.black,0,.36,0,0,.3);
   g.box(.03,.8,.03,C.woodL,-.24,.4,-.06);g.box(.26,.18,.014,C.red,-.1,.7,-.06);g.box(.1,.1,.018,C.white,-.1,.7,-.06)},
 // ================= scenery walls =================
+// A doorway in a building's wall: two jambs, a lintel overhead and a worn threshold, in the colour of the wall it is cut through (v picks it).
+doorway(g,v=0){const c=['#8a4c3a','#8c8c86','#6e5236','#56646c','#7a5a36','#b9c0bf','#9fcfe4','#4c4458'][v]||'#6e5236',d=shade(c,.72);
+  for(const x of[-.47,.47])g.box(.12,1.62,.32,d,x,.81,0);g.box(1.06,.16,.34,shade(c,.86),0,1.62,0);g.box(.84,.03,.4,shade(c,.55),0,.016,0)},
 // ---- walls of the world (buildings, ruins): thin, standing on the edge of a cell like the walls you build. Each is the old whole-cell block
 // pressed to a quarter of its depth, running along X from -.5 to .5, with a pier at each end so that two that meet at a corner close up.
 w_brick(g,v=0){thin(g,()=>{const c=V(v,C.brick,'#a45c46','#94503e');for(let i=0;i<3;i++)g.box(1-(i%2)*.03,.36,1-(i%2)*.03,shade(c,i%2?.86:1),0,.18+i*.36,0);wtop(g,v,1.08,.32,shade(c,1.12));

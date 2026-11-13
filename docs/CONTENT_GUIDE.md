@@ -53,6 +53,10 @@ L('old_mill','The Old Mill',1,260,300,5,'town','forest',{d:'...',nodes:{tree_oak
 //  id, name, region, map x, map y, level, layout, biome, generator fields
 ```
 
+### A radio lead
+
+A lead is a `SITES` row with `lead:1` (see the block in `js/data/world.js`): layout `complex`, a `size`, `wall`, `floor`, `fill` (containers and furniture for the rooms), `lock:{strong_…:1}` (the strongroom: any object with `lock:'guard'`), `en` and `inn` (who is outside and inside), optionally `boss` (a creature with `boss:1, rescale:1`, so it is sized to the place's level) and `raiders:1`, plus what the player is told beforehand: `who`, `prize`, `radio` (the line heard on the set), `tier:[lowest, highest]` (how far the place's level may be rolled from the player's) and `minDay`. `World.leadInfo()` turns that into the threat rating; nothing else needs code. `npm run test:sim` generates every lead forty times and fails if a boss or a strongroom is missing or cannot be reached.
+
 Layout `complex` wants `wall`, `floor` and `fill` instead of `bld`. Add `boss`, `lock:{gun_cabinet:1}`, `hazard`, `dark`, `tox`, `cold` as needed. A new building shape is a row in `BLD`. `npm run test:sim` generates every location with three seeds and fails if containers or spawns are walled off.
 
 A temporary site is a row in `SITES` with the same generator fields plus `dur` (hours on the map).
