@@ -74,8 +74,9 @@ export function makeServer({dir=path.join(ROOT,'.out/worlds'),rnd=Math.random,no
     // leads everyone in the world hears
     w.leads=w.leads.filter(l=>l.until>w.t&&(!l.by||w.t-l.byT<120));
     if(w.leads.filter(l=>!l.by).length<RULES.leads&&w.t>=w.leadAt&&players(w).length){w.leadAt=w.t+RULES.leadEvery*(.7+rnd()*.6);
-      const have=new Set(w.leads.map(l=>l.kind)),first=w.leadN===0,kinds=LEAD_KINDS.filter(k=>!have.has(k)&&k!==w.lastLead&&(SITES[k].minDay||0)<=Math.floor(w.t/1440)+1),k=first?'lead_grocery':pick(kinds.length?kinds:LEAD_KINDS);
-      const[a,b]=RULES.leadLasts,l={id:w.id+'-l'+(++w.leadN),kind:k,ang:rnd()*Math.PI*2,far:rnd(),born:w.t,until:w.t+(a+rnd()*(b-a))*60,by:null};w.lastLead=k;w.leads.push(l);news(w,'On every radio: '+SITES[k].n+'. First there takes it.')}
+      // not a kind that is out now or was one of the last three: the same shop twice in a row reads as the one already emptied
+      const have=new Set(w.leads.map(l=>l.kind)),first=w.leadN===0,recent=w.recent||(w.recent=[]),ok=LEAD_KINDS.filter(k=>!have.has(k)&&(SITES[k].minDay||0)<=Math.floor(w.t/1440)+1),kinds=ok.filter(k=>!recent.includes(k)),k=first?'lead_grocery':pick(kinds.length?kinds:ok.length?ok:LEAD_KINDS);recent.push(k);if(recent.length>3)recent.shift();const seen=w.kinds||(w.kinds={}),again=!!seen[k];seen[k]=1;
+      const[a,b]=RULES.leadLasts,l={id:w.id+'-l'+(++w.leadN),kind:k,ang:rnd()*Math.PI*2,far:rnd(),born:w.t,until:w.t+(a+rnd()*(b-a))*60,by:null};w.lastLead=k;w.leads.push(l);news(w,'On every radio: '+(again?'another ':'')+SITES[k].n+(again?', not the one already emptied':'')+'. First there takes it.')}
     // the settlements live one day at a time; when a long-played character joins and the world's clock leaps, they do not live the gap in one breath
     const day=Math.floor(w.t/1440);if(day-w.npcDay>1)w.npcDay=day-1;while(w.npcDay<day){w.npcDay++;npcDay(w)}
     const st=stageOf(w);if(st>w.stage){w.stage=st;news(w,'The world moves on: '+RULES.stages[st].n+'. '+RULES.stages[st].d,'bad')}

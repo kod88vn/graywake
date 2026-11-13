@@ -14,6 +14,7 @@ try{
   await page.sleep(800);T.ok(await until(`!!document.getElementById('t-wsel')`),'the title screen offers the shared worlds');
   await ev(`localStorage.removeItem('graywake.save.v1');GW.api.newGame()`);await until(`GW.UI.panel==='journal'`,8000);await ev(`GW.UI.close()`);
   T.ok(await until(`!!GW.G.S.world&&!!GW.G.S.net&&!!GW.G.S.net.token`),'a new game joins a world by itself');
+  await until(`/HOLD/.test(document.getElementById('worldchip').textContent)`,6000);
   const w=JSON.parse(await ev(`JSON.stringify({name:GW.G.S.world.name,n:GW.G.S.world.enclaves.length,me:GW.G.S.net.name,chip:document.getElementById('worldchip').textContent})`));
   T.ok(w.n===RULES.npcs+1&&w.me==='Tester'&&w.chip.includes(w.name.toUpperCase())&&/HOLD 60/.test(w.chip),'the world has its settlements and this enclave, and the clock shows it ('+w.chip+')');
   S.DB().worlds[0].leadAt=0;   // (the first lead normally comes four hours in)
