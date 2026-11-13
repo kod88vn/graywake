@@ -55,7 +55,7 @@ function elements(full){
 /** The number of the one clickable thing whose label contains this text (case does not matter), 0 if none, -1 if several do. */
 B.byText=q=>{q=String(q).toLowerCase().trim();const hit=[];B.els.forEach((el,i)=>{const l=(el.spot?el.spot.name:label(el)).toLowerCase();if(l.includes(q))hit.push([i+1,l])});const exact=hit.filter(h=>h[1]===q||h[1].startsWith(q+' '));return hit.length===1?hit[0][0]:exact.length===1?exact[0][0]:hit.length?-1:0};
 /** Where to click for numbered element n (scrolling it into view first), or null. */
-B.target=n=>{const el=B.els[n-1];if(!el)return null;if(el.spot)return{x:el.spot.x,y:el.spot.y,label:el.spot.name};
+B.target=n=>{const el=B.els[n-1];if(!el)return null;if(el.spot){const s=MapScreen.spots().find(q=>q.id===el.spot.id)||el.spot,top=document.elementFromPoint(s.x,s.y);return{x:s.x,y:s.y,label:s.name,spot:true,covered:!top||top.id!=='mapc'}}
   if(!document.contains(el))return null;el.scrollIntoView({block:'center',inline:'center'});const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2,label:label(el),disabled:!!el.disabled}};
 
 // ---- the world around the player
@@ -133,7 +133,7 @@ B.fight=()=>{const Z=G.Z,p=Z&&Z.pl;if(!p)return null;const w=weaponDef(G.S),gun=
   for(const a of Z.actors){if(a.pl||a.dead||a.team!==1||a.vis<.5)continue;const d=Math.hypot(a.x-p.x,a.y-p.y);if(d>10)continue;const blocked=!los(Z,p.x,p.y,a.x,a.y),s=d+(blocked?4:0)+(a.def.ai==='flee'?3:0)+(a.alert?0:2);if(s<bs){bs=s;b={x:a.x,y:a.y,d,name:a.def.n,blocked,flee:a.def.ai==='flee',r:a.r}}}
   if(!b)return null;b.reach=gun?Math.min(w.rng*.8,8):w.rng+b.r+.1;b.gun=gun;return b};
 B.find=name=>{const Z=G.Z,p=Z&&Z.pl;if(!p)return null;const q=name.toLowerCase();let b=null,bd=1e9;
-  for(let i=0;i<Z.obj.length;i++){const o=Z.obj[i];if(!o||!OBJ[o.k])continue;const d=OBJ[o.k];if(!(d.n||'').toLowerCase().includes(q)&&o.k!==q)continue;if(d.loot&&o.empty)continue;const x=i%Z.w,y=(i-x)/Z.w,dist=Math.hypot(x+.5-p.x,y+.5-p.y);if(dist<bd){bd=dist;b={x,y,name:d.n}}}
+  for(let i=0;i<Z.obj.length;i++){const o=Z.obj[i];if(!o||!OBJ[o.k])continue;const d=OBJ[o.k];if(!(d.n||'').toLowerCase().includes(q)&&o.k!==q)continue;const x=i%Z.w,y=(i-x)/Z.w,dist=Math.hypot(x+.5-p.x,y+.5-p.y)+(d.loot&&o.empty?12:0);if(dist<bd){bd=dist;b={x,y,name:d.n+(d.loot&&o.empty?' (already searched)':'')}}}
   for(const dr of Z.drops)if('loot drop bag'.includes(q)){const dist=Math.hypot(dr.x-p.x,dr.y-p.y);if(dist<bd){bd=dist;b={x:dr.x,y:dr.y,name:'loose loot',free:true}}}
   for(const a of Z.actors){if(a.pl||a.dead)continue;if(!(a.def.n||'').toLowerCase().includes(q))continue;const dist=Math.hypot(a.x-p.x,a.y-p.y);if(dist<bd){bd=dist;b={x:a.x,y:a.y,name:a.def.n,free:true}}}
   return b};

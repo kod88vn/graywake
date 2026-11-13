@@ -152,7 +152,10 @@ C.sneak=async a=>{sneak=String(a[0]).toLowerCase()!=='off';if(sneak)await keyDow
 C.key=async a=>{if(!keyDef(a[0]))return{msg:'unknown key "'+a[0]+'". Keys: i c b j l m f q r e 1 2 3 4 esc tab space enter'};await press(a[0]);const r=await during(clamp(num(a[1],.45),.2,5));return{msg:'pressed '+String(a[0]).toUpperCase()+(r.why?': '+r.why:'')}};
 C.tap=async a=>{let n=parseInt(a[0]);
   if(!(n>0)){const q=a.join(' ');n=await ev(`(__bot.observe(),__bot.byText(${JSON.stringify(q)}))`);if(n===0)return{msg:`nothing clickable is labelled "${q}" right now: look again`};if(n<0)return{msg:`several clickable things contain "${q}": be more exact (include the row name, e.g. "MAKE — Stone Pickaxe"), or use its number`}}
-  const t=await ev(`__bot.target(${n})`);if(!t)return{msg:`there is no clickable thing numbered ${a[0]} any more: look again`};await sleep(120);const t2=await ev(`__bot.target(${n})`)||t;
+  let t=await ev(`__bot.target(${n})`);if(!t)return{msg:`there is no clickable thing numbered ${a[0]} any more: look again`};
+  // a place on the map that sits under the info card or off the edge: drag the map, as a person would, until the pin is in the open
+  for(let k=0;k<3&&t.spot&&(t.covered||t.x<40||t.x>W-40||t.y<70||t.y>H-40);k++){const dx=clamp(W/2-t.x,-360,360),dy=clamp(H*.36-t.y,-260,260);await mouseTo(W/2,H*.4);await mousePress();for(let i=1;i<=8;i++){await mouseTo(W/2+dx*i/8,H*.4+dy*i/8);await sleep(30)}await mouseRelease();await sleep(200);t=await ev(`__bot.target(${n})`)||t}
+  await sleep(120);const t2=await ev(`__bot.target(${n})`)||t;
   await click(clamp(t2.x,2,W-2),clamp(t2.y,2,H-2));const r=await during(.5);return{msg:`clicked "${t.label}"`+(t.disabled?' (it is greyed out)':'')+(r.why?': '+r.why:'')}};
 C.click=async a=>{const x=num(a[0],-1),y=num(a[1],-1);if(x<0||y<0||x>W||y>H)return{msg:`click needs page pixels inside ${W}×${H}`};await click(x,y,a[2]==='right'?'right':'left');const r=await during(.45);return{msg:`clicked at ${x}, ${y}`+(r.why?': '+r.why:'')}};
 const SIDE={n:[0,-.42],e:[.42,0],s:[0,.42],w:[-.42,0]};
