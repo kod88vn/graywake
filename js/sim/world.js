@@ -193,21 +193,24 @@ const THREAT=['','Easy pickings','A fair fight','Dangerous','Very dangerous','De
 export function leadInfo(S,site){
   const def=SITES[site.site];if(!def||!def.lead)return null;const gap=site.lvl-S.p.lvl,boss=def.boss?ENEMIES[def.boss]:null;
   let n=0;for(const t of[def.en,def.inn])for(const k in t||{})n+=t[k];
-  const skulls=clamp(Math.round(2.2+gap/2)+(boss?1:0),1,5);
+  // two skulls is your own level with no boss; a boss adds most of one, every two and a half levels another; five takes a place five levels up with a boss
+  const skulls=clamp(Math.round(2+gap/2.5+(boss?.7:0)),1,5);
   return{id:site.id,kind:site.site,name:def.n,lvl:site.lvl,gap,skulls,word:THREAT[skulls],who:def.who,prize:def.prize,boss:boss?boss.n:null,raiders:!!def.raiders,count:n+(boss?1:0),left:Math.max(0,site.until-S.t),radio:def.radio,d:def.d};
 }
 /** Put a lead on the map. Its level is rolled around the player's own, inside the lead's range, so the same shop can be a stroll or a siege. */
 export function addLead(S,kind,offset){
   const def=SITES[kind];if(!def||!def.lead)return null;const site=addSite(S,kind,Math.max(1,maxRegion(S)-(rnd()<.5?1:0)));if(!site)return null;
-  const[a,b]=def.tier||[-1,2],off=offset!==undefined?offset:a+Math.floor(rnd()*(b-a+1));site.lvl=Math.max(1,S.p.lvl+off);S.lead.last=kind;S.lead.n++;stat('leads');return site;
+  // the level is rolled inside the lead's range, leaning to the middle of it (two dice, not one)
+  const[a,b]=def.tier||[-1,2],off=offset!==undefined?offset:a+Math.round((rnd()+rnd())/2*(b-a));site.lvl=Math.max(1,S.p.lvl+off);S.lead.last=kind;S.lead.n++;stat('leads');return site;
 }
-/** Leads come over the truck's radio a couple of times a day; a Radio Mast at home hears more of them and keeps two on the map at once. */
+/** Leads come over the truck's radio a couple of times a day, two on the map at most; a Radio Mast at home hears them more often and keeps three. */
 function leadTick(S){
   const L=S.lead;if(!L.next){L.next=S.t+(5+rnd()*4)*60;return}if(S.t<L.next)return;
   const mast=homeHas(S,'radio'),day=dayOf(S.t),active=S.sites.filter(s=>SITES[s.site]&&SITES[s.site].lead).length;
-  L.next=S.t+(mast?7+rnd()*5:11+rnd()*7)*60;if(active>=(mast?2:1)||S.tide.live)return;
+  L.next=S.t+(mast?6+rnd()*4:8+rnd()*6)*60;if(active>=(mast?3:2)||S.tide.live)return;
   const kinds=LEADS.filter(k=>(SITES[k].minDay||0)<=day&&k!==L.last&&!S.sites.some(s=>s.site===k));if(!kinds.length)return;
-  const site=addLead(S,kinds[Math.floor(rnd()*kinds.length)]);if(!site)return;const I=leadInfo(S,site);
+  // the first lead anyone hears is a gentle one: the grocery, below their own level
+  const site=L.n===0?addLead(S,'lead_grocery',-1):addLead(S,kinds[Math.floor(rnd()*kinds.length)]);if(!site)return;const I=leadInfo(S,site);
   L.note=site.id;sfx('radio');toast('Radio: '+I.name+' · '+I.word+' (threat '+I.skulls+' of 5)','info');
 }
 /** The radio note waiting to be read, shown as a sheet when the player is home and nothing else is going on. */

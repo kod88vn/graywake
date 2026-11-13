@@ -313,9 +313,10 @@ safe('radio leads',()=>{
   const site=World.addLead(S,'lead_police',2),I=World.leadInfo(S,site);
   T.ok(!!site&&site.lvl===8&&I.skulls===4&&I.boss==='The Desk Sergeant'&&I.count>10&&/firearms/.test(I.prize)&&I.left>0,'a lead says ahead of time how hard it is ('+I.word+', '+I.skulls+' skulls, level '+I.lvl+' against yours '+S.p.lvl+', about '+I.count+' inside, '+I.boss+')');
   const easy=World.addLead(S,'lead_grocery',-3),E=World.leadInfo(S,easy);T.ok(E.skulls===1&&!E.boss&&E.lvl===3,'and an easy one says so too ('+E.word+', level '+E.lvl+')');
-  S.sites=S.sites.filter(x=>x.id===site.id);S.lead.next=S.t+1;S.lead.last='';S.lead.note=null;run(3,god);
-  const heard=S.sites.find(x=>x.id!==site.id);T.ok(!heard&&S.lead.next>S.t,'only one lead is on the map at a time without a radio mast');
-  S.sites=[];S.lead.next=S.t+1;run(3,god);T.ok(S.sites.length===1&&SITES[S.sites[0].site].lead&&S.lead.note===S.sites[0].id,'a lead comes over the radio by itself and waits to be read ('+SITES[S.sites[0].site].n+')');
+  S.lead.next=S.t+1;S.lead.last='';S.lead.note=null;run(3,god);
+  T.ok(S.sites.length===2&&S.lead.next>S.t,'two leads are on the map at most without a radio mast');
+  S.sites=[];S.lead.n=0;S.lead.next=S.t+1;run(3,god);{const st=S.sites[0],I0=st&&World.leadInfo(S,st);T.ok(S.sites.length===1&&st.site==='lead_grocery'&&I0.skulls<=2&&S.lead.note===st.id,'the first lead anyone hears comes by itself and is a gentle one ('+(I0&&I0.name+', '+I0.word)+')')}
+  S.sites=[];S.lead.next=S.t+1;S.lead.last='';run(3,god);T.ok(S.sites.length===1&&SITES[S.sites[0].site].lead,'later ones are whatever the radio picks up ('+SITES[S.sites[0].site].n+')');
   World.leadRead(S);S.sites=[site];G.Z=null;World.arrive(site.id);const Z=G.Z,si=Z.obj.findIndex(o=>o&&o.k==='strong_guns'),tgt={i:si,x:si%Z.w+.5,y:Math.floor(si/Z.w)+.5,type:'loot'};
   T.ok(Z.site===site.id&&si>=0&&(Z.spawns.some(s=>s.boss)||Z.actors.some(a=>a.def&&a.def.boss)),'the place has a strongroom and a guardian');
   T.ok(!guardDown(Z)&&interactInfo(Z,si).label==='Locked'&&interact(Z,tgt)===false&&!Z.obj[si].unlocked,'the strongroom stays shut while the guardian lives');
