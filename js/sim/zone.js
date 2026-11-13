@@ -161,7 +161,8 @@ function genComplex(Z,R,rng,def,seed){
   const avoid=[Z.spawn.x,Z.spawn.y,3];let s=seed+3;for(const k in def.props||{})scatter(Z,R,rng,k,def.props[k],s++,avoid);
   for(const k in b.deco||{})scatter(Z,R,rng,k,Math.round(b.deco[k]*W*H*.4),s++,avoid);
   const inner=[];for(const r of fillRooms)if(!(def.boss&&r===bossRoom))for(const t of tilesOf(r))inner.push(t);
-  spawnList(Z,R,rng,def.en,null,false,6);spawnList(Z,R,rng,def.inn,inner,false,7);spawnList(Z,R,rng,def.night,null,true);
+  // at a radio lead nobody waits where you walk in: those outside keep their distance, the rest are in the rooms
+  spawnList(Z,R,rng,def.en,null,false,def.lead?14:6);spawnList(Z,R,rng,def.inn,inner,false,def.lead?9:7);spawnList(Z,R,rng,def.night,null,true);
   Z.rooms=rooms;Z.bossAt=[bossRoom.cx+.5,bossRoom.cy+.5];return inner;
 }
 

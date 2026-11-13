@@ -367,7 +367,9 @@ function autoFoe(Z,p,minR=0){
 function autoWeapon(S){
   let best=S.p.active,bs=-1;
   for(const slot of['w1','w2']){const e=S.p.eq[slot],w=e?ITEMS[e.id]:FIST;let v;
-    if(w.t==='throw')v=0;else if(w.t==='gun')v=count(S,w.ammo)>0?1000+(w.dmg||1)*(w.pellets||1)/(w.spd||.5):0;else v=1+(w.dmg||1)/(w.spd||.5);
+    if(w.t==='throw')v=0;else if(w.t==='gun')v=count(S,w.ammo)>0?1000+(w.dmg||1)*(w.pellets||1)/(w.spd||.5):0;else v=1+(w.dmg||1)/(w.spd||.5)*(1+(w.rng||1)*.2);
+    // a weapon about to break is no choice at all while the other hand holds something sound
+    if(e&&w.dur&&e.d!==undefined&&e.d<w.dur*.08)v*=.2;
     if(v>bs){bs=v;best=slot}}
   return best;
 }

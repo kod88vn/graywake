@@ -20,7 +20,7 @@ export function slot(s,attrs='',cls=''){
 /** Ingredient chips for a cost table, coloured by whether you have enough (pack plus home stores when at home). */
 export function chips(cost,mult=1){
   const home=!!(G.Z&&G.Z.home);let h='';
-  for(const k in cost){const need=cost[k]*mult,have=count(G.S,k,home);const src=have<need?sourcesOf(k):'';h+=`<span class="${have>=need?'ok':'no'}" title="${esc(ITEMS[k].n)}: have ${have}${src?' · '+esc(src):''}">${img(k)}${need}</span>`}
+  for(const k in cost){const need=cost[k]*mult,have=count(G.S,k,home);const src=have<need?sourcesOf(k):'',own=home?count(G.S,k,false):have;h+=`<span class="${have>=need?'ok':'no'}" title="${esc(ITEMS[k].n)}: have ${have}${home&&own<have?' ('+own+' on you, the rest stored at home)':''}${src?' · '+esc(src):''}">${img(k)}${need}</span>`}
   return`<div class="ing">${h}</div>`;
 }
 const BUFF={speed:'move speed',haste:'attack speed',resist:'damage resistance',regen:'health per second',vigor:'max health'};

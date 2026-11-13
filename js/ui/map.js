@@ -14,7 +14,7 @@ let c,x,sel=null,scale=1,ox=0,oy=0,drag=null,moved=0,pulse=0,raf=0;
 const MW=1000,MH=640,DIRS=['north','east','south','west'];
 export const MapScreen={init,open,draw,spots};
 /** Every place drawn on the map with where it is on the screen (page pixels), for tools that have to click one: the play harness and tests. */
-function spots(){const r=c.getBoundingClientRect(),S=G.S;return nodes().map(n=>({id:n.id,name:n.site?SITES[n.site.site].n:n.loc.n,x:r.left+ox+n.x*scale,y:r.top+oy+n.y*scale,here:n.id===S.pos,sel:n.id===sel}))}
+function spots(){const r=c.getBoundingClientRect(),S=G.S;return nodes().map(n=>({id:n.id,lead:!!(n.site&&SITES[n.site.site].lead),name:n.site?SITES[n.site.site].n:n.loc.n,x:r.left+ox+n.x*scale,y:r.top+oy+n.y*scale,here:n.id===S.pos,sel:n.id===sel}))}
 
 function init(){
   c=$('mapc');x=c.getContext('2d');
@@ -44,8 +44,8 @@ function info(){
   const here=sel===S.pos,why=World.canVisit(S,sel),ti=World.travelInfo(S,sel),reg=REGIONS[site?site.reg:l.reg],lvl=site?site.lvl:World.locLevel(S,l),def=site?SITES[site.site]:l;
   const gap=lvl-S.p.lvl,danger=sel==='home'?'':gap>8?'<span class="danger">Far beyond you</span>':gap>3?'<span class="danger">Dangerous</span>':gap>-3?'<span class="amb">A fair fight</span>':'<span class="okc">Well within reach</span>';
   const LI=site?World.leadInfo(S,site):null;
-  const tg=[];if(LI)tg.push('Threat '+LI.skulls+' of 5: '+LI.word,'Held by '+LI.who,'Strongroom: '+LI.prize);if(sel!=='home')tg.push('Level '+lvl);if(def.boss&&!def.bossChance)tg.push('Boss: '+ENEMIES[def.boss].n);if(reg.cold||def.cold)tg.push('Freezing: wear fur');if(def.tox||reg.tox)tg.push('Toxic air: mask or suit');if(reg.heat)tg.push('Heat: bring water');if(def.dark)tg.push('Dark: bring a lantern');
-  if(site)tg.push('Gone in '+fmtMin(site.until-S.t));const mem=l&&S.loc[l.id];if(mem&&mem.bag&&mem.bag.length)tg.push('Your pack is here');if(mem&&mem.n)tg.push('Visited '+mem.n+'×');if(l&&l.endless)tg.push('Depth '+S.depth);
+  const tg=[];if(LI)tg.push('RADIO LEAD','Threat '+LI.skulls+' of 5: '+LI.word,'Held by '+LI.who,'Strongroom: '+LI.prize);if(sel!=='home')tg.push('Level '+lvl);if(def.boss&&!def.bossChance)tg.push('Boss: '+ENEMIES[def.boss].n);if(reg.cold||def.cold)tg.push('Freezing: wear fur');if(def.tox||reg.tox)tg.push('Toxic air: mask or suit');if(reg.heat)tg.push('Heat: bring water');if(def.dark)tg.push('Dark: bring a lantern');
+  if(site)tg.push('Gone in '+fmtMin(site.until-S.t));if(site&&site.bag&&site.bag.some(Boolean))tg.push('Your pack is here');const mem=l&&S.loc[l.id];if(mem&&mem.bag&&mem.bag.length)tg.push('Your pack is here');if(mem&&mem.n)tg.push('Visited '+mem.n+'×');if(l&&l.endless)tg.push('Depth '+S.depth);
   el.innerHTML=`<div class="card"><small class="h" style="color:var(--amber2)">${esc(reg.n)}</small><h3>${esc(def.n)} ${danger?'· '+danger:''}</h3><p>${esc(def.d)}</p><div class="tags">${tg.map(t=>`<span>${esc(t)}</span>`).join('')}</div>
     <div class="row" style="justify-content:space-between"><small style="color:var(--dim)">${here?'You are here.':fmtMin(ti.min)+' by '+VEHICLES[S.veh].n.toLowerCase()+(ti.fuel?' · '+ti.fuel+' fuel':'')+(ti.noFuel?' · <span class="danger">no fuel, going slow</span>':'')}${why?` · <span class="danger">${esc(why)}</span>`:''}</small>
     <button class="btn go" data-a="go" ${why?'disabled':''}>${here?(sel==='home'?'Walk in':'Go back in'):'Travel'}</button></div></div>`;

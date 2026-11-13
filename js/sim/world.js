@@ -71,7 +71,7 @@ export function leaveZone(){
   const S=G.S,Z=G.Z;if(!Z)return false;
   if(S.tide.live){toast('Not while the tide is at the walls','bad');return false}
   if(!Z.exit&&!Z.pl.dead){toast('Walk to the edge of the area to leave','info');return false}
-  if(!Z.home&&Z.id!=='ambush'){if(Z.site){S.sites=S.sites.filter(s=>s.id!==Z.site)}else if(LOC[Z.id]){const m=S.loc[Z.id]=S.loc[Z.id]||{n:0};m.cool=S.t+(LOC[Z.id].cool||10)*60}}
+  if(!Z.home&&Z.id!=='ambush'){if(Z.site){const st=S.sites.find(s=>s.id===Z.site),keep=st&&((SITES[st.site].lead&&Z.obj.some(o=>o&&OBJ[o.k].lock==='guard'&&!o.inv))||(st.bag&&st.bag.some(Boolean)));if(!keep)S.sites=S.sites.filter(s=>s.id!==Z.site)}else if(LOC[Z.id]){const m=S.loc[Z.id]=S.loc[Z.id]||{n:0};m.cool=S.t+(LOC[Z.id].cool||10)*60}}
   const pend=G.pending;G.Z=null;G.auto=false;
   if(Z.id==='ambush'&&pend&&pend.dest){G.pending=null;arrive(pend.dest);return true}
   G.mode='map';S.at='map';emit('ui','map');emit('save');return true;
@@ -91,7 +91,7 @@ export function arrive(dest){
   const S=G.S;S.pos=dest;
   if(dest==='home'){goHome(true);emit('save');return}
   const site=S.sites.find(s=>s.id===dest);let Z;
-  if(site){Z=genZone(siteDef(site,site.reg,site.lvl),hash(S.seed,site.id*7919));Z.site=site.id;Z.id='site';Z.name=SITES[site.site].n;Z.siteKind=site.site;if(SITES[site.site].lead&&site.lvl-S.p.lvl>=3)Z.lt=Math.min(5,Z.lt+1)}
+  if(site){Z=genZone(siteDef(site,site.reg,site.lvl),hash(S.seed,site.id*7919));Z.site=site.id;Z.id='site';Z.name=SITES[site.site].n;Z.siteKind=site.site;if(site.bag&&site.bag.length){const x=Math.floor(Z.w/2)-2,y=Z.h-4;Z.obj[y*Z.w+x]={k:'deathbag',r:0,v:0,inv:site.bag,open:1}}if(SITES[site.site].lead&&site.lvl-S.p.lvl>=3)Z.lt=Math.min(5,Z.lt+1)}
   else{const l=LOC[dest],m=S.loc[dest]=S.loc[dest]||{n:0};Z=genZone(l,hash(S.seed+m.n*101,LOCATIONS.indexOf(l)),{lvl:locLevel(S,l)});if(!m.n)stat('locs');m.n++}
   enterZone(Z,Z.spawn.x,Z.spawn.y);emit('save');
 }
@@ -193,8 +193,8 @@ const THREAT=['','Easy pickings','A fair fight','Dangerous','Very dangerous','De
 export function leadInfo(S,site){
   const def=SITES[site.site];if(!def||!def.lead)return null;const gap=site.lvl-S.p.lvl,boss=def.boss?ENEMIES[def.boss]:null;
   let n=0;for(const t of[def.en,def.inn])for(const k in t||{})n+=t[k];
-  // two skulls is your own level with no boss; a boss adds most of one, every two and a half levels another; five takes a place five levels up with a boss
-  const skulls=clamp(Math.round(2+gap/2.5+(boss?.7:0)),1,5);
+  // two skulls is your own level with no boss; a boss adds most of one, raiders (they shoot) most of another, every two and a half levels one more
+  const skulls=clamp(Math.round(2+gap/2.5+(boss?.7:0)+(def.raiders?.8:0)),1,5);
   return{id:site.id,kind:site.site,name:def.n,lvl:site.lvl,gap,skulls,word:THREAT[skulls],who:def.who,prize:def.prize,boss:boss?boss.n:null,raiders:!!def.raiders,count:n+(boss?1:0),left:Math.max(0,site.until-S.t),radio:def.radio,d:def.d};
 }
 /** Put a lead on the map. Its level is rolled around the player's own, inside the lead's range, so the same shop can be a stroll or a siege. */
@@ -462,14 +462,14 @@ export function sleep(i){
 G.hooks.die=()=>{const S=G.S;stat('deaths');G.auto=false;emit('ui','death',{where:G.Z?G.Z.name:'',day:dayOf(S.t)})};
 /** After the death screen: lose the pack where you fell, wake at home next morning. */
 export function respawn(){
-  const S=G.S,Z=G.Z,items=S.p.inv.filter(Boolean);
+  const S=G.S,Z=G.Z,items=S.p.inv.filter(Boolean),day=Math.floor(S.t/1440),wake=(hourOf(S.t)>=6?day+1:day)*1440+7*60;
   if(Z){
     if(Z.home){if(S.tide.live){raidBase(S,.3,true);endTide(S,Z,false)}if(items.length){const[x,y]=freeNear(Z,Z.pl.x,Z.pl.y,3),i=Math.floor(y)*Z.w+Math.floor(x);if(!Z.obj[i])Z.obj[i]={k:'deathbag',r:0,v:0,inv:items}}}
     else if(LOC[Z.id]){const m=S.loc[Z.id]=S.loc[Z.id]||{n:1};m.bag=items;m.cool=0}
-    else if(Z.site){S.sites=S.sites.filter(s=>s.id!==Z.site)}
+    else if(Z.site){const st=S.sites.find(s=>s.id===Z.site);if(st){st.bag=(st.bag||[]).concat(items);st.until=Math.max(st.until,wake+18*60)}}   // you wake the next morning: it has to last past that
   }
   S.p.inv=[];compact(S);
-  const day=Math.floor(S.t/1440),wake=(hourOf(S.t)>=6?day+1:day)*1440+7*60;G.Z=null;G.pending=null;
+  G.Z=null;G.pending=null;
   S.p.hp=1;advance(S,Math.max(0,wake-S.t),'sleep');G.ds=derive(S);S.p.hp=Math.round(G.ds.maxHp*.5);S.p.food=Math.max(S.p.food,35);S.p.water=Math.max(S.p.water,35);S.p.tox=Math.min(S.p.tox,30);S.p.buffs=[];
   goHome(false);emit('save');
 }

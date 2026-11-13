@@ -323,6 +323,12 @@ safe('radio leads',()=>{
   for(const sp of Z.spawns)sp.done=true;for(const a of Z.actors)if(a.team===1)a.dead=true;
   T.ok(guardDown(Z)&&interactInfo(Z,si).label==='Open'&&interact(Z,tgt)===true,'and opens once it is dead');run(2,god);
   const inv=(Z.obj[si].inv||[]).filter(Boolean);T.ok(inv.length>=3,'with a strongroom worth the trip ('+inv.map(it=>ITEMS[it.id].n+(it.n>1?' ×'+it.n:'')).join(', ')+')');
+  // pulling back, or dying there: the lead stays on the map and what you dropped waits by the way in
+  {const st=World.addLead(S,'lead_hardware',0);G.Z=null;World.arrive(st.id);for(const a of G.Z.actors)if(a.team===1)a.dead=true;G.Z.pl.x=G.Z.spawn.x;G.Z.pl.y=G.Z.h-1.2;run(.5,god);
+    World.leaveZone();T.ok(S.sites.some(x=>x.id===st.id),'leaving a lead with its strongroom unopened keeps it on the map');
+    G.Z=null;World.arrive(st.id);give(S,'log',5);G.Z.pl.dead=true;S.p.hp=0;World.respawn();const kept=S.sites.find(x=>x.id===st.id);
+    T.ok(!!kept&&!!kept.bag&&kept.bag.some(it=>it&&it.id==='log')&&G.Z.home&&count(S,'log')===0,'dying at a lead leaves the pack there and the lead on the map');
+    G.Z=null;World.arrive(st.id);T.ok(G.Z.obj.some(o=>o&&o.k==='deathbag'&&o.inv.some(it=>it&&it.id==='log')),'going back finds the pack by the way in')}
   G.Z=null;World.arrive('home');S.sites=[];
 });
 // ---- contracts, trade, story bookkeeping

@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.9.2 — 2026-11-13
+
+The bot's first expedition: it walked into a Fire Station rated 3 of 5 and was dead in ten seconds.
+
+- **Nobody waits where you walk in.** At a radio lead the few enemies outside now keep well away from the arrival point and the rest are in the rooms, so you choose when the fight starts. Garrisons are a little smaller.
+- **Raiders are rated for what they are.** A crew with guns adds most of a skull to a lead's threat, and raider leads come later (day 6 and day 9).
+- **Fixed: dying at a marked site lost your pack for good.** The game said the pack "will wait there until you go back for it" and then removed the site from the map. The site now stays (until at least 18 hours after you wake), the map card says "Your pack is here", and the pack lies by the way in when you return.
+- **You can pull back from a lead.** Leaving before the strongroom has been opened keeps the lead on the map until its time runs out.
+- **Auto mode no longer draws a weapon that is about to break** when the other hand holds a sound one, and counts reach as well as speed when choosing.
+
 ## 0.9.1 — 2026-11-13
 
 What the bot's first hours of play turned up.

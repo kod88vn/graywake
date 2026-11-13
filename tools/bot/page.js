@@ -5,7 +5,7 @@ import {G,weaponDef} from '../js/sim/core.js';
 import {OBJ} from '../js/data/objects.js';
 import {ITEMS} from '../js/data/items.js';
 import {interactInfo} from '../js/sim/actors.js';
-import {field,pathAim,walkClear,los} from '../js/sim/zone.js';
+import {field,pathAim,walkClear,los,edgeCross} from '../js/sim/zone.js';
 import {MapScreen} from '../js/ui/map.js';
 
 const $=id=>document.getElementById(id),vis=el=>!!el&&!el.hidden&&el.offsetParent!==null,txt=el=>el?el.innerText.replace(/\s+\n/g,'\n').replace(/[ \t]+/g,' ').trim():'';
@@ -50,10 +50,10 @@ function elements(full){
       const flags=[];if(el.disabled)flags.push('disabled');if(el.classList.contains('on')||el.classList.contains('sel'))flags.push('selected');if(el.classList.contains('off')||el.classList.contains('lock'))flags.push('locked');
       if(r.bottom<0||r.top>innerHeight)flags.push('scrolled out of view');
       B.els.push(el);out.push({n:B.els.length,label:lab||'empty slot',flags});if(!full&&out.length>=70)break}}
-  if(name==='map')for(const s of MapScreen.spots()){B.els.push({spot:s});out.push({n:B.els.length,label:'place on the map: '+s.name,flags:[s.here?'you are here':'',s.sel?'selected':''].filter(Boolean)})}
+  if(name==='map')for(const s of MapScreen.spots()){B.els.push({spot:s});out.push({n:B.els.length,label:'place on the map: '+s.name+(s.lead?' (RADIO LEAD)':''),flags:[s.here?'you are here':'',s.sel?'selected':''].filter(Boolean)})}
   return[name,out]}
 /** The number of the one clickable thing whose label contains this text (case does not matter), 0 if none, -1 if several do. */
-B.byText=q=>{q=String(q).toLowerCase().trim();const hit=[];B.els.forEach((el,i)=>{const l=(el.spot?el.spot.name:label(el)).toLowerCase();if(l.includes(q))hit.push([i+1,l])});const exact=hit.filter(h=>h[1]===q||h[1].startsWith(q+' '));return hit.length===1?hit[0][0]:exact.length===1?exact[0][0]:hit.length?-1:0};
+B.byText=q=>{q=String(q).toLowerCase().trim();const hit=[];q=q.replace(/^place on the map:\s*/,'');B.els.forEach((el,i)=>{const l=(el.spot?el.spot.name:label(el)).toLowerCase();if(l.includes(q))hit.push([i+1,l])});const exact=hit.filter(h=>h[1]===q||h[1].startsWith(q+' '));return hit.length===1?hit[0][0]:exact.length===1?exact[0][0]:hit.length?-1:0};
 /** Where to click for numbered element n (scrolling it into view first), or null. */
 B.target=n=>{const el=B.els[n-1];if(!el)return null;if(el.spot){const s=MapScreen.spots().find(q=>q.id===el.spot.id)||el.spot,top=document.elementFromPoint(s.x,s.y);return{x:s.x,y:s.y,label:s.name,spot:true,covered:!top||top.id!=='mapc'}}
   if(!document.contains(el))return null;el.scrollIntoView({block:'center',inline:'center'});const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2,label:label(el),disabled:!!el.disabled}};
@@ -71,7 +71,8 @@ function around(full){
     if(a.team===1&&a.def.ai!=='flee'){e.state=a.alert?(a.st==='wind'?'about to strike':a.st==='charge'?'charging':'coming for you'):'has not seen you';if(a.def.boss)e.boss=true;foes.push(e)}
     else{e.kind=a.team===0?'with you':'animal';others.push(e)}}
   foes.sort((a,b)=>a.dist-b.dist);others.sort((a,b)=>a.dist-b.dist);
-  const list=[...things.values()].sort((a,b)=>a.dist-b.dist).slice(0,full?40:18).map(t=>({name:t.name,act:t.act,yours:t.yours,n:t.n,x:t.x,y:t.y,dist:r1(t.dist),dir:compass(t.x+.5-p.x,t.y+.5-p.y)}));
+  // something within arm's reach on the far side of a wall cannot be used from here: say so, since the game (rightly) just does nothing
+  const list=[...things.values()].sort((a,b)=>a.dist-b.dist).slice(0,full?40:18).map(t=>({name:t.name,act:t.act&&t.dist<2.2&&Z.ed.length&&edgeCross(Z,p.x,p.y,t.x+.5,t.y+.5,true)>=0?t.act+' (but a wall is between you and it: go round)':t.act,yours:t.yours,n:t.n,x:t.x,y:t.y,dist:r1(t.dist),dir:compass(t.x+.5-p.x,t.y+.5-p.y)}));
   const drops=Z.drops.map(d=>({x:r1(d.x),y:r1(d.y),dist:r1(Math.hypot(d.x-p.x,d.y-p.y)),dir:compass(d.x-p.x,d.y-p.y),what:(d.items||[]).map(it=>(ITEMS[it.id]?ITEMS[it.id].n:it.id)+(it.n>1?' ×'+it.n:'')).join(', ')})).sort((a,b)=>a.dist-b.dist).slice(0,6);
   let walls=0;const doorways=[],SIDE=['N','W'];
   if(Z.ed)for(let e=0;e<Z.ed.length;e++){const w=Z.ed[e];if(!w||!OBJ[w.k])continue;if(OBJ[w.k].cost)walls++;

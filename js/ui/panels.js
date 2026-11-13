@@ -248,7 +248,7 @@ PANELS.lead={title:'On the radio',narrow:true,
   close(){World.leadRead(S())}};
 
 // ---------------------------------------------------------------- small station dialogs
-const infoCard=(i,body)=>{const o=G.Z.obj[i],d=OBJ[o.k];return`<div class="card"><h3>${esc(d.n)}</h3>${d.d?`<p>${esc(d.d)}</p>`:''}${o.hp?`<div class="tags"><span>${Math.round(o.hp)} / ${maxHp(o.k)} health</span></div>`:''}${body||''}</div>`};
+const infoCard=(i,body)=>{const o=G.Z.obj[i],d=OBJ[o.k];return`<div class="card"><h3>${esc(d.n)}</h3>${d.d?`<p>${esc(d.d)}</p>`:''}${o.hp?`<div class="tags"><span>condition ${Math.round(o.hp)} / ${maxHp(o.k)} health</span></div>`:''}${body||''}</div>`};
 const objTitle=i=>G.Z&&G.Z.obj[i]?OBJ[G.Z.obj[i].k].n:'';
 PANELS.info={title:objTitle,narrow:true,render:i=>infoCard(i)};
 PANELS.bed={title:'Rest',narrow:true,render(i){const why=World.canSleep(S());return infoCard(i,`<p>${why?esc(why)+'.':'Sleep until six. Better beds mend more of you.'}</p><div class="row">${btn('Sleep','sleep',why?'disabled':'','go')}</div>`)},
