@@ -171,6 +171,8 @@ export function equip(S,i,slot){
   let dst=slot;
   if(!dst){if(['head','body','legs','feet','hands','pack'].includes(it.t))dst=it.t;else if(['melee','gun','tool','throw'].includes(it.t))dst=!S.p.eq.w1?'w1':!S.p.eq.w2?'w2':S.p.active;else return false}
   const old=S.p.eq[dst];
+  // the same thing again, and no fresher than the one in use: swapping them would change nothing, so say so
+  if(old&&old.id===s.id&&it.t!=='throw'&&(s.d===undefined||(old.d||0)>=s.d)){toast('You already have '+(dst==='w1'||dst==='w2'?'that in hand':'a '+it.n+' on')+': this one is a spare','info');return false}
   if(dst==='pack'&&old){const lose=ITEMS[old.id].slots-(it.slots||0);if(lose>0){const cap=slotCount(S)-lose;for(let k=cap;k<S.p.inv.length;k++)if(S.p.inv[k]&&k!==i){toast('Empty the last '+lose+' slots first','bad');return false}}}
   S.p.eq[dst]=it.t==='throw'?{id:s.id,n:s.n}:{id:s.id,d:s.d};
   S.p.inv[i]=old?(old.n?{id:old.id,n:old.n}:{id:old.id,n:1,d:old.d}):null;
