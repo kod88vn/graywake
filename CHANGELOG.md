@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.10.6 — 2026-11-13
+
+- **A survivor's job is one tap**: a button per job in the Camp ledger's People tab, the current one lit, in place of a drop-down that was awkward on a phone and could not be used at all by the bot (it took in Imre and could not give him work).
+- The Camp ledger counts survivors against the same room figure as everything else, with beds and the base limit beside it.
+
 ## 0.10.5 — 2026-11-13
 
 - **Fixed: the game froze on a black screen** when a radio lead went off the map while you were on the road to it (a rival opened its strongroom first, or it ran out). You are now returned to the map with a message.
