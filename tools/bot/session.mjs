@@ -147,7 +147,7 @@ C.attack=async a=>{const secs=clamp(num(a[0],3),.3,12);let quiet=0,navT=-9,walke
       if(moved(p,p0)>14){stuck='the '+f.name+' is leading you a long way off: stopped after 14 tiles';return stuck}return null}
     await steerKeys(0,0);mark=null;const sc=await ev(`__bot.screen(${f.x},${f.y},.6)`);await mouseTo(clamp(sc.x,4,W-4),clamp(sc.y,4,H-4));if(!mouseDown)await mousePress();hit=true;return null}});
   if(mouseDown)await mouseRelease();await steerKeys(0,0);
-  return{msg:(name?(hit?`fought the ${name} for ${r.secs.toFixed(1)} s`+(walked?' (closing in first)':''):`went after the ${name} for ${r.secs.toFixed(1)} s without getting a blow in`):`nothing hostile within ten tiles, so nothing was attacked`)+(r.why?': '+r.why:'')}};
+  return{msg:(name?(hit?`fought the ${name} for ${r.secs.toFixed(1)} s`+(walked?' (closing in first)':''):`went after the ${name} for ${r.secs.toFixed(1)} s without getting a blow in`):`nothing hostile within fourteen tiles, so nothing was attacked`)+(r.why?': '+r.why:'')}};
 C.dodge=async a=>{const way=WAYS[String(a[0]||'').toLowerCase()];if(way)await steerKeys(way[0],way[1]);await sleep(60);await press('space');const r=await during(.6,{fight:true});await steerKeys(0,0);return{msg:'rolled'+(way?' '+String(a[0]).toUpperCase():'')+(r.why?': '+r.why:'')}};
 C.sneak=async a=>{sneak=String(a[0]).toLowerCase()!=='off';if(sneak)await keyDown('shift');else await keyUp('shift');return{msg:'sneaking '+(sneak?'on (slower, harder to notice)':'off')}};
 C.key=async a=>{if(!keyDef(a[0]))return{msg:'unknown key "'+a[0]+'". Keys: i c b j l m f q r e 1 2 3 4 esc tab space enter'};await press(a[0]);const r=await during(clamp(num(a[1],.45),.2,5));return{msg:'pressed '+String(a[0]).toUpperCase()+(r.why?': '+r.why:'')}};

@@ -131,7 +131,7 @@ B.nearestFoe=(maxD=9)=>{const Z=G.Z,p=Z&&Z.pl;if(!p)return null;let b=null,bd=ma
 /** Who to fight and whether it can be hit from here: the nearest hostile thing, preferring ones in plain view; `blocked` when a wall or
  *  something solid stands between, `reach` how close the weapon in hand needs to be. */
 B.fight=()=>{const Z=G.Z,p=Z&&Z.pl;if(!p)return null;const w=weaponDef(G.S),gun=w.t==='gun';let b=null,bs=1e9;
-  for(const a of Z.actors){if(a.pl||a.dead||a.team!==1||a.vis<.5)continue;const d=Math.hypot(a.x-p.x,a.y-p.y);if(d>10||(a.def.ai==='flee'&&d>3.5))continue;   // animals that run are only fought when already beside you: no chasing rabbits across the map
+  for(const a of Z.actors){if(a.pl||a.dead||a.team!==1||a.vis<.5)continue;const d=Math.hypot(a.x-p.x,a.y-p.y);if(d>14||(a.def.ai==='flee'&&d>3.5))continue;   // animals that run are only fought when already beside you: no chasing rabbits across the map
     const blocked=!los(Z,p.x,p.y,a.x,a.y),s=d+(blocked?4:0)+(a.def.ai==='flee'?3:0)+(a.alert?0:2);if(s<bs){bs=s;b={x:a.x,y:a.y,d,name:a.def.n,blocked,flee:a.def.ai==='flee',r:a.r}}}
   if(!b)return null;b.reach=gun?Math.min(w.rng*.8,8):w.rng+b.r+.1;b.gun=gun;return b};
 B.find=name=>{const Z=G.Z,p=Z&&Z.pl;if(!p)return null;const q=name.toLowerCase();let b=null,bd=1e9;
