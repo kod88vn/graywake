@@ -293,7 +293,7 @@ export function openLoot(Z,i){
     else if(o.starter===2)o.inv=[{id:'bandage',n:2},{id:'berries',n:5},{id:'stick',n:4},{id:'flint',n:2}];
     else{const fam=d.loot;o.inv=rollLoot(fam,Z.lt,rnd,Z.def&&Z.def.endless?1:0);if(fam==='airdrop'&&rnd()<.5)o.inv.push(...rollLoot('gear',Z.lt,rnd));
       // something to wear or to fight with: a chance in ordinary containers, and two for certain in a lead's strongroom, from a tier above the country around it
-      if(d.lock==='guard'){const ft=Math.min(5,Math.max(Z.lt,1+Math.floor(Z.lvl/10))+1);for(let k=0;k<2;k++){let f=rollLoot('finds',ft,rnd)[0];if(f&&o.inv.some(x=>x.id===f.id))f=rollLoot('finds',ft,rnd)[0];if(f&&!o.inv.some(x=>x.id===f.id))o.inv.push(f)}}
+      if(d.lock==='guard'){const ft=Math.min(5,Math.max(Z.lt,1+Math.floor(Z.lvl/10))+1);for(let k=0,got=0;k<12&&got<2;k++){const f=rollLoot('finds',ft,rnd)[0];if(f&&!o.inv.some(x=>x.id===f.id)){o.inv.push(f);got++}}}   // two different pieces, always
       else if(FIND[fam]&&rnd()<FIND[fam])o.inv.push(...rollLoot('finds',Z.lt,rnd))}
     if(o.qi){o.inv.unshift({id:o.qi,n:1});S.flags[o.qf]=1;toast('Found: '+ITEMS[o.qi].n,'good');sfx('quest')}
     stat('opened');addXp(S,2+Z.lt);

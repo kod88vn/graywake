@@ -313,13 +313,17 @@ export function leadNote(S){const L=S.lead;if(!L.note)return null;const site=S.s
 export function leadRead(S){S.lead.note=null}
 
 // ---------------------------------------------------------------- survivors
+/** How many people can live at the homestead: one for every bed beyond your own, and one more sleeping by the fire (unhappily) until a bed is built. */
+export const survRoom=S=>survCap(S)+1;
 export function survCap(S){let beds=0;for(const o of S.home.obj)if(o&&OBJ[o.k].bed)beds+=OBJ[o.k].bed>=3?2:1;return Math.min(14,Math.max(0,beds-1)+(homeHas(S,'beacon')?2:0)+perk('surv'))}
 /** Add someone to the homestead. `who` ({n, trait}) is a person who was waiting to be recruited; without it a stranger is made up. */
 export function addSurvivor(S,who){
-  if(S.surv.length>=survCap(S)){toast('No bed for another survivor: they move on','bad');return null}
+  if(S.surv.length>=survRoom(S)){toast('No room for another survivor: build a bed (Build, Base) for each new person','bad');return null}
   const used=new Set(S.surv.map(s=>s.n)),names=SURV_NAMES.filter(n=>!used.has(n)),traits=Object.keys(SURV_TRAITS);
   const sv={id:++S.survN,n:who?who.n:names[Math.floor(rnd()*names.length)]||'Stranger',trait:who?who.trait:traits[Math.floor(rnd()*traits.length)],job:'idle',days:0,xp:0,hurt:0};
   S.surv.push(sv);statMax('survMax',S.surv.length);sfx('quest');
+  if(S.surv.length>survCap(S))toast(sv.n+' sleeps by the fire until you build a bed for them (Build, Base): morale suffers until then','info');
+  toast(sv.n+' is resting. Give them a job in the Camp ledger (L, People): forager, hunter, scavenger, mechanic and more','good');
   if(G.Z&&G.Z.home){const[x,y]=freeNear(G.Z,G.Z.w/2,G.Z.h/2,5);const a=spawnActor(G.Z,'captive',x,y,1);a.stay=true;a.sv=sv.id}
   return sv;
 }
@@ -635,7 +639,7 @@ export function autoRepair(S,ref){
   return false;
 }
 G.hooks.repair=autoRepair;
-Community.bind({addSurvivor,survCap,pile,ambush:startAmbush,addSite,defence:defenceScore,raidBase,maxRegion,homeHas,harvest,plant});
+Community.bind({addSurvivor,survCap,survRoom,pile,ambush:startAmbush,addSite,defence:defenceScore,raidBase,maxRegion,homeHas,harvest,plant});
 export {Community};
 export function raiseMutation(S){if(!S.flags.core_dead)return false;S.mut++;statMax('mutation',S.mut);for(const id in S.loc)S.loc[id].cool=0;toast('Mutation tier '+S.mut+': everything out there is stronger, and carries more','bad');sfx('horde_horn');emit('save');return true}
 

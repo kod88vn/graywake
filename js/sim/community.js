@@ -38,7 +38,7 @@ export function candidate(S,how='came in off the road'){
 }
 export function recruit(S,cid){
   const i=S.wait.findIndex(c=>c.id===cid);if(i<0)return null;
-  if(S.surv.length>=W.survCap(S)){toast('No free bed. Every bed beyond your own houses one more person.','bad');sfx('error');return null}
+  if(S.surv.length>=W.survRoom(S)){toast('No room: build a bed (Build, Base). Every bed beyond your own houses one more person, and one can sleep by the fire.','bad');sfx('error');return null}
   const c=S.wait.splice(i,1)[0],sv=W.addSurvivor(S,c);if(sv){note(S,sv.n+' joins the homestead','good');stat('recruited')}return sv;
 }
 export function turnAway(S,cid){const i=S.wait.findIndex(c=>c.id===cid);if(i<0)return false;const c=S.wait.splice(i,1)[0];toast(c.n+' nods and walks back down the road','info');return true}

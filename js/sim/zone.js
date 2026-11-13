@@ -185,7 +185,9 @@ export function genZone(def,seed,opts={}){
   for(let y=Z.h-5;y<Z.h-1;y++)for(let x=Math.floor(Z.w/2)-2;x<=Math.floor(Z.w/2)+2;x++){if(Z.obj[y*Z.w+x])Z.obj[y*Z.w+x]=null;if(Z.g[y*Z.w+x]===GT.water)Z.g[y*Z.w+x]=GT.path}
   put(Z,Math.floor(Z.w/2)+2,Z.h-3,'exit_sign',rng);
   // rescue site: a caged survivor deep inside
-  if(def.rescue&&inner&&inner.length){const p=rng.pick(inner);put(Z,p[0],p[1],'cage',rng,{held:1})}
+  // (also, now and then, in a town or a building and in a radio lead's back rooms: people are what a homestead most needs and they were nearly never found)
+  const caged=def.rescue||(S&&!def.endless&&def.id!=='ambush'&&(def.lead?rng()<RESCUE.lead:(def.lay==='complex'||def.lay==='town')?rng()<RESCUE.place:false));
+  if(caged&&inner&&inner.length){const p=rng.pick(inner);put(Z,p[0],p[1],'cage',rng,{held:1})}
   // story items hide in a container while their quest is active
   if(def.qi&&S)for(const[item,flag]of def.qi){if(!S.flags[flag]||S.flags['got_'+flag+'_'+def.id])continue;const c=[];Z.obj.forEach((o,i)=>{if(o&&OBJ[o.k].loot)c.push(o)});if(c.length){const o=c[Math.floor(rng()*c.length)];o.qi=item;o.qf='got_'+flag+'_'+def.id}}
   // the pack you dropped when you died here
@@ -226,6 +228,8 @@ export function freeNear(Z,x,y,rmax=6){
 }
 
 // ---------------------------------------------------------------- loot
+/** The chance that a visit finds someone held captive: in a radio lead, and in a town or a building. */
+export const RESCUE={lead:.4,place:.2};
 export function rollLoot(family,tier,rng=rnd,bonus=0){
   const tab=LOOT[family];if(!tab)return[];const rows=tab.filter(r=>tier>=r.t0&&tier<=r.t1);if(!rows.length)return[];
   const[a,b]=ROLLS[family]||[1,2];let n=a+Math.floor(rng()*(b-a+1))+bonus;if(rng()<perk('luck'))n++;

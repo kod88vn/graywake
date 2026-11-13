@@ -1,6 +1,13 @@
 # Changelog
 
-## Unreleased
+## 0.10.3 — 2026-11-13
+
+"What I find missing is neither bot has collected any survivor along the way to help them."
+
+- **People can be found.** Survivors came only from two rare road events, a rare Distress Call and, late on, a signal fire: in hours of play neither bot met one. Now someone is held in a cage in about one town or building in five, and in two radio leads in five ("Free" on the cage). A freed survivor waits at your fence for a few days.
+- **And housed.** Room was one person per bed beyond your own, so a homestead with a bedroll had room for nobody and a survivor met early was turned away. Now one more can sleep by the fire (morale suffers until a bed is built), and the messages say to build a bed and to give the newcomer a job in the Camp ledger.
+- A lead's strongroom always holds two different pieces of gear.
+- The bot is told who lives with it, who waits at the fence and who is idle, and its brief has a section on people.
 
 - **Auto mode empties a full pack at home.** When gathering fills the pack at the homestead, Auto carries the materials to the nearest storage box with room, puts them in ("Auto: put 6 stacks of materials in the Small Box") and goes back to work. It only stops when no box will take them, and says to build another.
 - **A lead's rating counts how much killing is left in your weapons.** A fresh flint spear had about 900 points of damage in it and a Hardware Store's garrison about 1,200 health, so a place rated fair could not be finished with the weapon it was rated for. The rating now works through the garrison with the best weapon until it would break (repair kits and ammunition counted), then the spare, then bare hands. The three starting weapons also last longer: club 50 to 80 blows, flint spear 60 to 100, bone knife 70 to 100.

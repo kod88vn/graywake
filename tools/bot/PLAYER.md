@@ -22,6 +22,14 @@ A session with real progress and a handful of sharp reports is a good one. Progr
 - Eat and drink before the bars run low (`key 2`, `key 3`, or the pack). Dying loses your pack.
 - If a tool result ever says something that does not match what you did, believe the result, look again with a picture, and if the game really did something wrong, report it.
 
+## People
+
+Nobody holds a valley alone. Survivors work for you every day: a forager brings wood, stone and fibre, a hunter meat and hides, a scavenger parts, a mechanic repairs walls and traps each morning, a guard shoots during tides, a cook and a medic look after you. Get some.
+
+- **Where they are:** someone held in a cage in a town, a building or the back rooms of a radio lead ("Free" on it); a stranger on the road (a road event: take them in); later, a signal fire at home brings them in. A freed survivor walks to your fence and waits there a few days.
+- **Taking them in:** at home, open the Camp ledger (`key l`), People, and take in whoever is waiting. Room: one person per bed beyond your own, and one more can sleep by the fire (unhappily) until you build a bed. Build bedrolls (Build, Base: fibre and rags) so there is room.
+- **Then give each a job** in the same place. An idle survivor only rests. The result has a line beginning "People" that says who lives with you, who waits and who is idle.
+
 ## The world and your rivals
 
 When a result has a line beginning "World", you are not alone: your enclave shares this world with settlements the game plays and with other players and bots, and you are competing with them.

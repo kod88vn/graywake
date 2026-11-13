@@ -107,6 +107,8 @@ B.observe=(full=false)=>{
       weapon:it?it.n+(it.dur?' ('+Math.round((e.d||0)/it.dur*100)+'% condition)':'')+(it.ammo?', '+(p.inv.filter(s=>s&&s.id===it.ammo).reduce((a,s)=>a+s.n,0))+' '+ITEMS[it.ammo].n:''):'bare fists',
       spare:sp&&ITEMS[sp.id]?ITEMS[sp.id].n:null,auto:!!G.auto,build:!!G.build};
     o.you.pack=(p.inv||[]).filter(Boolean).length;
+    // people: who lives here and what they do, who waits at the fence, and room
+    {const beds=GW.World.survCap?GW.World.survCap(S):0;o.people={surv:S.surv.map(s=>s.n+' ('+s.job+')'),idle:S.surv.filter(s=>s.job==='idle').length,wait:S.wait.map(c=>c.n),beds,room:GW.World.survRoom?GW.World.survRoom(S):beds+1}}
     // the shared world, if this game is in one: where this enclave stands and who else holds ground
     if(S.world){const w=S.world,y=w.you||{};o.world={name:w.name,stage:w.stageName,tide:w.fx&&w.fx.tide||1,hold:y.hold,rank:y.rank,of:y.of,score:y.score,rivals:w.enclaves.filter(e=>e.name!==y.name).map(e=>e.name+' ('+(e.kind==='npc'?'settlement':e.kind)+', hold '+e.hold+', score '+e.score+')'),leads:S.sites.filter(s=>s.wid).length,news:w.feed.slice(-3).map(f=>f.text)}}
     // what is worn, what in the pack would be better, and what could be made by hand this minute for a slot that is bare or poorly covered

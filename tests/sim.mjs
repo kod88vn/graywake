@@ -13,6 +13,7 @@ import {G,betterGear,wearBest,unequip,EREF,edgeIdx,structAt,dropAt,give,count,cr
 import {genZone,field,siteDef,blockAt,collide,los,edgeCross,edgeBetween} from '../js/sim/zone.js';
 import {spawnActor,enemiesAlive,populate,interact,interactInfo,guardDown,findInteract,lootAll,openLoot,plant,damageObj} from '../js/sim/actors.js';
 import * as World from '../js/sim/world.js';
+import * as Community from '../js/sim/community.js';
 import {goalProgress,story,genContract,contractText,turnIn} from '../js/sim/quests.js';
 import {dayOf,hourOf} from '../js/sim/util.js';
 
@@ -378,6 +379,16 @@ safe('road',()=>{
   G.Z=null;World.arrive(st.id);const bi=G.Z.obj.findIndex(o=>o&&o.k==='deathbag');T.ok(bi>=0&&enemiesAlive(G.Z)===0,'going there finds the pack, and nothing waiting');
   lootAll(G.Z,bi);G.Z.exit=true;World.leaveZone();T.ok(count(S,'log')===7&&!S.sites.some(x=>x.site==='fell'),'and once it is picked up the place is gone from the map');
   G.Z=null;World.arrive('home');
+});
+safe('people',()=>{
+  // survivors can be found and housed: a cage now and then in towns, buildings and leads; the first one sleeps by the fire before there is a spare bed
+  const S=World.newGame(2024);let cages=0,visits=0;
+  for(const id of['gas_stop','sawmill','miller_farm','ranger_station']){const l=LOCATIONS.find(x=>x.id===id);if(!l)continue;for(let s=0;s<20;s++){const Z=genZone(l,7000+s*13);visits++;if(Z.obj.some(o=>o&&o.k==='cage'&&o.held))cages++}}
+  let leadCages=0;for(let s=0;s<20;s++){const Z=genZone(siteDef({site:'lead_grocery'},1,3),900+s);if(Z.obj.some(o=>o&&o.k==='cage'&&o.held))leadCages++}
+  T.ok(cages>=visits*.08&&leadCages>=4,'someone is held captive in about one town or building in five and two leads in five ('+cages+' of '+visits+' visits, '+leadCages+' of 20 leads)');
+  G.Z=null;World.arrive('home');S.wait=[];const c=Community.candidate(S,'was freed by you');T.ok(World.survCap(S)===0&&!!Community.recruit(S,c.id)&&S.surv.length===1,'with only your own bedroll, the first survivor can still be taken in (by the fire)');
+  const c2=Community.candidate(S,'was freed by you');T.ok(!Community.recruit(S,c2.id)&&S.wait.length===1,'a second needs a bed');
+  G.Z=null;
 });
 safe('stow',()=>{
   // auto mode with a full pack at home carries its materials to a storage box and carries on
