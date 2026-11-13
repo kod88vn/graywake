@@ -6,7 +6,7 @@
 <script type="module">
 // Model gallery. ?set=props|hand (default props) &page=N &per=24 &q=substring &night=1
 // Each model stands on a 1×1 tile outline, lit the way the game lights it, seen from the game camera angle.
-import {Geo,THREE,material,toon} from '../js/view/geo.js';
+import {Geo,THREE,material,matte} from '../js/view/geo.js';
 import {Post} from '../js/view/post.js';
 const qs=new URLSearchParams(location.search),set=qs.get('set')||'props',per=+qs.get('per')||24,pageN=+qs.get('page')||0,q=qs.get('q')||'';
 const mod=await import('../js/view/props.js');
@@ -17,14 +17,14 @@ ids=ids.slice(pageN*per,pageN*per+per);
 const cv=document.getElementById('c'),R=new THREE.WebGLRenderer({canvas:cv,preserveDrawingBuffer:true}),post=new Post(R);
 R.setPixelRatio(Math.min(2,devicePixelRatio));R.shadowMap.enabled=true;R.shadowMap.type=THREE.PCFSoftShadowMap;
 const S=new THREE.Scene();S.background=new THREE.Color(qs.get('night')?'#0d1016':'#2a3026');
-const hemi=new THREE.HemisphereLight('#d6e2ff','#8f86b0',qs.get('night')?.5:1.9);S.add(hemi);
-const sun=new THREE.DirectionalLight('#fff2d8',qs.get('night')?.22:1.55);sun.position.set(-6,12,5);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);
+const hemi=new THREE.HemisphereLight('#cfe0ff','#5a5040',qs.get('night')?.35:1.08);S.add(hemi);
+const sun=new THREE.DirectionalLight('#fff2d8',qs.get('night')?.3:2.9);sun.position.set(-6,12,5);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);
 Object.assign(sun.shadow.camera,{left:-14,right:14,top:14,bottom:-14,near:1,far:40});sun.shadow.bias=-.0005;S.add(sun);
 const cols=Math.min(6,Math.ceil(Math.sqrt(ids.length*1.6))),rows=Math.ceil(ids.length/cols),gap=set==='hand'?1.6:2.1;
-const ground=new THREE.Mesh(new THREE.PlaneGeometry(60,60).rotateX(-Math.PI/2),toon({ink:0},{vertexColors:false,color:'#5f8a40'}));ground.receiveShadow=true;S.add(ground);
+const ground=new THREE.Mesh(new THREE.PlaneGeometry(60,60).rotateX(-Math.PI/2),matte({},{vertexColors:false,color:'#4f6a36'}));ground.receiveShadow=true;S.add(ground);
 const labs=document.getElementById('labs'),marks=[];
 ids.forEach((id,i)=>{const x=(i%cols-(cols-1)/2)*gap,z=(Math.floor(i/cols)-(rows-1)/2)*gap;
-  const tile=new THREE.Mesh(new THREE.PlaneGeometry(1,1).rotateX(-Math.PI/2),toon({ink:0},{vertexColors:false,color:'#6f9a4a'}));tile.position.set(x,.005,z);tile.receiveShadow=true;S.add(tile);
+  const tile=new THREE.Mesh(new THREE.PlaneGeometry(1,1).rotateX(-Math.PI/2),matte({},{vertexColors:false,color:'#5d7a42'}));tile.position.set(x,.005,z);tile.receiveShadow=true;S.add(tile);
   try{const g=new Geo();table[id](g,i%3);const m=new THREE.Mesh(g.build(),material());m.position.set(x,set==='hand'?.5:0,z);m.castShadow=m.receiveShadow=true;if(set==='hand')m.scale.setScalar(1.8);S.add(m);
     const tris=g.pos.length/9;marks.push([id+(tris>600?' ('+tris+'△)':''),x,z])}
   catch(e){GALLERY.errors.push(id+': '+e.message);marks.push(['ERR '+id,x,z])}});

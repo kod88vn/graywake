@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.6.0 — 2026-11-12
+
+Back to a realistic look. The anime style is gone; the new movement and the community layer stay.
+
+- **No cel shading, no outlines.** Surfaces are lit smoothly again, with a matte finish and a fine grain on wood, stone, cloth and skin.
+- **Ambient occlusion.** A new finishing pass darkens creases, the foot of walls, the ground under canopies and the gaps between limbs, the way real outdoor light does. It is what makes objects sit on the ground instead of floating on it.
+- **Film grade.** Filmic tone curve, natural saturation, a slight vignette. Natural ground, fog and prop colours are restored; the ground is grain and grass strokes again rather than flat painted patches. Smoke and dust are soft again; the impact stars are removed.
+- **Realistic people.** A real skull shape (chin, jaw, cheekbones, brow, crown) with small eyes, a nose, lips and ears; natural hair in six cuts (short, cropped, collar length, ponytail, bob, bun) and natural colours; beards on some men. About seven heads tall. Natural skin and clothing colours. Husks have sunken sockets and pale eyes instead of glowing ones. Helmets, hoods, caps, visors and masks are rebuilt to fit the new head.
+- The skinned bodies and the two builds from 0.5.2 stay, with smoother shoulders.
+- Kept from the anime versions because they help realism: rounder trunks, logs and barrels, full-detail tree line, round conifers.
+
+Still generated entirely in code: there are no scanned textures or sculpted models, so this is believable rather than photographic. See "Honest limits" in the README.
+
 ## 0.5.2 — 2026-11-12
 
 - **Realistic bodies.** People, husks and raiders are no longer assembled from balls and tubes. The torso is one continuous skinned surface through real cross-sections (shoulders, ribcage, waist, hips, a neck that rises out of the shoulders); arms have a shoulder cap, a tapering upper arm, a forearm and a wrist; legs have thighs, calves and ankles; hands have a palm, fingers and a thumb; boots have a shaft, heel and sole. Clothing sits on the body: open collar, belt and buckle, cuffs, jackets with a hem over the hips, vests and plates that follow the chest.

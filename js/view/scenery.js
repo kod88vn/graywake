@@ -1,22 +1,19 @@
 // Set dressing that is not gameplay: procedural textures (ground grain, cloud shadows, glow, water ripples),
 // ground clutter models per biome, and the wind-sway materials. Everything here is generated in code.
-import {THREE,Geo,shade,addDetail,toonRamp} from './geo.js';
+import {THREE,Geo,shade,addDetail} from './geo.js';
 
 const lcg=seed=>{let s=seed>>>0||1;return()=>{s=(Math.imul(s,1664525)+1013904223)>>>0;return s/4294967296}};
 function canvasTex(size,draw,repeat=true){
   const c=document.createElement('canvas');c.width=c.height=size;draw(c.getContext('2d'),size);const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;
   if(repeat)t.wrapS=t.wrapT=THREE.RepeatWrapping;t.anisotropy=4;return t;
 }
-/** Near-white paint multiplied over the ground's vertex colours: flat-toned patches with crisp edges and a few brush ticks, like a cel-painted backdrop. */
+/** Near-white grain multiplied over the ground's vertex colours: speckle, short blade strokes, soft blotches. */
 export const groundTex=()=>canvasTex(512,(x,s)=>{
-  const r=lcg(11);x.fillStyle='#eeeeee';x.fillRect(0,0,s,s);
-  const patch=(style,n,rad)=>{const px=r()*s,py=r()*s,cs=[];for(let i=0;i<n;i++){const a=r()*6.28,d=r()*rad*1.3;cs.push([px+Math.cos(a)*d,py+Math.sin(a)*d*.7,rad*(.55+r()*.6)])}
-    x.fillStyle=style;for(const ox of[-s,0,s])for(const oy of[-s,0,s]){x.beginPath();for(const[cx,cy,cr]of cs){x.moveTo(cx+ox+cr,cy+oy);x.ellipse(cx+ox,cy+oy,cr,cr*.72,0,0,6.2832)}x.fill()}};
-  for(let i=0;i<20;i++)patch('rgba(190,202,196,.55)',5+Math.floor(r()*4),14+r()*20);
-  for(let i=0;i<12;i++)patch('rgba(255,255,255,.75)',4+Math.floor(r()*4),10+r()*16);
-  for(let i=0;i<10;i++)patch('rgba(172,188,184,.5)',3,6+r()*8);
-  x.lineCap='round';
-  for(let i=0;i<420;i++){const px=r()*s,py=r()*s,a=-Math.PI/2+(r()-.5)*1.1,l=5+r()*8,dark=r()<.65;x.strokeStyle=dark?`rgba(150,165,150,${.35+r()*.3})`:`rgba(255,255,255,${.5+r()*.3})`;x.lineWidth=1.6+r()*1.2;x.beginPath();x.moveTo(px,py);x.lineTo(px+Math.cos(a)*l,py+Math.sin(a)*l);if(r()<.5){x.moveTo(px+3,py);x.lineTo(px+3+Math.cos(a+.5)*l*.7,py+Math.sin(a+.5)*l*.7)}x.stroke()}
+  const r=lcg(11);x.fillStyle='#e6e6e6';x.fillRect(0,0,s,s);
+  for(let i=0;i<70;i++){const px=r()*s,py=r()*s,rad=30+r()*70,g=x.createRadialGradient(px,py,0,px,py,rad),d=r()<.5;g.addColorStop(0,d?'rgba(170,170,170,.35)':'rgba(255,255,255,.4)');g.addColorStop(1,'rgba(200,200,200,0)');x.fillStyle=g;for(const ox of[-s,0,s])for(const oy of[-s,0,s]){x.setTransform(1,0,0,1,ox,oy);x.fillRect(px-rad,py-rad,rad*2,rad*2)}}
+  x.setTransform(1,0,0,1,0,0);
+  for(let i=0;i<9000;i++){const v=150+Math.floor(r()*105);x.fillStyle=`rgba(${v},${v},${v},${.25+r()*.4})`;const w=1+r()*2.5;x.fillRect(r()*s,r()*s,w,w)}
+  x.lineCap='round';for(let i=0;i<2600;i++){const px=r()*s,py=r()*s,a=-Math.PI/2+(r()-.5)*1.4,l=4+r()*9,v=r()<.6?120+Math.floor(r()*60):235;x.strokeStyle=`rgba(${v},${v},${v},${.3+r()*.3})`;x.lineWidth=1+r();x.beginPath();x.moveTo(px,py);x.lineTo(px+Math.cos(a)*l,py+Math.sin(a)*l);x.stroke()}
 });
 /** Soft dark blobs with alpha: drifting cloud shadows. */
 export const cloudTex=()=>canvasTex(256,(x,s)=>{
@@ -24,11 +21,6 @@ export const cloudTex=()=>canvasTex(256,(x,s)=>{
   for(let i=0;i<9;i++){const px=r()*s,py=r()*s,rad=34+r()*56;for(const ox of[-s,0,s])for(const oy of[-s,0,s]){const g=x.createRadialGradient(px+ox,py+oy,rad*.2,px+ox,py+oy,rad);g.addColorStop(0,'rgba(0,0,0,.9)');g.addColorStop(1,'rgba(0,0,0,0)');x.fillStyle=g;x.fillRect(px+ox-rad,py+oy-rad,rad*2,rad*2)}}
 });
 export const glowTex=()=>canvasTex(64,(x,s)=>{const g=x.createRadialGradient(s/2,s/2,0,s/2,s/2,s/2);g.addColorStop(0,'rgba(255,255,255,1)');g.addColorStop(.25,'rgba(255,255,255,.55)');g.addColorStop(.6,'rgba(255,255,255,.12)');g.addColorStop(1,'rgba(255,255,255,0)');x.fillStyle=g;x.fillRect(0,0,s,s)},false);
-/** A flat disc with a crisp edge: cartoon puffs of smoke, dust and sparks. */
-export const puffTex=()=>canvasTex(64,(x,s)=>{const g=x.createRadialGradient(s/2,s/2,0,s/2,s/2,s/2);g.addColorStop(0,'rgba(255,255,255,1)');g.addColorStop(.3,'rgba(255,255,255,1)');g.addColorStop(.36,'rgba(255,255,255,0)');g.addColorStop(1,'rgba(255,255,255,0)');x.fillStyle=g;x.fillRect(0,0,s,s)},false);
-/** A four-point star: the flash drawn where a blow lands. */
-export const starTex=()=>canvasTex(64,(x,s)=>{const star=(R,r,rot,col)=>{x.fillStyle=col;x.beginPath();for(let i=0;i<8;i++){const a=rot+i*Math.PI/4,d=i%2?r:R;x.lineTo(s/2+Math.cos(a)*d,s/2+Math.sin(a)*d)}x.closePath();x.fill()};
-  star(31,8,0,'#ffe9a8');star(27,6,0,'#ffffff');star(16,5,Math.PI/4,'#ffffff')},false);
 /** Grey ripples used as a bump map on water. */
 export const rippleTex=()=>{const t=canvasTex(128,(x,s)=>{const r=lcg(9);x.fillStyle='#808080';x.fillRect(0,0,s,s);for(let i=0;i<120;i++){const px=r()*s,py=r()*s,w=8+r()*22,v=r()<.5?40:215;x.strokeStyle=`rgba(${v},${v},${v},.5)`;x.lineWidth=1.5+r()*2;for(const ox of[-s,0,s]){x.beginPath();x.ellipse(px+ox,py,w,w*.28,0,0,Math.PI);x.stroke()}}});t.colorSpace=THREE.NoColorSpace;return t};
 
@@ -63,9 +55,9 @@ export function clutterGeo(name,v){const g=new Geo();g.jit=.1;CLUTTER[name](g,v)
 
 // ---------------------------------------------------------------- wind
 const windUniform={value:0},gustUniform={value:1};
-/** A vertex-colour Lambert material whose instances bend with the wind: `quad` scales with height², `lin` with height. */
+/** A vertex-colour material whose instances bend with the wind: `quad` scales with height², `lin` with height. */
 export function windMaterial(quad,lin,detail){
-  const m=new THREE.MeshToonMaterial({vertexColors:true,gradientMap:toonRamp()});
+  const m=new THREE.MeshLambertMaterial({vertexColors:true});
   m.onBeforeCompile=sh=>{sh.uniforms.uTime=windUniform;sh.uniforms.uGust=gustUniform;
     sh.vertexShader='uniform float uTime;uniform float uGust;\n'+sh.vertexShader.replace('#include <begin_vertex>',`#include <begin_vertex>
 #ifdef USE_INSTANCING

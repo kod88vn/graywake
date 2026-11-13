@@ -220,8 +220,8 @@ for(const k in OBJ){const o=OBJ[k];o.id=k;if(!o.m)o.m=k;if(o.solid===undefined)o
 export const BUILD_CATS=[['base','Shelter'],['craft','Stations'],['storage','Storage'],['farm','Provision'],['defense','Defence'],['util','Utility'],['decor','Comfort']];
 // Ground tile types. `walk` false blocks movement. Colours are sRGB hex; the view adds per-tile noise.
 export const GROUND=[
-  {id:'grass',c:'#74b04c'},{id:'dirt',c:'#a9865c'},{id:'sand',c:'#e2ca88'},{id:'snow',c:'#eef4f9'},{id:'asphalt',c:'#51565f'},
-  {id:'concrete',c:'#a3a8aa'},{id:'water',c:'#3a8fc0',walk:false},{id:'moss',c:'#6c68a4'},{id:'mud',c:'#7d6146'},{id:'ice',c:'#b6e2f2'},
-  {id:'tile',c:'#d0cdbd'},{id:'boards',c:'#b48a52'},{id:'dust',c:'#d2a86a'},{id:'forest',c:'#559640'},{id:'ash',c:'#6c667c'},{id:'path',c:'#c4a472'},
+  {id:'grass',c:'#5c7a3a'},{id:'dirt',c:'#7a6244'},{id:'sand',c:'#c9b27a'},{id:'snow',c:'#dfe6ea'},{id:'asphalt',c:'#3c3e42'},
+  {id:'concrete',c:'#8b8d8a'},{id:'water',c:'#2f6f8f',walk:false},{id:'moss',c:'#5a5670'},{id:'mud',c:'#5e4a36'},{id:'ice',c:'#a9d3e2'},
+  {id:'tile',c:'#b9b6a8'},{id:'boards',c:'#8f6f45'},{id:'dust',c:'#b08a5a'},{id:'forest',c:'#46622f'},{id:'ash',c:'#56525e'},{id:'path',c:'#96805a'},
 ];
 export const G=Object.fromEntries(GROUND.map((g,i)=>[g.id,i]));

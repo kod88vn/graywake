@@ -1,59 +1,57 @@
 // Character rigs: jointed bodies built from rounded anatomy (not boxes), and the code that poses them every frame.
-// A humanoid is about 1.28 units tall, a little over six heads: a skinned body with real shoulders, waist, hips and calves, an anime face and chunky hair,
-// slim two-part limbs with elbows and knees. Everything is cel-shaded and outlined by the ink pass (post.js).
+// A humanoid is about 1.26 units tall and about seven heads: a skinned body with real shoulders, waist, hips and calves, a real skull shape and natural hair,
+// two-part limbs with elbows and knees. Smoothly lit, matte, with a fine cloth and skin grain.
 // A rig is a THREE.Group: root → body (leans, crouches, falls) → hips (pelvis, legs) → chest (ribcage, head, arms). Each rig owns its material so it can flash and fade.
-import {THREE,Geo,shade,mix,toon} from './geo.js';
+import {THREE,Geo,shade,mix,matte} from './geo.js';
 import {HAND} from './props.js';
 import {ITEMS} from '../data/items.js';
 
 const handCache=new Map();
 function handGeo(mdl){let g=handCache.get(mdl);if(!g&&HAND[mdl]){const b=new Geo();HAND[mdl](b);g=b.build();handCache.set(mdl,g)}return g}
-const newMat=()=>toon({local:true,amp:0,scale:7,ink:1,rim:.3});
+const newMat=()=>matte({local:true,amp:.16,scale:7,rim:.22});
 const part=(mat,draw)=>{const g=new Geo();g.jit=.02;g.lift=false;draw(g);const m=new THREE.Mesh(g.build(),mat);m.castShadow=true;return m};
 const grp=(parent,x,y,z)=>{const o=new THREE.Group();o.position.set(x,y,z);parent.add(o);return o};
-const HAIR=['#2c2438','#5a3a26','#e6c468','#c8cede','#b8452e','#3a6ea8','#e88aa8','#46a890','#7a52b0','#f2f0ee','#1e1a22','#8a5a34'],HAIR_DULL=['#2a2228','#4a3a30','#6a6258','#8a8478','#1c1a1e','#5a3a2a'],EYES=['#3a6ea8','#3f9a5a','#8a5a2a','#b8452e','#7a52b0','#2a8a9a','#c88a2a'];
-const SKIN=['#f0c8a4','#d8a882','#f4d4b8','#b07c58','#f8dcc4'],TOPS=['#5f8a4a','#a85a48','#4a6a9a','#b89a3a','#7a5a9a','#3a8a7a','#c05a3a'],SCARF=['#d8433a','#e8b83a','#3a8ac8','#5ab06a','#f0f0e8'];
+const HAIR=['#1c1612','#2e2218','#4a3320','#6b4a2a','#8a6a3a','#b89858','#7a3a1c','#8a8680','#c8c4bc'],HAIR_DULL=['#1c1814','#3a2c22','#5a4a3a','#7a746a','#2a2420','#4a3024'],EYES=['#4a3828','#5a4630','#3a4a5a','#4a5a3a','#2e2620','#5a6a78'];
+const SKIN=['#e0b896','#c99a78','#a87a5a','#8a6044','#f0d0b4','#6e4a34'],TOPS=['#6a7a5a','#7a5a4a','#4a5a6a','#8a7a4a','#5a4a5a','#3a5a4a','#8a4a3a','#9a9486'],SCARF=['#8a3a30','#8a7a3a','#3a5a7a','#4a6a4a','#b0aa9c'];
 const BLOOD='#561210';
 
-// ---- anime head: big eyes, small mouth, chunky hair, on a body in near-realistic proportions (a little over six heads tall).
-// Not chibi: the user dislikes big-head cartoon figures and asked for a more realistic body.
-const HEAD=.93,HC=[0,.115,-.022];
-/** A hair spike pointing along (dx,dy,dz) from the hair cap. */
-function spike(g,c,dx,dy,dz,r,h,flat=1,base=.07){const l=Math.hypot(dx,dy,dz)||1;dx/=l;dy/=l;dz/=l;const d=base+h/2;g.cone(r,h,c,HC[0]+dx*d,HC[1]+dy*d,HC[2]+dz*d,7,Math.atan2(dz,dy),0,-Math.asin(dx),flat)}
-function drawHair(g,hr,style,bangs=true){
-  const dk=shade(hr,.8);
-  g.sph(.098,hr,HC[0],HC[1],HC[2],1,.97,1.02,12,8);
-  if(bangs){g.cone(.034,.08,hr,-.05,.136,.066,6,Math.PI-.2,0,.3,.42);g.cone(.036,.09,dk,-.014,.132,.08,6,Math.PI-.24,0,.08,.42);g.cone(.034,.085,hr,.024,.134,.078,6,Math.PI-.24,0,-.14,.42);g.cone(.03,.075,dk,.056,.138,.06,6,Math.PI-.18,0,-.34,.42)}
-  if(style===0){for(const[x,y,z,h]of[[0,.9,-.4,.13],[.5,.75,-.3,.12],[-.5,.75,-.3,.12],[.8,.35,-.4,.11],[-.8,.35,-.4,.11],[0,.45,-.9,.14],[.5,.15,-.85,.12],[-.5,.15,-.85,.12],[.3,.95,.2,.1],[-.3,.95,.2,.1]])spike(g,(x>0)===(z<-.5)?dk:hr,x,y,z,.046,h)}
-  else if(style===1){g.sph(.05,hr,-.084,.062,-.004,.55,1.5,1.1,7,6);g.sph(.05,hr,.084,.062,-.004,.55,1.5,1.1,7,6);g.sph(.088,dk,0,.05,-.056,1.05,1.2,.7,9,6)}
-  else if(style===2){g.sph(.024,'#d8433a',0,.15,-.118,1,1,1,6,4);g.limb(.042,.012,.27,hr,0,.15,-.128,.75,0,0,7);g.sph(.05,dk,0,.06,-.07,1.2,.9,.6,7,5)}
-  else if(style===3){for(const s of[-1,1]){g.sph(.022,'#e8c84a',s*.085,.14,-.06,1,1,1,6,4);g.limb(.04,.012,.26,s>0?hr:dk,s*.092,.14,-.066,.35,0,s*.6,7)}g.sph(.05,dk,0,.06,-.07,1.2,.9,.6,7,5)}
-  else if(style===4){g.sph(.09,dk,0,.0,-.062,1.05,1.8,.55,9,7);g.limb(.03,.014,.17,hr,-.088,.1,.022,0,0,-.06,6);g.limb(.03,.014,.17,hr,.088,.1,.022,0,0,.06,6)}
-  else{for(const[x,y,z,h]of[[.6,.7,-.2,.07],[-.6,.7,-.2,.07],[0,.6,-.8,.08],[.6,.2,-.7,.07],[-.6,.2,-.7,.07]])spike(g,dk,x,y,z,.05,h);g.limb(.011,.006,.085,hr,0,.205,-.01,Math.PI+.6,0,0,5);g.limb(.007,.003,.05,hr,0,.275,.038,-1.2,0,0,5)}
+// ---- head: a real skull shape (chin, jaw, cheekbones, brow, crown) with small eyes, a nose, lips and ears, and hair that sits on it.
+// Realistic proportions throughout: about seven heads tall. The user rejected anime faces, big heads and stacked-ball bodies.
+const HEAD=.9;
+const SKULL=[[-.004,.022,.026,0,.03],[.012,.042,.044,0,.022],[.04,.058,.062,0,.012],[.075,.067,.076,0,.004],[.11,.07,.084,0,0],[.145,.068,.083,0,-.002],[.175,.055,.07,0,-.004],[.196,.03,.04,0,-.006]];
+/** The skull's rings from height `from` up, grown by `k` and shifted back by `back`: a shell that sits on the head (hair, helmets, hoods). */
+// It sits furthest back at its lower edge, so the brow and face stay clear, and comes forward over the crown.
+const shell=(from,k,back=0)=>{const bk=y=>Math.max(.003,back-(y-from)*(back-.003)/.05);return[...SKULL.filter(r=>r[0]>=from).map(r=>[r[0],r[1]+k,r[2]+k,0,r[4]-bk(r[0])]),[.2+k*.8,.012,.016,0,-.009]]};
+function drawHair(g,hr,style,short){
+  const dk=shade(hr,.82);
+  if(style===3||short){g.loft(shell(.118,.004,.02),dk,12);g.loft([[.05,.05,.04,0,-.046],[.085,.064,.05,0,-.04],[.118,.071,.06,0,-.03]],dk,10,'none');return}   // cropped close
+  g.loft(shell(.118,.012,.024),hr,12);                                                                           // the top and crown
+  if(style===0){g.loft([[.045,.052,.042,0,-.05],[.085,.068,.052,0,-.044],[.12,.078,.066,0,-.032]],dk,10,'none');g.sph(.03,hr,.03,.186,.04,1.3,.5,1,7,5);g.sph(.03,dk,-.028,.182,.046,1.2,.5,1,7,5)}   // short, a little untidy on top
+  else if(style===1){g.loft([[-.03,.05,.034,0,-.056],[.02,.07,.046,0,-.05],[.08,.082,.06,0,-.04],[.12,.08,.07,0,-.03]],dk,12,'none');for(const s of[-1,1])g.sph(.03,hr,s*.068,.07,-.002,.5,1.6,1,6,6)}   // collar length
+  else if(style===2){g.loft([[.05,.052,.042,0,-.05],[.085,.068,.052,0,-.044],[.12,.078,.066,0,-.032]],dk,10,'none');g.sph(.018,'#3a2a20',0,.14,-.1,1,1,1,6,4);g.limb(.03,.012,.2,hr,0,.14,-.106,.8,0,0,7)}   // ponytail
+  else if(style===4){g.loft([[.0,.066,.05,0,-.04],[.05,.08,.066,0,-.03],[.12,.082,.078,0,-.022]],dk,12,'none');for(const s of[-1,1])g.sph(.032,hr,s*.07,.06,.006,.5,1.8,1.1,6,6)}                        // bob over the ears
+  else{g.loft([[.05,.052,.042,0,-.05],[.085,.068,.052,0,-.044],[.12,.078,.066,0,-.032]],dk,10,'none');g.sph(.036,hr,0,.16,-.092,1,.9,.9,8,6)}                                                        // bun
 }
 function drawHead(g,o,skin){
-  const hc=o.head||skin,st=o.helmStyle,hr=o.hair,eye=o.eye||'#3a6ea8',face=!(o.helm&&st==='mask');
-  g.sph(.092,hc,0,.1,0,.97,1,.98,12,9);g.sph(.07,hc,0,.045,.018,.9,.85,.92,10,6);
-  g.sph(.018,shade(hc,.93),-.088,.085,0,.45,1,.8,5,4);g.sph(.018,shade(hc,.93),.088,.085,0,.45,1,.8,5,4);
-  if(face&&o.husk){
-    for(const s of[-1,1]){g.sph(.028,'#191420',s*.037,.086,.069,.95,1.1,.5,7,5);g.sph(.017,o.glow||'#f2ff8a',s*.037,.086,.077,.95,1.05,.5,7,5)}
-    g.sph(.032,'#2a0e12',0,.03,.064,1.15,.5,.5,7,4);for(const x of[-.014,0,.014])g.cone(.006,.014,'#e8e4d0',x,.036,.08,4,Math.PI);
-    if(o.gore)g.sph(.035,BLOOD,.05,.11,.055,1,1.2,.5,6,4);
-  }else if(face){
-    for(const s of[-1,1]){
-      g.sph(.024,'#fbfbff',s*.037,.086,.074,.9,1.2,.5,8,6);g.sph(.017,eye,s*.037,.084,.08,.9,1.2,.45,8,6);g.sph(.009,'#15101c',s*.037,.082,.085,.9,1.2,.4,6,5);g.sph(.0055,'#ffffff',s*.037+.007,.094,.088,1,1,.5,5,4);
-      g.box(.05,.007,.01,'#221a26',s*.037,.111,.079,0,0,-s*.1);g.box(.04,.006,.008,hr?shade(hr,.7):'#3a2c2c',s*.037,.13,.075,0,0,-s*.2);
-      g.sph(.013,mix(hc,'#ff6a70',.42),s*.058,.058,.062,1,.55,.4,5,4)}
-    g.sph(.006,shade(hc,.86),0,.06,.084,1,1,1,5,4);g.box(.02,.0045,.006,shade(hc,.5),0,.032,.079);
+  const hc=o.head||skin,st=o.helmStyle,hr=o.hair,face=!(o.helm&&st==='mask'),lip=mix(hc,o.husk?'#3a1a1c':'#a04a44',o.husk?.6:.4);
+  g.loft(SKULL,hc,14);
+  for(const s of[-1,1])g.sph(.017,shade(hc,.94),s*.069,.094,.002,.34,1,.72,6,5);                                 // ears
+  if(face){
+    g.sph(.011,shade(hc,.97),0,.088,.086,.72,1.8,1,6,5);g.sph(.0115,hc,0,.07,.093,1.05,.8,1,6,5);               // nose: bridge and tip
+    for(const s of[-1,1]){g.sph(.015,shade(hc,o.husk?.5:.8),s*.028,.104,.071,1.25,.72,.5,6,4);                   // socket
+      g.sph(.0078,o.husk?'#cfcab4':'#ebe7de',s*.028,.103,.0775,1.25,.8,.6,6,4);g.sph(.0046,o.husk?'#8a8870':o.eye||'#4a3828',s*.028,.103,.0822,1,1,.5,5,4);
+      if(!o.husk)g.box(.027,.0045,.008,hr?shade(hr,.7):shade(hc,.6),s*.028,.118,.0785,0,0,-s*.07)}
+    if(o.husk){g.sph(.026,'#24100f',0,.036,.066,1.1,.6,.5,7,4);if(o.gore)g.sph(.03,BLOOD,.04,.075,.058,1,1.3,.5,6,4)}
+    else{g.sph(.014,lip,0,.043,.0775,1.45,.34,.5,6,4);if(o.beard){g.loft([[.0,.03,.03,0,.03],[.03,.061,.065,0,.012],[.062,.068,.074,0,.006]],shade(o.beard,.9),12,'start');g.sph(.014,lip,0,.045,.083,1.3,.3,.4,6,4)}}
   }
   if(o.helm){const c=o.helm;
-    if(st==='hood'){g.sph(.108,c,0,.106,-.016,1,1.08,1.05,12,8);g.sph(.094,shade(c,.85),0,.0,-.04,1.25,.5,.95,8,4);if(hr&&!o.husk){g.cone(.034,.08,hr,-.03,.136,.07,6,Math.PI-.22,0,.2,.42);g.cone(.034,.085,shade(hr,.8),.02,.134,.076,6,Math.PI-.24,0,-.14,.42)}}
-    else if(st==='cap'){g.sph(.098,c,0,.128,-.006,1,.72,1.03,12,6);g.sph(.07,shade(c,.8),0,.118,.1,1.05,.14,.75,8,4);if(hr)g.sph(.09,hr,0,.07,-.045,1.05,1.05,.75,9,6)}
-    else if(st==='visor'){g.sph(.107,c,0,.11,-.006,1,1.02,1.05,12,8);g.sph(.076,'#8fd4f0',0,.09,.05,1.08,.62,.8,9,6);g.sph(.111,shade(c,.75),0,.05,-.012,1.02,.25,1.03,12,4)}
-    else if(st==='mask'){g.sph(.104,c,0,.098,0,1,1.12,1.04,12,8);g.sph(.026,'#1c2a30',-.037,.1,.086,1,1,.5,7,5);g.sph(.026,'#1c2a30',.037,.1,.086,1,1,.5,7,5);g.sph(.012,'#9fe0f0',-.03,.108,.097,1,1,.4,5,4);g.sph(.012,'#9fe0f0',.044,.108,.097,1,1,.4,5,4);g.cyl(.03,.036,.06,'#34383a',0,.038,.108,8,Math.PI/2)}
-    else{g.sph(.106,c,0,.12,-.006,1,.86,1.05,12,7);g.sph(.112,shade(c,.78),0,.098,-.006,1.02,.2,1.06,12,4)}}
-  else if(hr)drawHair(g,hr,o.hairStyle||0,!o.husk||o.hairStyle%2===0);
-  if(o.mask&&!o.helm)g.sph(.073,o.mask,0,.043,.02,.94,.8,.96,9,6);
+    if(st==='hood'){g.loft([[-.02,.066,.05,0,-.03],[.05,.08,.068,0,-.022],...shell(.11,.016,.012)],c,12);g.loft([[-.03,.085,.06,0,-.02],[.0,.07,.052,0,-.026]],shade(c,.85),10,'none')}
+    else if(st==='cap'){g.loft(shell(.128,.012,.004),c,12);g.sph(.05,shade(c,.8),0,.133,.092,1.1,.12,.8,8,4);if(hr)g.loft([[.045,.052,.042,0,-.05],[.085,.068,.052,0,-.044],[.128,.076,.064,0,-.03]],shade(hr,.82),10,'none')}
+    else if(st==='visor'){g.loft(shell(.1,.016,.004),c,12);g.sph(.06,'#27343c',0,.092,.047,1.1,.72,.74,9,6);g.loft([[.02,.07,.07,0,.006],[.05,.078,.084,0,.002]],shade(c,.75),12,'none')}
+    else if(st==='mask'){g.loft(SKULL.map(r=>[r[0],r[1]+.012,r[2]+.012,0,r[4]]),c,14);for(const s of[-1,1]){g.sph(.02,'#1c2a30',s*.03,.104,.086,1,1,.5,7,5);g.sph(.009,'#8fc8d8',s*.034,.11,.095,1,1,.4,5,4)}g.cyl(.026,.03,.05,'#34383a',0,.045,.1,8,Math.PI/2)}
+    else{g.loft(shell(.108,.014,.004),c,12);g.loft([[.1,.088,.1,0,-.004],[.112,.084,.097,0,-.004]],shade(c,.78),12,'none')}}
+  else if(hr)drawHair(g,hr,o.hairStyle||0,false);
+  if(o.mask&&!o.helm)g.loft([[.0,.027,.031,0,.03],[.03,.063,.067,0,.012],[.082,.071,.081,0,.004]],o.mask,12,'start');
 }
 
 /** Humanoid: o = {skin, top, legs, boots, hair, hairStyle 0..5, eye, head (colour override), helm, helmStyle, vest, vestStyle, sleeves, pack, scarf, glove, build 'm'|'f', fat, scale, mask, weapon, husk, glow, gore, lean}
@@ -72,8 +70,8 @@ export function humanoid(o){
     if(jacket)g.loft([[-.03,.116*hp,.09*dz],[.05,.108*(hp+wa)/2,.082*dz],[.1,.102*wa,.076*dz]],jacket,12,'none');
   });P.hips.add(P.pelvis);P.chest=grp(P.hips,0,.1,0);
   P.torso=part(mat,g=>{
-    g.loft(TORSO,top,14);g.loft([[.43,.037,.037,0,.002],[.505,.033,.035,0,.008]],o.head||skin,10,'none');
-    for(const s of[-1,1])g.sph(.048,sleeve,s*.14*sh,.378,0,1.08,.92,1.12,8,6);
+    g.loft(TORSO,top,16);g.loft([[.43,.037,.037,0,.002],[.505,.033,.035,0,.008]],o.head||skin,10,'none');
+    for(const s of[-1,1])g.sph(.04,sleeve,s*.128*sh,.374,0,1.1,.8,1.1,8,6);
     if(!o.husk&&!o.vest)g.loft([[.418,.066*sh,.052,0,.002],[.455,.05,.047,0,.004]],shade(top,1.22),10,'none');
     if(o.husk&&o.gore>2)g.sph(.06,skin,.05*fat,.11,.06*fat,1,.6,.5,7,4);
     if(o.vest){const v=o.vest,s=o.vestStyle;
@@ -89,7 +87,7 @@ export function humanoid(o){
   // ---- head (pivot at the top of the neck)
   P.head=part(mat,g=>drawHead(g,o,skin));P.head.position.y=.385;P.head.scale.setScalar(HEAD);P.chest.add(P.head);
   // ---- arms: upper arm from the shoulder, forearm, wrist and hand from the elbow
-  const arm=side=>{const up=part(mat,g=>{g.loft([[.026,.026*lf,.028*lf],[-.004,.046*lf,.048*lf],[-.07,.045*lf,.047*lf,0,.002],[-.145,.039*lf,.04*lf],[-.215,.035,.036]],sleeve,10,'start');if(o.gore>1&&side<0)g.sph(.04,BLOOD,0,-.12,.02,1.1,1.4,.8,6,4)});up.position.set(side*(.134*sh+.034),.262,0);P.chest.add(up);
+  const arm=side=>{const up=part(mat,g=>{g.loft([[.04,.022*lf,.024*lf],[.024,.042*lf,.044*lf],[-.01,.05*lf,.052*lf],[-.07,.046*lf,.048*lf,0,.002],[-.145,.039*lf,.04*lf],[-.215,.035,.036]],sleeve,10,'start');if(o.gore>1&&side<0)g.sph(.04,BLOOD,0,-.12,.02,1.1,1.4,.8,6,4)});up.position.set(side*(.134*sh+.034),.262,0);P.chest.add(up);
     const fc=jacket||(o.sleeves?sleeve:skinD),hc=o.husk?skinD:o.glove||skin,el=grp(up,0,-.215,0),fore=part(mat,g=>{
       g.loft([[.014,.027,.028],[-.008,.037,.038],[-.05,.039,.039,0,.002],[-.12,.032,.032],[-.19,.026,.025],[-.204,.025,.024]],fc,10);
       if(!o.husk)g.loft([[-.148,.032,.031],[-.198,.029,.028]],shade(o.glove||sleeve,.72),10,'none');
@@ -142,19 +140,19 @@ export function rigFor(def,seed=0){
   const[type,o]=def.rig;if(type==='quad')return quadruped(o);if(type==='blob')return blob(o);
   const h=n=>(((seed*2654435761)>>>0)>>>n)%1000/1000;
   const pick=(a,n)=>a[Math.floor(h(n)*a.length)];
-  if(type==='human'&&def.ai==='follow')return humanoid({skin:pick(SKIN,3),top:pick(TOPS,7),legs:pick(['#3a4460','#5a4a3a','#2e4a3a','#4a4a6a'],11),hair:pick(HAIR,15),hairStyle:Math.floor(h(5)*6),eye:pick(EYES,19),scarf:h(21)<.45?pick(SCARF,23):null,fat:.94+h(9)*.14,build:h(27)<.5?'f':'m',scale:h(27)<.5?.96:1});
+  if(type==='human'&&def.ai==='follow')return humanoid({skin:pick(SKIN,3),top:pick(TOPS,7),legs:pick(['#3a3f4a','#4a4032','#2e3a2e','#4a4a5a','#3a4658'],11),hair:pick(HAIR,15),hairStyle:h(27)<.5?[1,2,4,5,0][Math.floor(h(5)*5)]:[0,0,3,1,2][Math.floor(h(5)*5)],eye:pick(EYES,19),scarf:h(21)<.2?pick(SCARF,23):null,beard:h(27)>=.5&&h(31)<.35?pick(HAIR,15):null,fat:.94+h(9)*.14,build:h(27)<.5?'f':'m',scale:h(27)<.5?.95:1});
   let oo=o;
   if(o.vary){const ZT=['#6a5040','#4a5a7a','#7a3a3a','#3a5a3a','#8a8a70','#2e3a54','#6a5a8a','#9a6a3a','#4a4a52'],ZL=['#3a3f4a','#4a4032','#2e2e36','#4a4a5a','#3a3028'];
     oo={...o,top:h(3)<.75?pick(ZT,7):o.top,legs:pick(ZL,11),scale:(o.scale||1)*(.93+h(5)*.14),fat:(o.fat||1)*(.9+h(13)*.26),hair:h(9)<.6?pick(HAIR_DULL,15):null,hairStyle:Math.floor(h(17)*6),gore:1+Math.floor(h(19)*3),lean:(o.lean||0)+h(21)*.14,build:h(25)<.4?'f':'m'}}
   else if(type==='husk'||type==='crawler')oo={...o,gore:o.helm?1:2};
-  else if(type==='human')oo={...o,hair:o.hair||pick(HAIR_DULL,15),hairStyle:Math.floor(h(17)*6),eye:'#b8452e',build:!o.vest&&h(25)<.3?'f':'m'};
-  const husk=type==='husk'||type==='crawler',r=humanoid({...oo,husk,glow:husk&&o.head?shade(o.head,1.5):null,vestStyle:oo.vest?'plate':null,helmStyle:oo.helm?'helm':null});
+  else if(type==='human')oo={...o,hair:o.hair||pick(HAIR_DULL,15),hairStyle:Math.floor(h(17)*6),eye:'#3a2e24',beard:h(25)>=.3&&h(29)<.5?pick(HAIR_DULL,15):null,build:!o.vest&&h(25)<.3?'f':'m'};
+  const husk=type==='husk'||type==='crawler',r=humanoid({...oo,husk,vestStyle:oo.vest?'plate':null,helmStyle:oo.helm?'helm':null});
   if(type==='crawler'){r.type='crawler';r.h=.5;r.body.position.z=-.6}return r;
 }
 /** The player's rig, dressed from what is equipped. */
 export function playerRig(eq){
   const look=s=>eq[s]&&ITEMS[eq[s].id]?ITEMS[eq[s].id].look||{}:null,head=look('head'),bodyL=look('body'),legs=look('legs'),feet=look('feet'),pack=look('pack');
-  return humanoid({skin:'#f0c8a4',top:'#3f7f9a',legs:legs?legs.c:'#3a4460',boots:feet?feet.c:'#4a3226',hair:'#e8e2d8',hairStyle:0,eye:'#2a8a9a',scarf:'#d8433a',glove:'#5a4634',helm:head?head.c:null,helmStyle:head?head.s||'helm':null,vest:bodyL?bodyL.c:null,vestStyle:bodyL?bodyL.s||'vest':null,pack:pack?pack.c:null});
+  return humanoid({skin:'#d8a882',top:'#5d6b4a',legs:legs?legs.c:'#3a4658',boots:feet?feet.c:'#3a2a20',hair:'#3a2a1c',hairStyle:0,eye:'#4a3828',scarf:'#6e342c',glove:'#5a4634',helm:head?head.c:null,helmStyle:head?head.s||'helm':null,vest:bodyL?bodyL.c:null,vestStyle:bodyL?bodyL.s||'vest':null,pack:pack?pack.c:null});
 }
 
 // ---------------------------------------------------------------- motion
@@ -258,7 +256,7 @@ function poseHuman(rig,s,dt,v){
   if(P.scarf){set(P.scarf,'x',.2+w*(.45+run*.7)+Math.max(0,acc)*.4+Math.sin(t*(2+w*7)+sd)*(.05+w*.06),1-Math.exp(-6*dt));P.scarf.rotation.z=Math.sin(t*(1.3+w*5)+sd)*(.05+w*.1)-rig.turn*.05}
 }
 function fade(rig,s){
-  const m=rig.mat,fl=s.flash>0?1:0;if(m._fl!==fl){m._fl=fl;m.emissive.setRGB(fl*.55,fl*.5,fl*.45)}
+  const m=rig.mat,fl=s.flash>0?1:0;if(m._fl!==fl){m._fl=fl;m.emissive.setRGB(fl*.3,fl*.24,fl*.2)}
   let op=s.vis===undefined?1:s.vis;if(s.dead&&s.deadT>8.6)op*=Math.max(0,1-(s.deadT-8.6)/1.3);
   const tr=op<.99;if(m.transparent!==tr){m.transparent=tr;m.needsUpdate=true}m.opacity=op;
 }

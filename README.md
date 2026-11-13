@@ -1,6 +1,6 @@
 # Graywake
 
-A top-down 3D survival game for the browser, cel-shaded in an anime style. You wake in a forest clearing beside a dead truck. Fell trees, raise walls, plant a garden, and walk out past the tree line for everything else. Every third night a tide of husks comes for whatever you have built.
+A top-down 3D survival game for the browser. You wake in a forest clearing beside a dead truck. Fell trees, raise walls, plant a garden, and walk out past the tree line for everything else. Every third night a tide of husks comes for whatever you have built.
 
 Runs on desktop (keyboard and mouse) and on phones (touch). No install, no accounts, no purchases. Everything you see and hear is generated in code.
 
@@ -47,7 +47,7 @@ Needs Node 22 or newer. There is nothing to install.
 
 ## Honest limits
 
-The art is generated in code: there are no scanned textures, sculpted models or motion-captured animation. The look is cel-shaded anime in 3D: flat bands of light, ink outlines, characters with skinned, realistically proportioned bodies, big eyes and chunky hair, a clean saturated palette. It is not hand-drawn: faces are simple shapes and animation is posed by code. Going further (authored character models, hand-painted textures, keyframed animation) would mean bringing in asset files, which is a project decision, not a tweak.
+The art is generated in code: there are no scanned textures, sculpted models or motion-captured animation. The look aims at realism (natural proportions and colours, smooth matte shading with surface grain, real shadows and ambient occlusion, a filmic grade), and it is believable rather than photographic: faces are simple, cloth does not fold, and movement is computed, not captured. Getting closer than this would mean bringing in authored 3D assets, which is a project decision, not a tweak.
 
 The game has been exercised by automated tests and looked at in screenshots. Nobody has played it for a hundred hours. The length of the progression is designed, not measured; see `docs/BALANCE.md` for the reasoning and the open questions. The audio is level-checked but has not been heard by its author.
 

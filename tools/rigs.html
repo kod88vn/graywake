@@ -4,15 +4,15 @@
 <script type="module">
 // Character sheet: every creature rig plus the player in several outfits. ?pose=walk|idle|attack|dead &close=1 closer camera
 // &q=substring only matching names &low=1 a low camera to check faces &surv=N adds N survivors
-import {THREE,toon} from '../js/view/geo.js';
+import {THREE,matte} from '../js/view/geo.js';
 import {Post} from '../js/view/post.js';
 import {rigFor,playerRig,setWeapon,pose} from '../js/view/rigs.js';
 import {ENEMIES} from '../js/data/enemies.js';
 const qs=new URLSearchParams(location.search),mode=qs.get('pose')||'walk';
 const cv=document.getElementById('c'),R=new THREE.WebGLRenderer({canvas:cv});R.setPixelRatio(2);R.shadowMap.enabled=true;R.shadowMap.type=THREE.PCFSoftShadowMap;const post=new Post(R);
-const S=new THREE.Scene();S.background=new THREE.Color('#3a4434');S.add(new THREE.HemisphereLight('#d6e2ff','#8f86b0',1.9));
-const sun=new THREE.DirectionalLight('#fff2d8',1.55);sun.position.set(-6,14,7);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-12,right:12,top:12,bottom:-12,near:1,far:40});sun.shadow.bias=-.0005;S.add(sun);
-const g=new THREE.Mesh(new THREE.PlaneGeometry(60,60).rotateX(-Math.PI/2),toon({ink:0},{vertexColors:false,color:'#6f9a4a'}));g.receiveShadow=true;S.add(g);
+const S=new THREE.Scene();S.background=new THREE.Color('#3a4434');S.add(new THREE.HemisphereLight('#cfe0ff','#5a5040',1.05));
+const sun=new THREE.DirectionalLight('#fff2d8',2.9);sun.position.set(-6,14,7);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-12,right:12,top:12,bottom:-12,near:1,far:40});sun.shadow.bias=-.0005;S.add(sun);
+const g=new THREE.Mesh(new THREE.PlaneGeometry(60,60).rotateX(-Math.PI/2),matte({},{vertexColors:false,color:'#5d7a42'}));g.receiveShadow=true;S.add(g);
 const list=[];const outfits=[['player',{}],['hide',{head:'hide_hood',body:'hide_vest',legs:'hide_pants',feet:'hide_boots',pack:'pack_sack'},'spear'],['leather',{head:'leather_cap',body:'leather_jacket',legs:'leather_pants',feet:'leather_boots',pack:'pack_small'},'machete'],['riot',{head:'riot_helm',body:'riot_vest',legs:'riot_pants',feet:'riot_boots',pack:'pack_hiker'},'rifle'],['hazmat',{head:'haz_mask',body:'haz_suit',legs:'haz_pants',feet:'haz_boots',pack:'pack_mil'},'shotgun'],['exo',{head:'exo_helm',body:'exo_plate',legs:'exo_legs',feet:'exo_boots',pack:'pack_exped'},'katana']];
 for(const[n,eq,w]of outfits){const e={};for(const k in eq)e[k]={id:eq[k]};const r=playerRig(e);if(w)setWeapon(r,w);list.push([n,r,w&&['rifle','shotgun'].includes(w)?2:0])}
 let i=0;for(const k in ENEMIES){for(let v=0;v<(ENEMIES[k].rig[1].vary?3:1);v++)list.push([k,rigFor(ENEMIES[k],++i*7+3),0])}
