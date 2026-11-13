@@ -70,7 +70,9 @@ function around(full){
     if(!info&&!d.cost&&!d.loot)continue;                       // plain scenery is left to the picture
     const dist=Math.hypot(x+.5-p.x,y+.5-p.y),key=d.n+'|'+(info?info.label:'')+(d.loot&&o.empty?'|searched':''),t=things.get(key);
     if(!t)things.set(key,{name:d.n,act:info?info.label:d.loot&&o.empty?'already searched':null,yours:!!d.cost,n:1,x,y,dist});else{t.n++;if(dist<t.dist){t.x=x;t.y=y;t.dist=dist}}}
-  for(const a of Z.actors){if(a.pl||a.dead)continue;const dist=Math.hypot(a.x-p.x,a.y-p.y);if(dist>R+4||a.vis<.5)continue;
+  // at a radio lead the game's minimap shows the guardian always and the last four of the garrison wherever they are; the bot is told the same
+  const lead=!!(Z.def&&Z.def.lead),few=lead&&Z.actors.reduce((n,a)=>n+(a.team===1&&!a.dead&&a.def.ai!=='flee'?1:0),0)<=4;
+  for(const a of Z.actors){if(a.pl||a.dead)continue;const dist=Math.hypot(a.x-p.x,a.y-p.y);if((dist>R+4&&!(a.team===1&&lead&&(few||a.def.boss)))||a.vis<.5)continue;
     const e={name:a.def.n||a.kind,x:r1(a.x),y:r1(a.y),dist:r1(dist),dir:compass(a.x-p.x,a.y-p.y),hp:Math.round(a.hp/a.mhp*100)};
     if(a.team===1&&a.def.ai!=='flee'){e.state=a.alert?(a.st==='wind'?'about to strike':a.st==='charge'?'charging':'coming for you'):'has not seen you';if(a.def.boss)e.boss=true;foes.push(e)}
     else{e.kind=a.team===0?'with you':'animal';others.push(e)}}
