@@ -318,6 +318,15 @@ safe('rest',()=>{
     T.ok(fed>plain*2.5&&Z.pl.fed,'being well fed brings health back three times as fast ('+plain.toFixed(1)+' against '+fed.toFixed(1)+' in 20 s)')}
   S.p.hp=10;const e=spawnActor(Z,'shambler',Z.pl.x+9,Z.pl.y,1);e.alert=true;e.st='idle';e.def=Object.assign({},e.def,{spd:0});run(8,()=>{e.alert=true});T.ok(S.p.hp<14&&!Z.pl.rest,'not while something is hunting you');e.dead=true;
 });
+// ---- the road mends you, for food and water
+safe('road rest',()=>{
+  const S=G.S;G.Z=null;World.arrive('home');S.tide.at=S.t+99999;S.nextEv=Infinity;G.ds=derive(S);const max=G.ds.maxHp;
+  S.p.hp=20;S.p.food=90;S.p.water=90;S.pos='home';World.leaveZone();World.travel('birch_hollow');if(G.pending)World.eventDone&&World.eventDone();
+  T.ok(S.p.hp>=max-1&&S.p.food<90-(max-20)*World.ROAD.food+1&&S.p.water<90-(max-20)*World.ROAD.water+1,'travelling mends you fully when there is food and water to pay for it (health '+Math.round(S.p.hp)+' of '+max+', food '+Math.round(S.p.food)+', water '+Math.round(S.p.water)+')');
+  G.Z=null;World.arrive('home');S.pos='home';S.p.hp=20;S.p.food=16;S.p.water=90;World.leaveZone();World.travel('birch_hollow');
+  T.ok(S.p.hp>20&&S.p.hp<max*.7&&S.p.food>=5,'and only as far as the food stretches (health '+Math.round(S.p.hp)+', food '+Math.round(S.p.food)+')');
+  G.Z=null;World.arrive('home');S.pos='home';
+});
 // ---- radio leads: special places to loot, with the danger told beforehand
 safe('radio leads',()=>{
   const S=G.S;G.Z=null;World.arrive('home');S.sites=[];S.p.lvl=6;S.tide.at=S.t+9999;

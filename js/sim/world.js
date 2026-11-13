@@ -66,6 +66,8 @@ export function travelInfo(S,dest){
   const speed=veh.spd*(1+perk('travel'))*(hasBuilt(S,o=>o.special==='maptable')?1.15:1),min=Math.max(10,Math.round(d/speed*60));
   return{d,min,fuel:hasFuel?fuel:0,noFuel:!hasFuel&&fuel>0};
 }
+/** What mending on the road costs per point of health, and the food and water it will not go below. */
+export const ROAD={food:.15,water:.2,keep:10};
 /** Walk off the edge of the current zone onto the map. */
 export function leaveZone(){
   const S=G.S,Z=G.Z;if(!Z)return false;
@@ -82,6 +84,11 @@ export function travel(dest){
   const info=travelInfo(S,dest),reg=destReg(S,dest);
   if(info.fuel>0)take(S,'fuel',info.fuel,S.pos==='home');else if(info.noFuel)toast('No fuel: going the slow way','bad');
   sfx('travel');advance(S,info.min,'travel');stat('distance',Math.round(info.d));
+  // The road is also a rest: wounds mend on the way, paid for in food and water, as far as there is any to spare (the user's idea:
+  // "leaving the map and come back should instant heal, hunger and thirst decrease").
+  {const ds=G.ds||derive(S),p=S.p,miss=ds.maxHp-p.hp;if(miss>=2){const heal=Math.floor(Math.min(miss,Math.max(0,p.food-ROAD.keep)/ROAD.food,Math.max(0,p.water-ROAD.keep)/ROAD.water));
+      if(heal>0){p.hp+=heal;p.food-=heal*ROAD.food;p.water-=heal*ROAD.water;toast(`You mended on the way: +${heal} health for ${Math.round(heal*ROAD.food)} food and ${Math.round(heal*ROAD.water)} water`,'good')}
+      else toast('Too hungry and thirsty to mend on the way','info')}}
   if(S.p.hp<=0){S.p.hp=5}
   if(info.min>25&&rnd()<.36){const ev=pickEvent(S,'travel',reg);if(ev){G.pending={dest};S.pos=dest==='home'?'home':S.pos;emit('ui','event',ev.id);return true}}
   arrive(dest);return true;

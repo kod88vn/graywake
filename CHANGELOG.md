@@ -3,6 +3,7 @@
 ## 0.9.4 — 2026-11-13
 
 - **Well fed.** With food and water both above 70, health trickles back three times as fast (the status line says "Well fed: healing"). Most food does not heal directly; a good meal now does, slowly. Rest takes you to three fifths, eating well the rest of the way.
+- **The road mends you.** Travelling anywhere restores your health on the way, paid for in food and water (15 food and 20 water for 100 health), down to a reserve of 10 each; with nothing to spare you arrive as you left. The map says so when you are hurt.
 - Once catching your breath has done what it can, the status line says so ("Rested: eat well or use medicine for more") instead of going silent.
 
 ## 0.9.3 — 2026-11-13
