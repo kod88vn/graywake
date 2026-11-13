@@ -30,7 +30,9 @@ try{
   const made=S.api['POST /api/worlds']({name:'Test Hollow'});T.ok(made.name==='Test Hollow'&&S.api['GET /api/worlds']().some(w=>w.id===made.id),'anyone can make a new world');
   clock+=RULES.stale+1;S.sweep();T.ok(!S.DB().worlds.some(w=>w.id===made.id)&&!S.DB().worlds.some(w=>w.id===w0.id),'worlds nobody has played in for a day and a half are deleted');
   // settlements the server plays live and die by the same hold
-  const c=S.api['POST /api/join']({name:'Watcher',kind:'human'});let last=null;for(let d=1;d<=60;d++)last=rep(c,{t:d*1440+600,day:d,level:1,deeds:{held:d%3===0?1:0}});
+  const c=S.api['POST /api/join']({name:'Watcher',kind:'human'});let last=rep(c,{t:30*1440,day:30,level:9,deeds:{}});
+  T.ok(last.world.enclaves.filter(e=>e.kind==='npc').every(e=>e.day<=3),'a long-played character joining does not make the settlements live a month in one breath');
+  for(let d=31;d<=90;d++)last=rep(c,{t:d*1440+600,day:d,level:9,deeds:{held:d%3===0?1:0}});
   const npcs=last.world.enclaves.filter(e=>e.kind==='npc');T.ok(last.world.gone.some(g=>g.kind==='npc')||npcs.some(e=>e.hold!==RULES.hold0),'over sixty days the settlements gain and lose ground by themselves ('+npcs.map(e=>e.name+' '+e.hold).join(', ')+'; fallen: '+last.world.gone.map(g=>g.name).join(', ')+')');
   // over HTTP, from another origin
   await new Promise(r=>S.server.listen(0,'127.0.0.1',r));const port=S.server.address().port,res=await fetch(`http://127.0.0.1:${port}/api/worlds`);

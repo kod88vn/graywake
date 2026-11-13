@@ -21,7 +21,7 @@ export const RULES={
   tideHeld:10,tideLost:-25,      // a tide beaten at the walls; a tide that went through them
   death:-8,lead:6,               // the enclave's leader brought home on a door; a strongroom opened
   npcs:3,room:4,                 // settlements the server plays in each new world; places for people and bots
-  leads:2,leadEvery:240,leadLasts:[18,26],   // shared radio leads: how many at once, minutes of game time between them, hours they last
+  leads:2,leadEvery:240,leadLasts:[18,26],headStart:480,   // (a settlement only goes for a lead that has been out eight hours: players get first run at it)   // shared radio leads: how many at once, minutes of game time between them, hours they last
   stale:36*3600e3,               // a world nobody has played in for this long (real time) is deleted
   score:{held:10,lead:15,day:2,level:3},
   // the world's event track: every deed pushes it on (a tide held 2, a strongroom 3), and each stage makes the tides heavier for everyone in it
@@ -65,7 +65,7 @@ export function makeServer({dir=path.join(ROOT,'.out/worlds'),rnd=Math.random,no
     for(const e of holding(w).filter(e=>e.kind==='npc')){e.day++;
       if(rnd()<.34-.03*st){e.hold=Math.min(RULES.holdMax,e.hold+RULES.tideHeld-4);e.deeds.held++;e.score+=RULES.score.held}
       else if(rnd()<.16+.05*st){e.hold+=Math.round(RULES.tideLost*(.5+rnd()*.5));e.deeds.lost++;news(w,'The tide went through '+e.name+'.','bad')}
-      const open=w.leads.filter(l=>!l.by);if(open.length&&rnd()<.1){const l=pick(open);l.by=e.name;l.byId=e.id;l.byT=w.t;e.hold=Math.min(RULES.holdMax,e.hold+RULES.lead);e.deeds.leads++;e.score+=RULES.score.lead;w.points+=3;news(w,e.name+' reached the '+SITES[l.kind].n+' first.','bad')}
+      const open=w.leads.filter(l=>!l.by&&w.t-l.born>RULES.headStart);if(open.length&&rnd()<.1){const l=pick(open);l.by=e.name;l.byId=e.id;l.byT=w.t;e.hold=Math.min(RULES.holdMax,e.hold+RULES.lead);e.deeds.leads++;e.score+=RULES.score.lead;w.points+=3;news(w,e.name+' reached the '+SITES[l.kind].n+' first.','bad')}
       if(e.hold<=0)fall(w,e)}
   }
   function fall(w,e){e.status='fallen';e.hold=0;w.gone.push({name:e.name,kind:e.kind,day:Math.floor(w.t/1440)+1,score:e.score});news(w,e.name+' has fallen. '+(e.kind==='npc'?'Nobody is left there.':'Its people are on the road, looking for another valley.'),'bad')}
@@ -75,7 +75,8 @@ export function makeServer({dir=path.join(ROOT,'.out/worlds'),rnd=Math.random,no
     if(w.leads.filter(l=>!l.by).length<RULES.leads&&w.t>=w.leadAt&&players(w).length){w.leadAt=w.t+RULES.leadEvery*(.7+rnd()*.6);
       const have=new Set(w.leads.map(l=>l.kind)),first=w.leadN===0,kinds=LEAD_KINDS.filter(k=>!have.has(k)&&k!==w.lastLead&&(SITES[k].minDay||0)<=Math.floor(w.t/1440)+1),k=first?'lead_grocery':pick(kinds.length?kinds:LEAD_KINDS);
       const[a,b]=RULES.leadLasts,l={id:w.id+'-l'+(++w.leadN),kind:k,ang:rnd()*Math.PI*2,far:rnd(),born:w.t,until:w.t+(a+rnd()*(b-a))*60,by:null};w.lastLead=k;w.leads.push(l);news(w,'On every radio: '+SITES[k].n+'. First there takes it.')}
-    const day=Math.floor(w.t/1440);while(w.npcDay<day){w.npcDay++;npcDay(w)}
+    // the settlements live one day at a time; when a long-played character joins and the world's clock leaps, they do not live the gap in one breath
+    const day=Math.floor(w.t/1440);if(day-w.npcDay>1)w.npcDay=day-1;while(w.npcDay<day){w.npcDay++;npcDay(w)}
     const st=stageOf(w);if(st>w.stage){w.stage=st;news(w,'The world moves on: '+RULES.stages[st].n+'. '+RULES.stages[st].d,'bad')}
   }
   function sweep(){
@@ -120,6 +121,8 @@ export function makeServer({dir=path.join(ROOT,'.out/worlds'),rnd=Math.random,no
   const server=http.createServer((req,res)=>{
     const u=new URL(req.url,'http://x');if(req.method==='OPTIONS')return send(res,204,'');
     if(req.method==='GET'&&(u.pathname==='/'||u.pathname==='/watch'))return send(res,200,fs.readFileSync(path.join(HERE,'watch.html')),'text/html; charset=utf-8');
+    // a bot session's status, fetched here so the side-by-side page (served from this port) is not stopped by the browser's cross-port rule
+    const bm=/^\/api\/bot\/(87\d\d)$/.exec(u.pathname);if(req.method==='GET'&&bm){fetch(`http://127.0.0.1:${bm[1]}/api/status`).then(r=>r.json()).then(s=>send(res,200,{profile:s.profile,version:s.version,zone:s.zone&&s.zone.name,level:s.you&&s.you.level,hp:s.you&&s.you.hp,maxHp:s.you&&s.you.maxHp,moves:s.actions,deaths:s.deaths,bugs:(s.bugs||[]).length,clock:s.clock}),()=>send(res,200,{down:true}));return}
     const m=/^\/api\/world\/([\w-]+)$/.exec(u.pathname);if(req.method==='GET'&&m){const w=DB.worlds.find(x=>x.id===m[1]);return w?send(res,200,publicWorld(w)):send(res,404,{error:'no such world'})}
     const h=api[req.method+' '+u.pathname];if(!h)return send(res,404,{error:'not found'});
     let raw='';req.on('data',c=>{raw+=c;if(raw.length>1e5)req.destroy()});req.on('end',()=>{let b={};try{b=raw?JSON.parse(raw):{}}catch(e){return send(res,400,{error:'bad JSON'})}try{send(res,200,h(b))}catch(e){send(res,500,{error:String(e&&e.message||e)})}});
