@@ -129,9 +129,13 @@ C.goto=async a=>{let tx,ty,name;if(a.length>=2&&Number.isFinite(parseFloat(a[0])
   else{const f=await ev(`__bot.find(${JSON.stringify(a.join(' '))})`);if(!f)return{msg:`nothing called "${a.join(' ')}" is known here; use a name from the list, or goto X Y`};tx=f.x;ty=f.y;name=f.name+` at (${Math.floor(tx)}, ${Math.floor(ty)})`}
   if(!(await ev(`__bot.navTo(${tx},${ty})`)))return{msg:'that is outside this place'};
   let mark=null,markT=0,end=null;
-  const r=await during(22,{each:async(p,p0,t)=>{const s=await ev('__bot.steer()');if(s.done){end=s.done;return s.done}await steerKeys(s.dx/Math.max(.01,Math.hypot(s.dx,s.dy)),s.dy/Math.max(.01,Math.hypot(s.dx,s.dy)));
+  let face=null;
+  const r=await during(22,{each:async(p,p0,t)=>{const s=await ev('__bot.steer()');if(s.done){end=s.done;face=s.face;return s.done}await steerKeys(s.dx/Math.max(.01,Math.hypot(s.dx,s.dy)),s.dy/Math.max(.01,Math.hypot(s.dx,s.dy)));
     if(!mark){mark=p;markT=t}else if(t-markT>1.2){if(moved(p,mark)<.25){end='stuck';return'stuck: not getting any closer'}mark=p;markT=t}}});
-  await steerKeys(0,0);return{msg:end==='arrived'?`walked to ${name}`:`heading for ${name}, stopped after ${moved(r.p,r.p0).toFixed(1)} tiles: ${r.why||'ran out of time, call goto again'}`}};
+  await steerKeys(0,0);
+  // end facing the thing walked to, with a nudge of the keys, so that E means it and not a neighbour
+  if(end==='arrived'&&face){const l=Math.max(.01,Math.hypot(face[0],face[1]));await steerKeys(face[0]/l,face[1]/l);await sleep(70);await steerKeys(0,0);await sleep(60)}
+  return{msg:end==='arrived'?`walked to ${name}`:`heading for ${name}, stopped after ${moved(r.p,r.p0).toFixed(1)} tiles: ${r.why||'ran out of time, call goto again'}`}};
 C.use=async a=>{const before=await ev(`(()=>{const e=document.getElementById('prompt');return e&&!e.hidden?[...e.childNodes].filter(n=>n.nodeName!=='KBD').map(n=>n.textContent).join('').trim():''})()`);await press('e');
   const r=await during(.5);if(r.why)return{msg:`pressed E (${before||'nothing was in reach'}): ${r.why}`};
   if(r.p.act){const r2=await during(clamp(num(a[0],10),1,25),{each:p=>p.act?null:'done'});return{msg:`pressed E (${before}) and kept at it for ${(r2.secs+.5).toFixed(1)} s`+(r2.why&&r2.why!=='done'?', stopped: '+r2.why:'')}}

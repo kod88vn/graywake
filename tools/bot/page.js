@@ -31,7 +31,8 @@ function label(el){
   if(/^×\d+$/.test(t))t='MAKE '+t+' (that many batches at once)';
   if(el.tagName==='SELECT')t=(ti||'choice')+': '+(el.selectedOptions[0]?el.selectedOptions[0].textContent:'');
   // costs are drawn as icons with a number; spell them out ("needs 2 Log (have 5)")
-  const costs=root=>[...root.querySelectorAll('.ing span[title]')].map(c=>{const[nm,have]=c.getAttribute('title').split(': ');return c.textContent.trim()+' '+nm+(have?' ('+have+')':'')}).join(', ');
+  // (the icon's hover text also says where the thing comes from; that is left out here, it is in the sheet's own text and would crowd the label)
+  const costs=root=>[...root.querySelectorAll('.ing span[title]')].map(c=>{const[nm,rest]=c.getAttribute('title').split(': '),have=(rest||'').split(' · ')[0].replace(/\s*\(.*$/,'');return c.textContent.trim()+' '+nm+(have?' ('+have+')':'')}).join(', ');
   if(el.classList.contains('bp')){const nm=el.querySelector('b'),c=costs(el),lock=el.querySelector('.ing .no');t=(nm?nm.textContent:t)+(c?' — needs '+c:lock?' — '+lock.textContent:'');return t.slice(0,140)}
   // a button in a row of a list ("MAKE", "×5", "Recruit") says nothing without the row's name
   const row=!el.classList.contains('sl')&&el.closest('.rec,.perk,.goal,.card');if(row&&row!==el){const h=row.querySelector('b,h3');const ht=h&&h.textContent.replace(/\s+/g,' ').trim();if(ht&&!t.includes(ht)&&t.length<40){t+=' — '+ht.slice(0,40);const c=!/^×\d+/.test((el.innerText||'').trim())&&row.querySelector('.ing span[title]')?costs(row):'';if(c)t+=' (needs '+c+')'}}
@@ -122,7 +123,7 @@ B.steer=()=>{const Z=G.Z,nv=B.nav;if(!Z||!nv||nv.zone!==Z.id)return{done:'lost'}
   // stop beside a solid thing, and a step short of anything else that can be used, facing it: standing on top of a plant, E picks whatever you face
   // ...and never count as arrived on the wrong side of a wall: next to a crate with a wall between is not next to it
   const walled=Z.ed.length>0&&edgeCross(Z,p.x,p.y,cx,cy,true)>=0;
-  if(d<(solid?1.28:usable?.95:.3)&&!walled)return{done:'arrived',d:r1(d)};
+  if(d<(solid?1.28:usable?.95:.3)&&!walled)return{done:'arrived',d:r1(d),face:solid||usable?[cx-p.x,cy-p.y]:null};
   if(Z.time-nv.t>1.5){nv.f=field(Z,Math.floor(nv.tx),Math.floor(nv.ty),true,400);nv.t=Z.time}
   // (the player's own tile may read as unreachable when standing beside a tree trunk; what matters is whether a neighbour leads on)
   let gx=cx,gy=cy;if(!walkClear(Z,p.x,p.y,cx,cy,p.r,true)||solid||walled){const a=pathAim(Z,nv.f,p.x,p.y,p.r,true);if(a){gx=a[0];gy=a[1]}else if(d>1.6)return{done:'no way there'}}
