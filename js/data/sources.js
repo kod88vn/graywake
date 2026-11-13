@@ -3,7 +3,7 @@
 import {ITEMS} from './items.js';
 import {OBJ} from './objects.js';
 import {RECIPE_LIST} from './recipes.js';
-import {LOOT} from './world.js';
+import {LOOT,LOCATIONS} from './world.js';
 import {ENEMIES} from './enemies.js';
 
 // what grows and lies about at the homestead is named first: it is what a new player can reach
@@ -11,11 +11,13 @@ const NEAR=['log_pile','stone_pile','grass_tall','bush_berry','mushrooms','herb_
 let MAP=null;
 function build(){
   MAP={};const add=(id,kind,name)=>{if(!ITEMS[id]||!name)return;const m=MAP[id]=MAP[id]||{make:[],gather:[],grow:[],find:[],hunt:[],drop:[]};if(!m[kind].includes(name))m[kind].push(name)};
+  // where a thing to gather stands: at the homestead if it grows there, and the nearest places that have many of it
+  const where=k=>{const at=LOCATIONS.filter(l=>l.id!=='home'&&l.nodes&&l.nodes[k]>=3).sort((a,b)=>a.lvl-b.lvl).slice(0,2).map(l=>l.n),home=NEAR.includes(k);return home&&at.length?' (a few at home, many at '+at.join(' and ')+')':!home&&at.length?' (at '+at.join(' and ')+')':''};
   const bench={};for(const k in OBJ){const d=OBJ[k];if(d.station&&d.cost&&(!bench[d.station]||d.sl<bench[d.station].sl))bench[d.station]=d}
   // "made by hand (C) from Cloth": naming what it is made from saves looking for a recipe that the list may not be showing yet
   const from=r=>{const ks=Object.keys(r.i||{}).filter(k=>ITEMS[k]);return ks.length?' from '+ks.slice(0,2).map(k=>ITEMS[k].n).join(' and ')+(ks.length>2?' and more':''):''};
   for(const r of RECIPE_LIST)if(!r.fx)add(r.o,'make',(r.s==='hand'?'by hand (C)':bench[r.s]?'at a '+bench[r.s].n:r.s)+from(r));
-  for(const k of[...NEAR.filter(k=>OBJ[k]),...Object.keys(OBJ).filter(k=>!NEAR.includes(k))]){const d=OBJ[k];if(d.node)for(const g of d.node.give)add(g[0],'gather',d.n);if(d.prod)add(d.prod.item,'make','by a '+d.n);
+  for(const k of[...NEAR.filter(k=>OBJ[k]),...Object.keys(OBJ).filter(k=>!NEAR.includes(k))]){const d=OBJ[k];if(d.node)for(const g of d.node.give)add(g[0],'gather',d.n+(MAP[g[0]]&&MAP[g[0]].gather.some(x=>x.includes('('))?'':where(k)));   // the place is said once, on the first sourceif(d.prod)add(d.prod.item,'make','by a '+d.n);
     if(d.loot&&LOOT[d.loot]&&!d.lock)for(const row of LOOT[d.loot])if(row.t0<=2)add(row.i,'find',d.n)}
   // animals that run are hunted, and they only come out by day (at the homestead too); what attacks you drops things
   for(const k in ENEMIES)for(const dr of ENEMIES[k].drop||[])if(!ENEMIES[k].boss)add(dr[0],ENEMIES[k].ai==='flee'?'hunt':'drop',ENEMIES[k].n);
