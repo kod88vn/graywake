@@ -14,7 +14,7 @@ function start(){
   G.ds=derive(S);let st=S.sites.find(s=>s.site===kind);if(!st)st=World.addLead(S,kind);return[S,st]}
 if(kind==='--ambush'){
   // every fight an event can start on the road: what the player would be told (skulls) beside what happens when Auto mode stands and fights
-  const {EVENTS}=await import(R+'data/events.js');const tabs=new Map();for(const e of EVENTS)for(const o of e.o||[])for(const r of o.r||[])for(const fx of r[2]||[])if(fx[0]==='fight'&&fx[2]!=='home')tabs.set(JSON.stringify(fx[1]),fx[1]);
+  const {EVENTS}=await import(R+'data/events.js');const tabs=new Map();for(const e of EVENTS)for(const o of e.o||[])for(const r of o.r||[])for(const fx of r[2]||[])if(fx[0]==='fight')tabs.set(JSON.stringify(fx[1]),fx[1]);   // (fights that come to the homestead are run here as road fights: the same creatures, pitched the same way)
   const N=+(process.argv[4]||12),by={};
   for(const table of tabs.values()){let win=0,plan=null,hp=0;
     for(let r=0;r<N;r++){const[S]=start();S.p.hp=G.ds.maxHp;G.pending={};World.applyFx([['fight',table]]);plan=World.ambushPlan(S,table,99);const top=World.optionFight(S,{r:[[1,'',[['fight',table]]]]});plan=top;World.eventDone();const Z=G.Z;let t=0;const dt=1/30;

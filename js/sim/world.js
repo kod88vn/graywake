@@ -104,7 +104,9 @@ export function arrive(dest){
 }
 function startAmbush(table,home){
   const S=G.S;
-  if(home&&G.Z&&G.Z.home){const Z=G.Z,side=Math.floor(rnd()*4);for(const k in table)for(let i=0;i<table[k];i++){const[x,y]=edgePoint(Z,side,10);spawnActor(Z,k,x,y,Z.lvl,ENEMIES[k]&&ENEMIES[k].ai==='flee'?{}:{alert:true,st:'chase',tide:true})}sfx('warning');return}
+  // a fight that comes to the homestead is pitched to whoever lives there, like one on the road: six raiders with guns at the homestead's level killed a
+  // level 13 character with 43 armour and sixteen bandages in six seconds (0.10.0)
+  if(home&&G.Z&&G.Z.home){const Z=G.Z,side=Math.floor(rnd()*4),plan=ambushPlan(S,table,Z.lvl);table=plan.table;for(const k in table)for(let i=0;i<table[k];i++){const[x,y]=edgePoint(Z,side,10);spawnActor(Z,k,x,y,plan.lvl,ENEMIES[k]&&ENEMIES[k].ai==='flee'?{}:{alert:true,st:'chase',tide:true})}sfx('warning');return}
   const reg=G.pending&&G.pending.dest?destReg(S,G.pending.dest):regionHere(S),biome=['forest','forest','dust','city','frost','gray'][reg];
   // pitched to the player as they stand, the same way the choice that led here described it
   const plan=ambushPlan(S,table,ambushTop(S,reg)),lvl=plan.lvl;table=plan.table;
@@ -232,7 +234,7 @@ export function ambushPlan(S,table,top){
 const ambushTop=(S,reg)=>Math.max(1,Math.round((LOCATIONS.filter(l=>l.reg===reg).reduce((a,l)=>Math.min(a,l.lvl),99)+S.p.lvl*.6)/1.6));
 /** For an event's choice: the fight it leads to, if any, as it would be for this player ({names, skulls, word, sure}). */
 export function optionFight(S,o){
-  let worst=null,p=0;for(const r of o.r||[])for(const fx of r[2]||[])if(fx[0]==='fight'&&fx[2]!=='home'){const reg=G.pending&&G.pending.dest?destReg(S,G.pending.dest):regionHere(S),pl=ambushPlan(S,fx[1],ambushTop(S,reg));p+=r[0];if(!worst||pl.odds>worst.odds)worst=pl}
+  let worst=null,p=0;for(const r of o.r||[])for(const fx of r[2]||[])if(fx[0]==='fight'){const reg=G.pending&&G.pending.dest?destReg(S,G.pending.dest):regionHere(S),pl=ambushPlan(S,fx[1],fx[2]==='home'&&G.Z&&G.Z.home?G.Z.lvl:ambushTop(S,reg));p+=r[0];if(!worst||pl.odds>worst.odds)worst=pl}
   return worst?{...worst,sure:p>=.999}:null;
 }
 // Where the skulls fall, measured 2026-11-13 with a simulated player who clears the place in auto mode with three bandages (150 runs):

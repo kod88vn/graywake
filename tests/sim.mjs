@@ -372,6 +372,7 @@ safe('road',()=>{
   T.ok(plan.skulls<=3&&plan.odds<raw&&plan.names.includes('Wol'),'four wolves at level 5 against a club become '+plan.names+' at level '+plan.lvl+' ('+plan.word+'; unpitched odds '+raw.toFixed(1)+')');
   const f=World.optionFight(S,{l:'x',r:[[.5,'',[['food',-8]]],[.5,'',[['fight',{wolf:3}]]]]});T.ok(!!f&&!f.sure&&f.skulls>=1,'a choice that may end in a fight says so, with its threat');
   G.pending={dest:'gas_stop'};World.applyFx([['fight',{wolf:4}]]);World.eventDone();T.ok(G.Z.id==='ambush'&&enemiesAlive(G.Z)>=1&&enemiesAlive(G.Z)<=4,'the fight that starts is the one that was described ('+enemiesAlive(G.Z)+' wolves)');
+  {const f2=World.optionFight(S,{l:'x',r:[[.6,'',[]],[.4,'',[['fight',{raider:4,raider_gun:2},'home']]]]});T.ok(!!f2&&!f2.sure&&f2.skulls<=3,'a choice at home that may bring a fight to the door says so too, pitched to who lives there ('+f2.names+', '+f2.word+')')}
   give(S,'log',7);G.Z.pl.dead=true;S.p.hp=0;World.respawn();const st=S.sites.find(x=>x.site==='fell');
   T.ok(!!st&&st.bag.some(it=>it&&it.id==='log')&&G.Z.home&&count(S,'log')===0,'dying on the road puts the place on the map with the pack in it');
   G.Z=null;World.arrive(st.id);const bi=G.Z.obj.findIndex(o=>o&&o.k==='deathbag');T.ok(bi>=0&&enemiesAlive(G.Z)===0,'going there finds the pack, and nothing waiting');
