@@ -42,8 +42,8 @@ function info(){
   const S=G.S,el=$('mapinfo');if(sel==null){el.innerHTML='';return}
   const site=S.sites.find(s=>s.id===sel),l=site?null:LOC[sel];if(!site&&!l){el.innerHTML='';return}
   const here=sel===S.pos,why=World.canVisit(S,sel),ti=World.travelInfo(S,sel),reg=REGIONS[site?site.reg:l.reg],lvl=site?site.lvl:World.locLevel(S,l),def=site?SITES[site.site]:l;
-  const gap=lvl-S.p.lvl,danger=sel==='home'?'':gap>8?'<span class="danger">Far beyond you</span>':gap>3?'<span class="danger">Dangerous</span>':gap>-3?'<span class="amb">A fair fight</span>':'<span class="okc">Well within reach</span>';
   const LI=site?World.leadInfo(S,site):null;
+  const gap=lvl-S.p.lvl,danger=LI?`<span class="${LI.skulls>=4?'danger':LI.skulls===3?'amb':'okc'}">${LI.word}</span>`:sel==='home'?'':gap>8?'<span class="danger">Far beyond you</span>':gap>3?'<span class="danger">Dangerous</span>':gap>-3?'<span class="amb">A fair fight</span>':'<span class="okc">Well within reach</span>';
   const tg=[];if(LI)tg.push('RADIO LEAD','Threat '+LI.skulls+' of 5: '+LI.word,'Held by '+LI.who,'Strongroom: '+LI.prize);if(sel!=='home')tg.push('Level '+lvl);if(def.boss&&!def.bossChance)tg.push('Boss: '+ENEMIES[def.boss].n);if(reg.cold||def.cold)tg.push('Freezing: wear fur');if(def.tox||reg.tox)tg.push('Toxic air: mask or suit');if(reg.heat)tg.push('Heat: bring water');if(def.dark)tg.push('Dark: bring a lantern');
   if(site)tg.push('Gone in '+fmtMin(site.until-S.t));if(site&&site.bag&&site.bag.some(Boolean))tg.push('Your pack is here');const mem=l&&S.loc[l.id];if(mem&&mem.bag&&mem.bag.length)tg.push('Your pack is here');if(mem&&mem.n)tg.push('Visited '+mem.n+'×');if(l&&l.endless)tg.push('Depth '+S.depth);
   el.innerHTML=`<div class="card"><small class="h" style="color:var(--amber2)">${esc(reg.n)}</small><h3>${esc(def.n)} ${danger?'· '+danger:''}</h3><p>${esc(def.d)}</p><div class="tags">${tg.map(t=>`<span>${esc(t)}</span>`).join('')}</div>

@@ -307,16 +307,30 @@ safe('sleep death save',()=>{
     T.ok(at(12,6,3)&&at(12,7,3)&&at(12,8,3)&&at(12,7,3).k==='wall_plank','a loose run becomes one straight line')}
   World.resume(S2);run(2,god);T.ok(G.Z&&G.Z.home,'resumed game runs');
 });
+// ---- catching your breath
+safe('rest',()=>{
+  const S=G.S;G.Z=null;World.arrive('home');const Z=G.Z;for(const a of Z.actors)if(a.team===1)a.dead=true;S.tide.at=S.t+9999;S.p.food=80;S.p.water=80;G.ds=derive(S);
+  S.p.hp=10;G.inp.mx=G.inp.my=0;run(3);const slow=S.p.hp;run(20);const max=derive(S).maxHp;
+  T.ok(slow<12&&S.p.hp>10+20&&Z.pl.rest,'standing still out of danger brings health back fast after a few seconds ('+Math.round(slow)+' then '+Math.round(S.p.hp)+' of '+max+')');
+  run(120);T.ok(S.p.hp>=max*.58&&S.p.hp<max*.75,'up to about three fifths, then the slow trickle again ('+Math.round(S.p.hp)+' of '+max+')');
+  S.p.hp=10;const e=spawnActor(Z,'shambler',Z.pl.x+9,Z.pl.y,1);e.alert=true;e.st='idle';e.def=Object.assign({},e.def,{spd:0});run(8,()=>{e.alert=true});T.ok(S.p.hp<14&&!Z.pl.rest,'not while something is hunting you');e.dead=true;
+});
 // ---- radio leads: special places to loot, with the danger told beforehand
 safe('radio leads',()=>{
   const S=G.S;G.Z=null;World.arrive('home');S.sites=[];S.p.lvl=6;S.tide.at=S.t+9999;
-  const site=World.addLead(S,'lead_police',2),I=World.leadInfo(S,site);
-  T.ok(!!site&&site.lvl===8&&I.skulls===4&&I.boss==='The Desk Sergeant'&&I.count>10&&/firearms/.test(I.prize)&&I.left>0,'a lead says ahead of time how hard it is ('+I.word+', '+I.skulls+' skulls, level '+I.lvl+' against yours '+S.p.lvl+', about '+I.count+' inside, '+I.boss+')');
-  const easy=World.addLead(S,'lead_grocery',-3),E=World.leadInfo(S,easy);T.ok(E.skulls===1&&!E.boss&&E.lvl===3,'and an easy one says so too ('+E.word+', level '+E.lvl+')');
-  S.lead.next=S.t+1;S.lead.last='';S.lead.note=null;run(3,god);
-  T.ok(S.sites.length===2&&S.lead.next>S.t,'two leads are on the map at most without a radio mast');
-  S.sites=[];S.lead.n=0;S.lead.next=S.t+1;run(3,god);{const st=S.sites[0],I0=st&&World.leadInfo(S,st);T.ok(S.sites.length===1&&st.site==='lead_grocery'&&I0.skulls<=2&&S.lead.note===st.id,'the first lead anyone hears comes by itself and is a gentle one ('+(I0&&I0.name+', '+I0.word)+')')}
-  S.sites=[];S.lead.next=S.t+1;S.lead.last='';run(3,god);T.ok(S.sites.length===1&&SITES[S.sites[0].site].lead,'later ones are whatever the radio picks up ('+SITES[S.sites[0].site].n+')');
+  // the threat is for the player as they stand: the same police station against bare fists, and against a fire axe, armour and bandages
+  for(const k of['w1','w2','head','body','legs'])S.p.eq[k]=null;S.p.inv=[];G.ds=derive(S);
+  const site=World.addLead(S,'lead_police',0),I=World.leadInfo(S,site);
+  T.ok(!!site&&site.lvl===6&&I.skulls===5&&I.boss==='The Desk Sergeant'&&I.count>10&&/firearms/.test(I.prize)&&I.left>0,'a lead says ahead of time how hard it is for you as you stand ('+I.word+', '+I.skulls+' skulls with bare fists: level '+I.lvl+', about '+I.count+' inside, '+I.boss+')');
+  give(S,'fire_axe',1);equip(S,S.p.inv.findIndex(x=>x&&x.id==='fire_axe'),'w1');for(const g of['riot_vest','riot_helm']){give(S,g,1);equip(S,S.p.inv.findIndex(x=>x&&x.id===g))}give(S,'medkit',3);G.ds=derive(S);
+  const I2=World.leadInfo(S,site);T.ok(I2.skulls<I.skulls&&I2.odds<I.odds*.4,'and the rating drops when you arm, armour and pack medicine ('+I2.word+', '+I2.skulls+' skulls)');
+  S.sites=[];S.lead.n=0;S.lead.next=S.t+1;S.lead.last='';S.lead.note=null;run(3,god);{const st=S.sites[0],I0=st&&World.leadInfo(S,st);T.ok(S.sites.length===1&&st.site==='lead_grocery'&&I0.skulls<=2&&S.lead.note===st.id,'the first lead anyone hears comes by itself and is a gentle one ('+(I0&&I0.name+', '+I0.word+', level '+I0.lvl)+')')}
+  // whoever you are, what the radio offers is pitched at you: a weak character gets the same places at a lower level, never a death trap
+  for(const k of['w1','w2','head','body','legs'])S.p.eq[k]=null;S.p.inv=[];give(S,'spear',1);equip(S,S.p.inv.findIndex(x=>x&&x.id==='spear'),'w1');G.ds=derive(S);S.p.lvl=9;
+  {let worst=0,low=99,n=0;for(let k=0;k<12;k++){S.sites=[];S.lead.next=S.t+1;run(2.2,god);const st=S.sites[0];if(!st)continue;n++;const J=World.leadInfo(S,st);worst=Math.max(worst,J.skulls);low=Math.min(low,J.lvl)}
+    T.ok(n>=10&&worst<=4&&low<9,'a level 9 character with only a spear is offered leads it can attempt ('+n+' leads heard, hardest '+worst+' skulls, lowest level '+low+')')}
+  S.lead.next=S.t+1;S.lead.last='';run(3,god);S.lead.next=S.t+1;run(3,god);T.ok(S.sites.length===2&&S.lead.next>S.t,'two leads are on the map at most without a radio mast');
+  S.p.lvl=6;S.sites=[];
   World.leadRead(S);S.sites=[site];G.Z=null;World.arrive(site.id);const Z=G.Z,si=Z.obj.findIndex(o=>o&&o.k==='strong_guns'),tgt={i:si,x:si%Z.w+.5,y:Math.floor(si/Z.w)+.5,type:'loot'};
   T.ok(Z.site===site.id&&si>=0&&(Z.spawns.some(s=>s.boss)||Z.actors.some(a=>a.def&&a.def.boss)),'the place has a strongroom and a guardian');
   T.ok(!guardDown(Z)&&interactInfo(Z,si).label==='Locked'&&interact(Z,tgt)===false&&!Z.obj[si].unlocked,'the strongroom stays shut while the guardian lives');

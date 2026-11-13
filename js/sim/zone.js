@@ -128,7 +128,7 @@ function genComplex(Z,R,rng,def,seed){
   const x1=x0+w-1,y1=y0+h-1;
   for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++){const i=y*W+x;Z.g[i]=fl;R[i]=2}
   for(let x=x0;x<=x1;x++){wallOn(Z,x,y0,0,wall,rng);wallOn(Z,x,y1,2,wall,rng)}for(let y=y0;y<=y1;y++){wallOn(Z,x0,y,3,wall,rng);wallOn(Z,x1,y,1,wall,rng)}
-  for(let y=y0+h;y<H;y++)for(let x=Math.floor(W/2)-1;x<=Math.floor(W/2)+1;x++)Z.g[y*W+x]=GT.path;
+  for(let y=y0+h;y<H;y++)for(let x=Math.floor(W/2)-1;x<=Math.floor(W/2)+1;x++){Z.g[y*W+x]=GT.path;R[y*W+x]=1}   // and nothing is scattered onto the way in
   const ex=Math.floor(W/2);for(const dx of[-1,0,1]){doorwayOn(Z,ex+dx,y1,2,wall);doors.push([ex+dx,y1])}
   const nearDoor=(x,y)=>doors.some(d=>Math.abs(d[0]-x)+Math.abs(d[1]-y)<=1);
   const split=(ax,ay,bx,by,depth)=>{ // interior rectangle inclusive

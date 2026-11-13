@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.9.3 — 2026-11-13
+
+The bot's third expedition: a Police Station rated 3 of 5, entered at full health, dead in 25 seconds. It was level 9 with a flint spear.
+
+- **A lead's threat is now about the fight, not the level.** The rating weighs the weapon in your hands, your armour and the medicine in your pack against the health and blows of everyone in the place. Level told you little: a spear does not grow with its owner, and riot husks do. Arm better and the same place reads easier. The thresholds were set by simulating 150 clearances: at two skulls a careless fighter always lived, at three two times in three, at four one in four.
+- **Leads are pitched at you.** Each lead's level is set so its threat falls in that place's usual range for the character you actually have; none is offered at "Deadly". An under-geared character hears about the same places at a lower level.
+- **Leads are closer**: one and a half to two and a half hours each way, where the last was five.
+- **Fixed: quick-heal refused small remedies when you were badly hurt** ("Nothing to heal with" at 16 health with a poultice in the pack). This also stopped auto mode from healing.
+- **Catching your breath.** Stand still for a few seconds with nothing hunting you and health comes back quickly, up to three fifths of full, for a little food and water. Before, a hurt player (and the bot) stood about for minutes waiting on a trickle.
+- **Nothing is parked in a building's entrance** any more.
+- The map card's heading uses the lead's threat word instead of a level comparison that could contradict it.
+
 ## 0.9.2 — 2026-11-13
 
 The bot's first expedition: it walked into a Fire Station rated 3 of 5 and was dead in ten seconds.

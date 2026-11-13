@@ -6,7 +6,7 @@ import {RECIPES,VEHICLES} from '../data/recipes.js';
 import {PERK,xpFor,MAX_LEVEL} from '../data/progress.js';
 import {clamp,rnd} from './util.js';
 
-export const VERSION='0.9.2';
+export const VERSION='0.9.3';
 export const SAVE_V=2;
 export const HOME_W=46,HOME_H=46,EXIT_RING=2,NO_BUILD=4;
 export const MIN_PER_SEC=1.5;            // game minutes per real second: a day is 16 real minutes
@@ -349,7 +349,7 @@ export function quickUse(S,need){
   let best=-1,score=0;const p=S.p,ds=G.ds;
   S.p.inv.forEach((s,i)=>{if(!s)return;const it=ITEMS[s.id];if(it.t!=='food'&&it.t!=='med')return;let v=0;
     if(need==='food')v=(it.food||0)-(it.risk?it.risk[0]*40:0);else if(need==='water')v=(it.water||0)-(it.risk?it.risk[0]*40:0);
-    else if(need==='hp'){if(it.t!=='med'&&!(it.hp>=8))return;const miss=ds.maxHp-p.hp;v=it.hp>0?100-Math.abs(miss-it.hp):0}
+    else if(need==='hp'){if(it.t!=='med'&&!(it.hp>=8))return;const miss=ds.maxHp-p.hp;v=it.hp>0?Math.max(1,100-Math.abs(miss-it.hp)):0}
     else if(need==='tox')v=-(it.tox||0);
     if(v>score){score=v;best=i}});
   if(best<0){toast(need==='hp'?'Nothing to heal with':need==='tox'?'No antidote':'Nothing suitable in your pack','bad');sfx('error');return false}

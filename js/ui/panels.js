@@ -237,13 +237,13 @@ export const skulls=n=>{let h='<span style="display:inline-flex;gap:2px;vertical
 export function leadCard(s,I,full){
   const cls=I.skulls>=4?'danger':I.skulls===3?'amb':'okc',ti=World.travelInfo(s,I.id);
   return`<div class="card"><h3>${esc(I.name)} · <span class="${cls}">${esc(I.word)}</span></h3>${full?`<p>${esc(I.d)}</p>`:''}
-    <div class="kv" style="margin-top:6px"><span>Threat</span><span class="${cls}">${skulls(I.skulls)}</span><span>Level</span><span>${I.lvl} <small style="color:var(--dim)">(you are ${s.p.lvl})</small></span>
+    <div class="kv" style="margin-top:6px"><span>Threat <small style="color:var(--dim)">for you as you stand</small></span><span class="${cls}">${skulls(I.skulls)}</span><span>Level</span><span>${I.lvl} <small style="color:var(--dim)">(you are ${s.p.lvl})</small></span>
     <span>Held by</span><span style="text-align:right;max-width:24em">${esc(I.who)}</span><span>How many</span><span>about ${I.count}${I.boss?', one of them a boss':''}</span>
     <span>Strongroom</span><span style="text-align:right;max-width:24em">${esc(I.prize)}</span><span>Gone in</span><span>${fmtMin(I.left)}</span><span>The trip</span><span>${fmtMin(ti.min)} each way</span></div>
     <p>${I.boss?`The strongroom is locked. <b style="color:var(--ink)">${esc(I.boss)}</b> carries the keys.`:'The strongroom is barred from inside. It opens when the place is clear.'}</p></div>`}
 PANELS.lead={title:'On the radio',narrow:true,
   render(id){const s=S(),site=s.sites.find(x=>x.id===id),I=site&&World.leadInfo(s,site);if(!I)return'<div class="card"><p>The signal is gone.</p></div>';
-    return`<div class="quote">${esc(I.radio)}</div>${leadCard(s,I,true)}<p style="color:var(--dim);font-size:13px">It is marked on your map. Walk to the edge of the homestead to set out. Take what the threat calls for: the place does not get easier while you travel, and you carry out only what your pack holds.</p><div class="row" style="justify-content:flex-end">${btn('Noted','done','','go')}</div>`},
+    return`<div class="quote">${esc(I.radio)}</div>${leadCard(s,I,true)}<p style="color:var(--dim);font-size:13px">It is marked on your map. Walk to the edge of the homestead to set out. The threat is worked out from the weapon in your hands, your armour and the medicine in your pack against who is in there: arm better and it drops. You carry out only what your pack holds.</p><div class="row" style="justify-content:flex-end">${btn('Noted','done','','go')}</div>`},
   act(a){if(a==='done'){UI().close();return false}},
   close(){World.leadRead(S())}};
 

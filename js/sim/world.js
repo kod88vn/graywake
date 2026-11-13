@@ -6,9 +6,9 @@ import {RECIPES,VEHICLES} from '../data/recipes.js';
 import {LOC,LOCATIONS,SITES,REGIONS,LEADS} from '../data/world.js';
 import {EVENTS,WEATHER,WEATHER_BY_REG,TIDE_KINDS,TIDE_COST} from '../data/events.js';
 import {SURV_NAMES,SURV_TRAITS,JOBS,TRADE,TRADE_BP} from '../data/progress.js';
-import {ENEMIES} from '../data/enemies.js';
+import {ENEMIES,scale} from '../data/enemies.js';
 import {FACTIONS} from '../data/community.js';
-import {G,emit,toast,sfx,stat,statMax,blankState,derive,perk,count,take,give,addTo,removeFrom,slotCount,homeStores,addXp,addBuff,produce,maxHp,hasBuilt,countBuilt,compact,dropAt,SAVE_V,edgeIdx,MIN_PER_SEC,HOME_W,HOME_H} from './core.js';
+import {G,FIST,emit,toast,sfx,stat,statMax,blankState,derive,perk,count,take,give,addTo,removeFrom,slotCount,homeStores,addXp,addBuff,produce,maxHp,hasBuilt,countBuilt,compact,dropAt,SAVE_V,edgeIdx,MIN_PER_SEC,HOME_W,HOME_H} from './core.js';
 import {genHome,homeZone,genZone,siteDef,freeNear,rollLoot,playerField} from './zone.js';
 import {spawnActor,spawnPlayer,populate,enemiesAlive,step,alertActor,harvest,plant} from './actors.js';
 import {startQuest,checkStory,checkAch,fillContracts,noteClear,maxRegion} from './quests.js';
@@ -91,7 +91,7 @@ export function arrive(dest){
   const S=G.S;S.pos=dest;
   if(dest==='home'){goHome(true);emit('save');return}
   const site=S.sites.find(s=>s.id===dest);let Z;
-  if(site){Z=genZone(siteDef(site,site.reg,site.lvl),hash(S.seed,site.id*7919));Z.site=site.id;Z.id='site';Z.name=SITES[site.site].n;Z.siteKind=site.site;if(site.bag&&site.bag.length){const x=Math.floor(Z.w/2)-2,y=Z.h-4;Z.obj[y*Z.w+x]={k:'deathbag',r:0,v:0,inv:site.bag,open:1}}if(SITES[site.site].lead&&site.lvl-S.p.lvl>=3)Z.lt=Math.min(5,Z.lt+1)}
+  if(site){Z=genZone(siteDef(site,site.reg,site.lvl),hash(S.seed,site.id*7919));Z.site=site.id;Z.id='site';Z.name=SITES[site.site].n;Z.siteKind=site.site;if(site.bag&&site.bag.length){const x=Math.floor(Z.w/2)-2,y=Z.h-4;Z.obj[y*Z.w+x]={k:'deathbag',r:0,v:0,inv:site.bag,open:1}}if(SITES[site.site].lead&&leadInfo(S,site).skulls>=4)Z.lt=Math.min(5,Z.lt+1)}
   else{const l=LOC[dest],m=S.loc[dest]=S.loc[dest]||{n:0};Z=genZone(l,hash(S.seed+m.n*101,LOCATIONS.indexOf(l)),{lvl:locLevel(S,l)});if(!m.n)stat('locs');m.n++}
   enterZone(Z,Z.spawn.x,Z.spawn.y);emit('save');
 }
@@ -189,19 +189,42 @@ function addSite(S,kind,reg){
 
 // ---------------------------------------------------------------- radio leads: special places to loot, announced with their danger
 const THREAT=['','Easy pickings','A fair fight','Dangerous','Very dangerous','Deadly'];
-/** Everything a player is told about a lead before going: how hard (1 to 5 skulls against their own level), who holds it, what is in the strongroom, how long it lasts. */
+/** How clearing a place would go for this player as they stand now: the damage they would take doing it, as a share of the health they bring
+ *  (armour and the medicine in their pack included). It weighs their best weapon against the garrison's health and its blows, at the place's
+ *  level. About a third is comfortable, one is even, three is hopeless. Level alone says little: a spear does not grow with its owner. */
+export function leadOdds(S,def,lvl){
+  const ds=derive(S),p=S.p;let dps=FIST.dmg/FIST.spd;
+  for(const slot of['w1','w2']){const e=p.eq[slot],w=e&&ITEMS[e.id];if(!w)continue;let v=0;
+    if(w.t==='gun')v=count(S,w.ammo)/(w.ammoPer||1)>=12?w.dmg*(w.pellets||1)*.7/w.spd*(ds.ranged||1):0;else if(w.t!=='throw')v=w.dmg/w.spd*(ds.melee||1)*(w.fx&&w.fx.cleave?1.3:1);
+    if(w.dur&&e.d!==undefined&&e.d<w.dur*.15)v*=.4;if(v>dps)dps=v}
+  let hp=0,dmg=0,n=0;const add=(k,c)=>{const e=ENEMIES[k];if(!e)return;const sc=scale(k,lvl,S.mut||0);hp+=c*sc.hp/(1-(e.arm||0)*.8);dmg+=c*sc.dmg/e.cd*(e.proj?1.4:1);n+=c};
+  for(const t of[def.en,def.inn])for(const k in t||{})add(k,t[k]);if(def.boss)add(def.boss,1);if(!n)return 0;
+  let heal=0;for(const it of p.inv)if(it&&ITEMS[it.id]&&ITEMS[it.id].t==='med'&&ITEMS[it.id].hp>0)heal+=ITEMS[it.id].hp*it.n;
+  const mine=(ds.maxHp+Math.min(heal,ds.maxHp))/(1-Math.min(.8,ds.armRed||0));
+  // they come two or three at a time, and about a third of their blows land on someone who keeps moving
+  return hp/dps*(dmg/n*Math.min(2.5,n)*.33)/mine;
+}
+// Where the skulls fall, measured 2026-11-13 with a simulated player who clears the place in auto mode with three bandages (150 runs):
+// under 0.75 it always lived, 0.75 to 1 four times in five, 1 to 1.5 three in five, 1.5 to 2.2 one in four, above that almost never.
+const ODDS=[.4,.8,1.3,2.2],skullsFor=r=>r<ODDS[0]?1:r<ODDS[1]?2:r<ODDS[2]?3:r<ODDS[3]?4:5;
+/** Everything a player is told about a lead before going: how hard (1 to 5 skulls, for them as they stand: weapon, armour, medicine), who holds it, what is in the strongroom, how long it lasts. */
 export function leadInfo(S,site){
   const def=SITES[site.site];if(!def||!def.lead)return null;const gap=site.lvl-S.p.lvl,boss=def.boss?ENEMIES[def.boss]:null;
   let n=0;for(const t of[def.en,def.inn])for(const k in t||{})n+=t[k];
-  // two skulls is your own level with no boss; a boss adds most of one, raiders (they shoot) most of another, every two and a half levels one more
-  const skulls=clamp(Math.round(2+gap/2.5+(boss?.7:0)+(def.raiders?.8:0)),1,5);
-  return{id:site.id,kind:site.site,name:def.n,lvl:site.lvl,gap,skulls,word:THREAT[skulls],who:def.who,prize:def.prize,boss:boss?boss.n:null,raiders:!!def.raiders,count:n+(boss?1:0),left:Math.max(0,site.until-S.t),radio:def.radio,d:def.d};
+  const odds=leadOdds(S,def,site.lvl),skulls=skullsFor(odds);
+  return{id:site.id,kind:site.site,name:def.n,lvl:site.lvl,gap,odds,skulls,word:THREAT[skulls],who:def.who,prize:def.prize,boss:boss?boss.n:null,raiders:!!def.raiders,count:n+(boss?1:0),left:Math.max(0,site.until-S.t),radio:def.radio,d:def.d};
 }
-/** Put a lead on the map. Its level is rolled around the player's own, inside the lead's range, so the same shop can be a stroll or a siege. */
-export function addLead(S,kind,offset){
+/** The level at which this kind of lead would be the wanted threat for this player: the highest level that is no harder than that (so the
+ *  fight and the loot are as rich as the rating allows), or level 1 if even that is harder. */
+function leadLevel(S,def,want){let best=1;for(let L=1;L<=S.p.lvl+8;L++){if(skullsFor(leadOdds(S,def,L))<=want)best=L;else break}return best}
+/** Put a lead on the map, a couple of hours' travel from home. Its level is set so that its threat, for the player as they stand, falls in the
+ *  lead's range (`tier`, in skulls); an explicit `offset` from the player's level overrides that. */
+export function addLead(S,kind,offset,want){
   const def=SITES[kind];if(!def||!def.lead)return null;const site=addSite(S,kind,Math.max(1,maxRegion(S)-(rnd()<.5?1:0)));if(!site)return null;
-  // the level is rolled inside the lead's range, leaning to the middle of it (two dice, not one)
-  const[a,b]=def.tier||[-1,2],off=offset!==undefined?offset:a+Math.round((rnd()+rnd())/2*(b-a));site.lvl=Math.max(1,S.p.lvl+off);S.lead.last=kind;S.lead.n++;stat('leads');return site;
+  const[a,b]=def.tier||[2,3];site.lvl=offset!==undefined?Math.max(1,S.p.lvl+offset):leadLevel(S,def,Math.min(4,want||a+Math.floor(rnd()*(b-a+1))));   // never pitched at "deadly"
+  // near enough to be an expedition and not a migration: one and a half to two and a half hours each way by whatever you travel in
+  if(maxRegion(S)<=1||rnd()<.6){const h=LOC.home,v=VEHICLES[S.veh||0].spd*(1+perk('travel')),ang=rnd()*TAU,r=(1.5+rnd())*v;site.x=clamp(h.x+Math.cos(ang)*r,30,970);site.y=clamp(h.y+Math.sin(ang)*r,25,615);site.reg=1}
+  S.lead.last=kind;S.lead.n++;stat('leads');return site;
 }
 /** Leads come over the truck's radio a couple of times a day, two on the map at most; a Radio Mast at home hears them more often and keeps three. */
 function leadTick(S){
@@ -210,7 +233,9 @@ function leadTick(S){
   L.next=S.t+(mast?6+rnd()*4:8+rnd()*6)*60;if(active>=(mast?3:2)||S.tide.live)return;
   const kinds=LEADS.filter(k=>(SITES[k].minDay||0)<=day&&k!==L.last&&!S.sites.some(s=>s.site===k));if(!kinds.length)return;
   // the first lead anyone hears is a gentle one: the grocery, below their own level
-  const site=L.n===0?addLead(S,'lead_grocery',-1):addLead(S,kinds[Math.floor(rnd()*kinds.length)]);if(!site)return;const I=leadInfo(S,site);
+  // only places that can be made a fair fight for this player; if none can, the least bad one
+  const fair=kinds.filter(k=>skullsFor(leadOdds(S,SITES[k],1))<=3),pool=fair.length?fair:[kinds.slice().sort((x,y)=>leadOdds(S,SITES[x],1)-leadOdds(S,SITES[y],1))[0]];
+  const site=L.n===0?addLead(S,'lead_grocery',undefined,2):addLead(S,pool[Math.floor(rnd()*pool.length)]);if(!site)return;const I=leadInfo(S,site);
   L.note=site.id;sfx('radio');toast('Radio: '+I.name+' · '+I.word+' (threat '+I.skulls+' of 5)','info');
 }
 /** The radio note waiting to be read, shown as a sheet when the player is home and nothing else is going on. */
@@ -419,7 +444,14 @@ export function tick(dt){
   const p=S.p,ds=G.ds,pl=Z.pl;
   if(!pl.dead){
     for(let i=p.buffs.length-1;i>=0;i--){p.buffs[i].t-=dt;if(p.buffs[i].t<=0)p.buffs.splice(i,1)}
-    let regen=ds.regenBuff+(p.food>25&&p.water>25?ds.regen+.12:0);if(regen>0&&p.hp<ds.maxHp)p.hp=Math.min(ds.maxHp,p.hp+regen*dt);if(p.hp>ds.maxHp)p.hp=ds.maxHp;
+    let regen=ds.regenBuff+(p.food>25&&p.water>25?ds.regen+.12:0);
+    // Catching your breath: stand still for a few seconds with nothing hunting you and health comes back quickly, up to three fifths of full.
+    // It costs a little food and water. Without it a hurt player has nothing to do but stand about for minutes.
+    {let hunted=false;for(const a of Z.actors)if(a.team===1&&!a.dead&&a.alert&&a.def.ai!=='flee'&&dist(a.x,a.y,pl.x,pl.y)<12){hunted=true;break}
+      pl.restT=pl.mv<.1&&!pl.atk&&!pl.act&&!pl.roll&&!(pl.hurtT>0)&&!hunted?(pl.restT||0)+dt:0;
+      pl.rest=pl.restT>4&&p.hp<ds.maxHp*.6&&p.food>15&&p.water>15;
+      if(pl.rest){regen+=1.5;p.food-=.035*dt;p.water-=.045*dt;if(!S.flags.restTip){S.flags.restTip=1;toast('Standing still out of danger, you catch your breath: health comes back fast, up to three fifths','info')}}}
+    if(regen>0&&p.hp<ds.maxHp)p.hp=Math.min(ds.maxHp,p.hp+regen*dt);if(p.hp>ds.maxHp)p.hp=ds.maxHp;
     advance(S,dt*MIN_PER_SEC,'live');
   }
   if(S.tide.live&&Z.home)tickTide(S,Z,dt);
