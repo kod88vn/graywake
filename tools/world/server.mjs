@@ -39,6 +39,7 @@ const LEAD_KINDS=Object.keys(SITES).filter(k=>SITES[k].lead);
 export function makeServer({dir=path.join(ROOT,'.out/worlds'),rnd=Math.random,now=()=>Date.now()}={}){
   fs.mkdirSync(dir,{recursive:true});const file=path.join(dir,'state.json');
   let DB={n:0,worlds:[]};try{DB=JSON.parse(fs.readFileSync(file,'utf8'))}catch(e){}
+  for(const w of DB.worlds)if(!w.rel){w.rel=1;for(const e of w.enclaves){e.day=1;e.scoredDay=1;delete e.off}}   // (worlds from before enclaves had their own clocks)
   let dirty=false;const save=()=>{dirty=true},flush=()=>{if(dirty){dirty=false;try{fs.writeFileSync(file,JSON.stringify(DB))}catch(e){}}};
   const pick=a=>a[Math.floor(rnd()*a.length)],id=()=>crypto.randomBytes(5).toString('hex');
   const stageOf=w=>{let s=0;RULES.stages.forEach((st,i)=>{if(w.points>=st.need)s=i});return s};
@@ -47,7 +48,7 @@ export function makeServer({dir=path.join(ROOT,'.out/worlds'),rnd=Math.random,no
 
   function createWorld(name){
     const used=new Set(DB.worlds.map(w=>w.name));name=(name||'').trim().slice(0,24)||WORLD_NAMES.find(n=>!used.has(n))||pick(WORLD_NAMES)+' '+(DB.n+1);
-    const w={id:'w'+(++DB.n),name,seed:Math.floor(rnd()*2**31),created:now(),last:now(),t:7*60,points:0,stage:0,leadN:0,leadAt:7*60+240,npcDay:0,enclaves:[],leads:[],feed:[],gone:[]};
+    const w={rel:1,id:'w'+(++DB.n),name,seed:Math.floor(rnd()*2**31),created:now(),last:now(),t:7*60,points:0,stage:0,leadN:0,leadAt:7*60+240,npcDay:0,enclaves:[],leads:[],feed:[],gone:[]};
     const names=NPC_NAMES.slice().sort(()=>rnd()-.5).slice(0,RULES.npcs);
     for(const n of names)w.enclaves.push({id:id(),name:n,kind:'npc',status:'holding',hold:RULES.hold0-10+Math.floor(rnd()*30),score:0,day:1,level:1,deeds:{held:0,lost:0,deaths:0,leads:0},joined:now(),seen:now()});
     news(w,'A new world: '+name+'. '+names.join(', ')+' are already holding ground here.');DB.worlds.push(w);save();return w;
@@ -94,18 +95,20 @@ export function makeServer({dir=path.join(ROOT,'.out/worlds'),rnd=Math.random,no
     let w=DB.worlds.find(x=>x.id===b.world),e=w&&w.enclaves.find(x=>x.id===b.enclave&&x.token===b.token);
     if(!e||e.status!=='holding')return{gone:true};   // the world was deleted, or this enclave is not in it any more: the game should join again
     const r=b.report||{},d=r.deeds||{};e.seen=w.last=now();
-    if(r.t>w.t)w.t=r.t;if(r.day)e.day=Math.max(e.day,r.day);if(r.level){if(r.level>e.level)e.score+=(r.level-e.level)*RULES.score.level;e.level=Math.max(e.level,r.level)}
+    // the world keeps its own clock. Each enclave's clock is tied to it at the moment it first reports, so a character on its day 26 who joins a
+    // world on its day 1 does not drag the world to day 26, and every enclave's "day" here means days in this world
+    if(e.off===undefined){e.off=w.t-(r.t||0);e.joinT=w.t}const wt=(r.t||0)+e.off;if(wt>w.t)w.t=wt;const days=Math.floor(Math.max(0,wt-e.joinT)/1440)+1;e.day=Math.max(e.day,days);if(r.level){if(r.level>e.level)e.score+=(r.level-e.level)*RULES.score.level;e.level=Math.max(e.level,r.level)}
     const held=Math.max(0,d.held|0),lost=Math.max(0,d.lost|0),deaths=Math.max(0,d.deaths|0),took=[];
     for(const lid of d.leads||[]){const l=w.leads.find(x=>x.id===lid);if(l&&!l.by){l.by=e.name;l.byId=e.id;l.byT=w.t;took.push(l);news(w,e.name+' opened the strongroom at the '+SITES[l.kind].n+'.','good')}}
     e.deeds.held+=held;e.deeds.lost+=lost;e.deeds.deaths+=deaths;e.deeds.leads+=took.length;
     e.hold=Math.max(0,Math.min(RULES.holdMax,e.hold+held*RULES.tideHeld+lost*RULES.tideLost+deaths*RULES.death+took.length*RULES.lead));
-    e.score+=held*RULES.score.held+took.length*RULES.score.lead+(r.day>(e.scoredDay||1)?(r.day-(e.scoredDay||1))*RULES.score.day:0);e.scoredDay=Math.max(e.scoredDay||1,r.day||1);
+    e.score+=held*RULES.score.held+took.length*RULES.score.lead+(days>(e.scoredDay||1)?(days-(e.scoredDay||1))*RULES.score.day:0);e.scoredDay=Math.max(e.scoredDay||1,days);
     w.points+=held*2+took.length*3;
     if(held)news(w,e.name+' held the tide.','good');if(lost)news(w,'The tide went through '+e.name+'.','bad');if(deaths)news(w,e.name+"'s leader was carried home.",'bad');
     tick(w);
     let moved=null;
     if(e.hold<=0){fall(w,e);const from=w.name,j=join((DB.worlds.find(x=>x!==w&&players(x).length<RULES.room)||createWorld()).id,e.name,e.kind);j.e.level=e.level;j.e.day=1;
-      moved={from,world:j.w.id,enclave:j.e.id,token:j.e.token,name:j.e.name};news(j.w,j.e.name+' came over the pass from '+from+', beaten there.');sweep();w=j.w;e=j.e}
+      j.e.off=j.w.t-(r.t||0);j.e.joinT=j.w.t;moved={from,world:j.w.id,enclave:j.e.id,token:j.e.token,name:j.e.name};news(j.w,j.e.name+' came over the pass from '+from+', beaten there.');sweep();w=j.w;e=j.e}
     save();return{world:publicWorld(w),you:{id:e.id,name:e.name,hold:Math.round(e.hold),score:e.score,rank:holding(w).sort((a,b)=>b.score-a.score).indexOf(e)+1,of:holding(w).length},took:took.map(l=>l.id),moved};
   }
   function leave(b){const w=DB.worlds.find(x=>x.id===b.world),e=w&&w.enclaves.find(x=>x.id===b.enclave&&x.token===b.token);if(!e)return{ok:false};e.status='left';news(w,e.name+' has left '+w.name+'.');sweep();save();return{ok:true}}
