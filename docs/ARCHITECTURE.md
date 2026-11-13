@@ -86,6 +86,12 @@ Enemies share one Dijkstra field toward the player (`playerField`), recomputed w
 
 ## Actors (`js/sim/actors.js`)
 
+### Melee timing
+
+A player's swing is `p.atk = {t, dur, hitAt, w, tg}`: `dur` is the weapon's `spd`, the blow lands at `hitAt` (`hitTime(spd)`, 0.12 to 0.3 s), and `tg` is the enemy it is meant for (`meleeTarget`: nearest the cursor line inside a wide cone, or nearest in front without a cursor). The renderer does not play the swing linearly: `swingPhase()` in `render.js` maps time so the keyed curve reaches its impact (0.38) exactly at `hitAt`. An enemy's attack is a state with a timer (`wind`, `windS`, `cast`): the renderer shows wind-up progress rising from 0 to 1, and `e.atkT` is set when the blow lands, which is what plays the strike. `meleeHit` sets `Z.stop`, a few hundredths of a second during which `step()` runs at a tenth speed. Attack and dodge presses are latched by `input.js` (`inp.tap`, `inp.dodge`) and remembered for a moment in `p.buf` and `p.rbuf`.
+
+Auto mode walks with `pathDir()`: toward the farthest point of its path field that `walkClear()` says can be reached in a straight line; `autoFight` goes straight at a target when the straight walk is clear and holds its ground once in reach (`F.eng`).
+
 `step(dt)`: player, creatures, body separation, projectiles, ground effects, turrets, interaction hint. Creature behaviour comes from `def.ai` in `enemies.js` (`melee`, `ranged`, `exploder`, `screamer`, `charger`, `flee`, `boss`, and allies `guard`, `pet`, `follow`). Bosses run a list of abilities with cooldowns (`slam`, `charge`, `pounce`, `summon`, `spray`, `throw`, `shards`, `pulse`, `howl`); every damaging one puts a telegraph on the ground first.
 
 ## Community (`js/sim/community.js`, data in `js/data/community.js`)

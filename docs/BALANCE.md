@@ -38,6 +38,8 @@ The bot is a floor, not a person: melee only, no walls, no healing, no turrets, 
 | 8 | fire axe, three scrap pieces, 10 traps | 0/6 | |
 | 12 | katana, full riot set, 15 traps | 0/6 | |
 
+Rerun on 0.8.1 (2026-11-13) after the combat pass (aim assist, step-in, hit-stop, enemy blows that can be sidestepped): tide 1 6/6 with 79 to 90 health, tide 2 3/6 and 4/6, tide 3 6/6 with about 40 health (the bot backs away between swings, so some blows now miss it), tides 5, 8 and 12 still 0/6. Within noise of the table above except tide 3, which is a little kinder.
+
 Reading: the first three tides can be won by someone who has done little more than follow the opening quests. From the fifth on, standing in the open with a blade is not enough, which is the intent: walls with a door, traps on the announced trail, a bolt thrower and a guard are all available by then. Whether that step is fair to a real player has not been tested by a real player.
 
 ## Community

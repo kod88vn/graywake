@@ -4,7 +4,7 @@ import {ITEMS} from '../data/items.js';
 import {OBJ} from '../data/objects.js';
 import {ENEMIES,scale} from '../data/enemies.js';
 import {G,emit,toast,sfx,stat,statMax,derive,perk,weaponDef,weaponItem,count,take,give,addTo,slotCount,freeSlots,roomFor,wear,findTool,wearTool,dropAt,addXp,maxHp,FIST,quickUse,EREF,edgeIdx,structAt,structXY} from './core.js';
-import {collide,los,shotBlock,blockAt,playerField,field,stepOn,rollLoot,freeNear,atExit,edgeCross,edgeBetween} from './zone.js';
+import {collide,los,shotBlock,blockAt,playerField,field,stepOn,rollLoot,freeNear,atExit,edgeCross,edgeBetween,walkClear,pathAim} from './zone.js';
 import {noteKill} from './quests.js';
 import {clamp,dist,angDiff,rnd,TAU} from './util.js';
 
@@ -165,7 +165,7 @@ function tryAttack(Z,p){
   p.act=null;const spd=w.spd/ds.haste;
   if(w.t==='gun'){
     if(count(S,w.ammo)<1){if(p.noAmmoT<=0){toast('Out of '+ITEMS[w.ammo].n,'bad');sfx('error');p.noAmmoT=1.5}return meleeSwing(Z,p,FIST,spd)}
-    const ang=attackDir(Z,p,w.rng);p.a=ang;p.cd=spd;p.recoil=.12;
+    const ang=attackDir(Z,p,w.rng);p.a=ang;p.cd=spd;p.buf=0;p.faceT=.45;p.recoil=.12;
     const n=w.pellets||1,mx=p.x+Math.cos(ang)*.5,my=p.y+Math.sin(ang)*.5;
     for(let k=0;k<n;k++){const crit=rnd()<perk('crit'),sp=(w.spread||0)*Math.PI/180;
       shoot(Z,mx,my,ang+(rnd()-.5)*sp,{spd:w.proj==='arrow'?24:w.proj==='flame'?11:w.proj==='beam'?46:38,rng:w.rng,team:0,dmg:w.dmg*ds.ranged*(crit?2:1)*(p.sneakShot?1:1),kind:w.proj||'bullet',pierce:w.proj==='flame'?6:w.pierce||0,burn:w.burn,kb:w.kb?w.kb*.4:0,crit})}
@@ -177,21 +177,40 @@ function tryAttack(Z,p){
     const e=S.p.eq[slot],inp=G.inp,ang=attackDir(Z,p,w.rng);p.a=ang;const t=p.tgt&&!p.tgt.dead&&!inp.aim?p.tgt:null;
     let tx=inp.aim?inp.aim.x:t?t.x:p.x+Math.cos(ang)*w.rng*.6,ty=inp.aim?inp.aim.y:t?t.y:p.y+Math.sin(ang)*w.rng*.6;const d=dist(p.x,p.y,tx,ty);if(d>w.rng){tx=p.x+(tx-p.x)/d*w.rng;ty=p.y+(ty-p.y)/d*w.rng}
     lob(Z,p.x,p.y,tx,ty,{team:0,dmg:w.dmg*ds.ranged,aoe:w.aoe,burn:w.burn,fire:!!w.burn,fuse:w.fuse,lure:w.lure,kind:w.mdl});
-    e.n=(e.n||1)-1;if(e.n<=0){S.p.eq[slot]=null;emit('eq')}p.cd=.7;p.atkT=.25;sfx('throw',p.x,p.y);stat('thrown');return;
+    e.n=(e.n||1)-1;if(e.n<=0){S.p.eq[slot]=null;emit('eq')}p.cd=.7;p.buf=0;p.faceT=.45;p.atkT=.25;sfx('throw',p.x,p.y);stat('thrown');return;
   }
   meleeSwing(Z,p,w,spd);
 }
+/** Who a swing is meant for. With a cursor: the enemy nearest the line to the cursor, inside a forgiving cone (about 70° either side) or right under it,
+ *  so a click somewhere near a thing in reach hits it and only a click the other way swings at air. Without one (touch, auto): the nearest in front. */
+function meleeTarget(Z,p,range){
+  const aim=G.inp.aim;if(!aim)return nearestEnemy(Z,p.x,p.y,range,true,p.a);
+  const aa=Math.atan2(aim.y-p.y,aim.x-p.x);let best=null,bs=1.25;
+  for(const e of Z.actors){if(e.dead||e.team!==1)continue;const d=dist(e.x,e.y,p.x,p.y)-e.r;if(d>range||edgeCross(Z,p.x,p.y,e.x,e.y)>=0)continue;
+    let sc=Math.abs(angDiff(Math.atan2(e.y-p.y,e.x-p.x),aa));if(dist(e.x,e.y,aim.x,aim.y)<e.r+.45)sc=0;sc+=d*.06;if(sc<bs){bs=sc;best=e}}
+  return best;
+}
+/** How much of a swing is wind-up before the blow lands: quick weapons snap, heavy ones take a moment, none drags. The renderer keys the swing to this. */
+const hitTime=spd=>clamp(spd*.3,.12,.3);
 function meleeSwing(Z,p,w,spd){
-  const ang=attackDir(Z,p,w.rng+.6);p.a=ang;p.cd=spd;p.atk={t:0,dur:spd,hitAt:Math.min(.22,spd*.4),done:false,w};sfx('swing',p.x,p.y,{pitch:clamp(.7/spd,.7,1.6)});if(w.noise)noise(Z,p.x,p.y,w.noise);
+  const inp=G.inp,tg=meleeTarget(Z,p,w.rng+.9),ml=Math.hypot(inp.mx,inp.my);
+  const ang=tg?Math.atan2(tg.y-p.y,tg.x-p.x):inp.aim?Math.atan2(inp.aim.y-p.y,inp.aim.x-p.x):ml>.2?Math.atan2(inp.my,inp.mx):p.a;
+  if(tg)p.tgt=tg;p.a=ang;p.cd=spd;p.buf=0;p.atk={t:0,dur:spd,hitAt:hitTime(spd),done:false,w,tg};p.faceT=spd*.85+.25;
+  // step into the blow when the target stands at the edge of reach or just past it (a short shove that dies away, the same way a knock-back does)
+  if(tg){const gap=dist(tg.x,tg.y,p.x,p.y)-tg.r-w.rng*.9;if(gap>0){const v=6.2*Math.min(gap+.06,.7);p.kx=(p.kx||0)+Math.cos(ang)*v;p.ky=(p.ky||0)+Math.sin(ang)*v}}
+  sfx('swing',p.x,p.y,{pitch:clamp(.7/spd,.7,1.6)});if(w.noise)noise(Z,p.x,p.y,w.noise);
 }
 function meleeHit(Z,p,w){
   const S=G.S,ds=G.ds,arc=(w.arc||80)*Math.PI/360,fx=w.fx||{},hits=[];
   for(const e of Z.actors){if(e.dead||e.team!==1)continue;const d=dist(e.x,e.y,p.x,p.y)-e.r;if(d>w.rng)continue;const da=Math.abs(angDiff(Math.atan2(e.y-p.y,e.x-p.x),p.a));if(da>arc&&d>.35)continue;if(edgeCross(Z,p.x,p.y,e.x,e.y)>=0)continue;hits.push([d,e])}
   hits.sort((a,b)=>a[0]-b[0]);if(!fx.cleave)hits.length=Math.min(hits.length,1);
-  for(const[,e]of hits){let dmg=w.dmg*ds.melee,crit=rnd()<perk('crit'),sneak=false;if(crit)dmg*=2;
+  for(const h of hits){const e=h[1];let dmg=w.dmg*ds.melee,crit=rnd()<perk('crit'),sneak=false;if(crit){dmg*=2;h[2]=1}
     if(!e.alert&&e.def.ai!=='flee'){sneak=true;dmg*=2.5+(fx.sneak||0)+perk('sneak');stat('sneaks');crit=true}
-    const ang=Math.atan2(e.y-p.y,e.x-p.x);hurt(Z,e,dmg,{crit,sneak,kb:w.kb||1,kx:Math.cos(ang),ky:Math.sin(ang),stun:fx.stun,stagger:.22,bleed:fx.bleed?fx.bleed*ds.melee:0})}
-  if(hits.length){if(w!==FIST)wear(S,S.p.active,1);emit('shake',.06);return}
+    const ang=Math.atan2(e.y-p.y,e.x-p.x);hurt(Z,e,dmg,{crit,sneak,kb:(w.kb||1)+.6,kx:Math.cos(ang),ky:Math.sin(ang),stun:fx.stun,stagger:.22,bleed:fx.bleed?fx.bleed*ds.melee:0})}
+  // a blow that lands holds the world for a few hundredths of a second: longer for a heavy weapon, a crit or a kill, and never more than an
+  // eighth of the weapon's own rhythm (a chainsaw must not put the game into slow motion)
+  if(hits.length){if(w!==FIST)wear(S,S.p.active,1);const heavy=clamp((w.spd-.3)/.9,0,1),big=hits.some(h=>h[1].dead||h[2]);
+    emit('shake',.05+heavy*.07);Z.stop=Math.max(Z.stop||0,Math.min(.03+heavy*.04+(big?.02:0),w.spd*.12));return}
   // nothing alive in reach: tools still bite into trees and rock
   for(const r of[.6,1.05]){const tx=Math.floor(p.x+Math.cos(p.a)*r),ty=Math.floor(p.y+Math.sin(p.a)*r),i=ty*Z.w+tx,o=Z.obj[i];if(!o)continue;const d=OBJ[o.k];
     if(d.node&&d.node.tool&&w.tool===d.node.tool&&(w.tier||1)>=d.node.tier){nodeHit(Z,i,{it:w,ref:S.p.eq[S.p.active],where:S.p.active});return}
@@ -354,22 +373,30 @@ function autoFight(Z,p,e,dt){
     if(med)quickUse(S,'hp');else if(S.p.hp<ds.maxHp*.25&&!F.warn){F.warn=true;toast('Badly hurt and no medicine: auto is still fighting','bad');sfx('error')}}
   if(!p.atk){const slot=autoWeapon(S);if(slot!==S.p.active){S.p.active=slot;emit('eq')}}
   const w=weaponDef(S),gun=w.t==='gun'&&count(S,w.ammo)>0,thrown=w.t==='throw',d=dist(p.x,p.y,e.x,e.y),see=los(Z,p.x,p.y,e.x,e.y),ang=Math.atan2(e.y-p.y,e.x-p.x);
-  const reach=gun?Math.min(w.rng*.8,8):(thrown?FIST.rng:w.rng)+e.r-.15;
+  const hitR=(thrown?FIST.rng:w.rng)+e.r,reach=gun?Math.min(w.rng*.8,8):hitR-.15;
   p.tgt=e;
-  // stuck against something with the target in plain view (a tree dead ahead, a corner): stop walking straight at it and path round
-  F.blk=p.mv<.25&&!p.atk?(F.blk||0)+dt:Math.max(0,(F.blk||0)-dt*2);
-  if(see&&d<=reach&&!p.roll){
-    p.a=ang;
+  // once in reach, stand and fight, and stay planted until the target is well out of it: a swing steps in by itself, so there is no shuffling
+  // back and forth as blows knock it away
+  F.eng=see&&!p.roll&&(d<=reach||(!!F.eng&&!gun&&d<=hitR+.5));
+  if(F.eng){
+    // always turned to whatever is nearest, even in the middle of a wind-up: the blow that stops the closest attacker is the one that matters
+    p.a=ang;if(p.atk&&!p.atk.done)p.atk.tg=e;
     if(p.cd<=0&&!p.atk){if(thrown)meleeSwing(Z,p,FIST,FIST.spd/ds.haste);else{const keep=G.inp.aim;G.inp.aim={x:e.x,y:e.y};tryAttack(Z,p);G.inp.aim=keep}}
     // with a gun, back away from anything that gets close; with a blade, stand and swing
     if(gun&&d<2.4&&!e.def.proj)return[-Math.cos(ang),-Math.sin(ang)];
     return[0,0];
   }
-  if(see&&d<2.6&&!(F.blk>.5))return[Math.cos(ang),Math.sin(ang)];
-  // further off, or out of sight: follow a path to it, refreshed twice a second (a straight line runs into trees, rocks and your own walls)
+  // closing in: straight at it when the way is clear, otherwise along a path (a straight line runs into trees, rocks and your own walls)
+  if(Z.time-(F.nt||-9)>.15){F.nt=Z.time;F.str=see&&walkClear(Z,p.x,p.y,e.x,e.y,p.r,true)}
+  if(F.str)return[Math.cos(ang),Math.sin(ang)];
   if(Z.time-F.ft>.5){F.ft=Z.time;F.f=field(Z,Math.floor(e.x),Math.floor(e.y),true,90)}
-  const n=stepOn(Z,F.f,p.x,p.y,true);if(n<0)return see?[Math.cos(ang),Math.sin(ang)]:[0,0];
-  const gx=n%Z.w+.5,gy=Math.floor(n/Z.w)+.5,l=Math.hypot(gx-p.x,gy-p.y)||1;return[(gx-p.x)/l,(gy-p.y)/l];
+  return pathDir(Z,p,F.f)||(see?[Math.cos(ang),Math.sin(ang)]:[0,0]);
+}
+/** The way to walk along a path field: toward the farthest point of it that can be reached in a straight line (worked out a few times a second). */
+function pathDir(Z,p,f){
+  const nv=p.nav||(p.nav={t:-9,f:null,x:0,y:0,ok:false});let dx=nv.x-p.x,dy=nv.y-p.y;
+  if(nv.f!==f||Z.time-nv.t>.15||!nv.ok||dx*dx+dy*dy<.09){nv.f=f;nv.t=Z.time;const a=pathAim(Z,f,p.x,p.y,p.r,true);nv.ok=!!a;if(a){nv.x=a[0];nv.y=a[1];dx=nv.x-p.x;dy=nv.y-p.y}}
+  if(!nv.ok)return null;const l=Math.hypot(dx,dy);return l>.01?[dx/l,dy/l]:null;
 }
 function autoStep(Z,p,dt){
   const S=G.S;
@@ -378,8 +405,7 @@ function autoStep(Z,p,dt){
   if(p.fight){if(Z.time-p.fight.t<1.5&&S.p.active!==p.fight.slot){S.p.active=p.fight.slot;emit('eq')}p.fight=null;p.auto=null;toast(Z.home&&S.tide.live?'Auto: clear for now, holding the homestead':'Auto: clear, back to gathering','info')}
   // during a tide auto mode stops gathering and holds the middle of the homestead, going out only to meet what comes within reach
   if(tide){p.act=null;p.auto=null;const hx=Z.w/2,hy=Z.h/2;if(dist(p.x,p.y,hx,hy)<2.5)return[0,0];
-    if(!p.homeF||Z.time-p.homeT>1){p.homeT=Z.time;p.homeF=field(Z,Math.floor(hx),Math.floor(hy),true,120)}const n=stepOn(Z,p.homeF,p.x,p.y,true);if(n<0)return[0,0];
-    const gx=n%Z.w+.5,gy=Math.floor(n/Z.w)+.5,l=Math.hypot(gx-p.x,gy-p.y)||1;return[(gx-p.x)/l,(gy-p.y)/l]}
+    if(!p.homeF||Z.time-p.homeT>1){p.homeT=Z.time;p.homeF=field(Z,Math.floor(hx),Math.floor(hy),true,120)}return pathDir(Z,p,p.homeF)||[0,0]}
   if(freeSlots(S)===0&&!p.act){G.auto=false;p.auto=null;toast('Auto stopped: pack full','info');return[0,0]}
   if(p.act)return[0,0];
   let a=p.auto;
@@ -390,19 +416,21 @@ function autoStep(Z,p,dt){
   else if(d<1.45&&!walled(Z,p.x,p.y,tx,ty)){const info=interactInfo(Z,a.i);if(!info){p.auto=null;return[0,0]}
     if(info.type==='loot'){const o=Z.obj[a.i];p.a=Math.atan2(ty-p.y,tx-p.x);if(!o.inv){if(!p.act)p.act={type:'open',i:a.i,t:0,dur:.6,auto:true}}else{lootAll(Z,a.i);if(Z.obj[a.i]&&!Z.obj[a.i].empty){Z.obj[a.i].empty=1}p.auto=null}return[0,0]}
     if(!interact(Z,{i:a.i,x:tx,y:ty,...info}))p.auto=null;return[0,0]}
-  const n=stepOn(Z,a.f,p.x,p.y,true);a.stuck+=dt;if(a.stuck>14){p.auto=null;return[0,0]}
-  let gx=tx,gy=ty;if(n>=0){gx=n%Z.w+.5;gy=Math.floor(n/Z.w)+.5}
-  const l=Math.hypot(gx-p.x,gy-p.y)||1;return[(gx-p.x)/l,(gy-p.y)/l];
+  a.stuck+=dt;if(a.stuck>14){p.auto=null;return[0,0]}
+  const dir=pathDir(Z,p,a.f);if(dir)return dir;
+  const l=Math.hypot(tx-p.x,ty-p.y)||1;return[(tx-p.x)/l,(ty-p.y)/l];
 }
 
 // ---------------------------------------------------------------- player step
 function stepPlayer(Z,dt){
   const S=G.S,p=Z.pl,inp=G.inp,ds=G.ds;if(!p||p.dead)return;
   p.cd-=dt;p.rollCd-=dt;p.iframe-=dt;p.slowT-=dt;p.hurtT-=dt;p.noAmmoT-=dt;if(p.recoil>0)p.recoil-=dt;if(p.atkT>0)p.atkT-=dt;
+  // a tap is remembered for a moment, so one made just before the last swing or roll has finished still counts
+  p.buf=inp.tap?.3:(p.buf||0)-dt;inp.tap=false;p.rbuf=inp.dodge?.25:(p.rbuf||0)-dt;inp.dodge=false;p.faceT=(p.faceT||0)-dt;
   p.sneak=!!inp.sneak;
   let mx=inp.mx,my=inp.my,ml=Math.hypot(mx,my);if(ml>1){mx/=ml;my/=ml;ml=1}
   if(G.auto){if(ml>.3||inp.attack){G.auto=false;p.auto=null;p.fight=null}else{[mx,my]=autoStep(Z,p,dt);ml=Math.hypot(mx,my)}}
-  if(inp.dodge){inp.dodge=false;if(p.rollCd<=0&&!p.roll){const dx=ml>.1?mx/ml:Math.cos(p.a),dy=ml>.1?my/ml:Math.sin(p.a);p.roll={t:.3,dx,dy};p.rollCd=1.5*(1-perk('dodge'));p.iframe=.34;p.act=null;p.atk=null;sfx('swing',p.x,p.y,{pitch:.7})}}
+  if(p.rbuf>0){if(p.rollCd<=0&&!p.roll){p.rbuf=0;const dx=ml>.1?mx/ml:Math.cos(p.a),dy=ml>.1?my/ml:Math.sin(p.a);p.roll={t:.3,dx,dy};p.rollCd=1.5*(1-perk('dodge'));p.iframe=.34;p.act=null;p.atk=null;sfx('swing',p.x,p.y,{pitch:.7})}}
   let speed=ds.spd*(p.sneak?.5:1)*(p.slowT>0?.55:1),vx=mx*speed,vy=my*speed;
   // ease into and out of a run instead of snapping to full speed: about a tenth of a second either way
   {const k=1-Math.exp(-dt*(ml>.1?16:20));p.sx=(p.sx||0)+(vx-(p.sx||0))*k;p.sy=(p.sy||0)+(vy-(p.sy||0))*k;if(Math.abs(p.sx)+Math.abs(p.sy)<.02)p.sx=p.sy=0;vx=p.sx;vy=p.sy}
@@ -414,9 +442,11 @@ function stepPlayer(Z,dt){
   // a door of yours creaks as you come up to it (the renderer swings the leaf at the same distance)
   if(Z.ed.length){const cx=Math.floor(p.x),cy=Math.floor(p.y);let near=-1;for(let sd=0;sd<4;sd++){const e=edgeIdx(Z.w,cx,cy,sd),w=Z.ed[e];if(w&&OBJ[w.k].door){const[mx,my]=structXY(Z,EREF+e);if(dist(p.x,p.y,mx,my)<.95)near=e}}
     if(near!==p.door){if(near>=0&&p.door===-1)sfx('door',p.x,p.y,{vol:.4});p.door=near}}
-  if(ml>.1&&!p.roll){if(!p.atk&&!(inp.attack&&inp.aim))p.a=Math.atan2(my,mx);if(p.act&&!G.auto)p.act=null;
+  // keep facing the fight between swings instead of spinning to the way you are walking; during a wind-up, turn with the target
+  if(p.atk&&!p.atk.done&&p.atk.tg&&!p.atk.tg.dead){const want=Math.atan2(p.atk.tg.y-p.y,p.atk.tg.x-p.x);p.a+=clamp(angDiff(want,p.a),-9*dt,9*dt)}
+  if(ml>.1&&!p.roll){if(!p.atk&&!(inp.attack&&inp.aim)&&!(p.faceT>0)&&!(G.auto&&p.fight))p.a=Math.atan2(my,mx);if(p.act&&!G.auto)p.act=null;
     p.stepT-=dt*(p.sneak?.5:1);if(p.stepT<=0){p.stepT=.34;sfx('step',p.x,p.y,{vol:p.sneak?.15:.35,pitch:.9+rnd()*.25})}}
-  if(inp.attack)tryAttack(Z,p);
+  if(inp.attack||p.buf>0)tryAttack(Z,p);
   if(p.atk){p.atk.t+=dt;if(!p.atk.done&&p.atk.t>=p.atk.hitAt){p.atk.done=true;meleeHit(Z,p,p.atk.w)}if(p.atk.t>=p.atk.dur*.85)p.atk=null}
   if(inp.interact){inp.interact=false;if(!p.act)interact(Z)}
   if(p.act){const a=p.act;a.t+=dt;const o=Z.obj[a.i];
@@ -440,7 +470,7 @@ function breakableAt(Z,x,y){const tx=Math.floor(x),ty=Math.floor(y);if(tx<0||ty<
 /** Walk toward a point: straight when it is in view, along the shared path field otherwise. Returns a structure index if one bars the way. */
 function approach(Z,e,tx,ty,speed,dt,flow){
   // walking straight at the target and getting nowhere (a tree or a rock dead ahead): take the path field round it for a while
-  e.blk=e.mv<.25?(e.blk||0)+dt:Math.max(0,(e.blk||0)-dt*2);
+  e.blk=e.mv<.25&&dist(e.x,e.y,tx,ty)>2.6?(e.blk||0)+dt:Math.max(0,(e.blk||0)-dt*2);
   const direct=dist(e.x,e.y,tx,ty)<8&&los(Z,e.x,e.y,tx,ty)&&!(flow&&e.blk>.5);let gx=tx,gy=ty;
   if(!direct&&flow){const n=stepOn(Z,flow,e.x,e.y);if(n>=0){gx=n%Z.w+.5;gy=Math.floor(n/Z.w)+.5;const o=Z.obj[n];if(o&&o.hp>0&&OBJ[o.k].solid&&OBJ[o.k].cost)return n;
       const ex=Math.floor(e.x),ey=Math.floor(e.y),nx=n%Z.w,ny=Math.floor(n/Z.w);if(Z.ed.length&&(ex===nx)!==(ey===ny)){const eb=edgeBetween(Z,ex,ey,nx,ny);if(eb>=0)return EREF+eb}}}
@@ -466,16 +496,16 @@ function pickFoe(Z,e,p){
 function bossAbility(Z,e,t,d,dt){
   const ab=e.def.abil;
   for(let k=0;k<ab.length;k++){e.ab[k]-=dt;if(e.ab[k]>0||e.st!=='chase')continue;const b=ab[k];
-    if(b.k==='slam'){if(d>b.r+1)continue;e.ab[k]=b.cd;e.st='cast';e.t=b.wind;e.atkT=b.wind;Z.areas.push({kind:'tele',x:e.x,y:e.y,r:b.r,t:b.wind,T:b.wind,team:1,dmg:e.dmg*b.dmg,slow:b.slow,sd:e.def.sd*.5});return}
-    if(b.k==='pulse'){e.ab[k]=b.cd;e.st='cast';e.t=b.wind;e.atkT=b.wind;Z.areas.push({kind:'tele',x:e.x,y:e.y,r:b.r,t:b.wind,T:b.wind,team:1,dmg:e.dmg*b.dmg,tox:b.tox});return}
+    if(b.k==='slam'){if(d>b.r+1)continue;e.ab[k]=b.cd;e.st='cast';e.t=e.T=b.wind;Z.areas.push({kind:'tele',x:e.x,y:e.y,r:b.r,t:b.wind,T:b.wind,team:1,dmg:e.dmg*b.dmg,slow:b.slow,sd:e.def.sd*.5});return}
+    if(b.k==='pulse'){e.ab[k]=b.cd;e.st='cast';e.t=e.T=b.wind;Z.areas.push({kind:'tele',x:e.x,y:e.y,r:b.r,t:b.wind,T:b.wind,team:1,dmg:e.dmg*b.dmg,tox:b.tox});return}
     if(b.k==='charge'){if(d<3||d>12||!los(Z,e.x,e.y,t.x,t.y))continue;e.ab[k]=b.cd;e.st='cwind';e.t=b.wind;e.ch={spd:b.spd,dmg:b.dmg};e.a=Math.atan2(t.y-e.y,t.x-e.x);sfx('roar',e.x,e.y,{vol:.6});return}
     if(b.k==='pounce'){if(d<2.5||d>b.rng)continue;e.ab[k]=b.cd;e.st='pounce';e.t=b.wind;e.px=t.x;e.py=t.y;e.sx=e.x;e.sy=e.y;e.pT=b.wind;Z.areas.push({kind:'tele',x:t.x,y:t.y,r:1.7,t:b.wind,T:b.wind,team:1,dmg:e.dmg*b.dmg});return}
     if(b.k==='summon'){let n=0;for(const a of Z.actors)if(!a.dead&&a.kind===b.kind)n++;if(n>=b.max){e.ab[k]=3;continue}e.ab[k]=b.cd;sfx(e.def.rig[0]==='quad'?'wolf':'screech',e.x,e.y);
       for(let j=0;j<b.n;j++){const[x,y]=freeNear(Z,e.x,e.y,4);const s=spawnActor(Z,b.kind,x,y,e.lvl,{alert:true,st:'chase',tide:e.tide});emit('fx','dust',x,y);if(s)s.stunT=.6}return}
     if(b.k==='howl'){e.ab[k]=b.cd;sfx('wolf',e.x,e.y);for(const a of Z.actors)if(a.team===1&&!a.dead){alertActor(Z,a,true);a.hasteT=7}emit('fx','ring',e.x,e.y,6);return}
-    if(b.k==='spray'){if(d>b.rng||!los(Z,e.x,e.y,t.x,t.y))continue;e.ab[k]=b.cd;e.st='cast';e.t=b.wind;e.atkT=b.wind;e.cast=()=>{const ang=Math.atan2(t.y-e.y,t.x-e.x);for(let j=-4;j<=4;j++)shoot(Z,e.x+Math.cos(ang)*e.r,e.y+Math.sin(ang)*e.r,ang+j*.11,{spd:9+rnd()*2,rng:b.rng,team:1,dmg:e.dmg*b.dmg*.5,kind:'spit',tox:b.tox*.3});sfx('spit',e.x,e.y)};return}
+    if(b.k==='spray'){if(d>b.rng||!los(Z,e.x,e.y,t.x,t.y))continue;e.ab[k]=b.cd;e.st='cast';e.t=e.T=b.wind;e.cast=()=>{const ang=Math.atan2(t.y-e.y,t.x-e.x);for(let j=-4;j<=4;j++)shoot(Z,e.x+Math.cos(ang)*e.r,e.y+Math.sin(ang)*e.r,ang+j*.11,{spd:9+rnd()*2,rng:b.rng,team:1,dmg:e.dmg*b.dmg*.5,kind:'spit',tox:b.tox*.3});sfx('spit',e.x,e.y)};return}
     if(b.k==='throw'){if(d>b.rng||d<3)continue;e.ab[k]=b.cd;e.atkT=.4;lob(Z,e.x,e.y,t.x+(rnd()-.5),t.y+(rnd()-.5),{team:1,dmg:e.dmg*b.dmg,aoe:b.r,spd:9,fuse:b.wind*.5});sfx('throw',e.x,e.y);return}
-    if(b.k==='shards'){e.ab[k]=b.cd;e.st='cast';e.t=b.wind;e.atkT=b.wind;e.cast=()=>{const o=rnd()*TAU;for(let j=0;j<b.n;j++)shoot(Z,e.x,e.y,o+j*TAU/b.n,{spd:8,rng:14,team:1,dmg:e.dmg*b.dmg,kind:'shard',slow:e.def.slow?1.5:0,tox:e.def.tox?6:0});sfx('zap',e.x,e.y)};emit('fx','ring',e.x,e.y,2);return}
+    if(b.k==='shards'){e.ab[k]=b.cd;e.st='cast';e.t=e.T=b.wind;e.cast=()=>{const o=rnd()*TAU;for(let j=0;j<b.n;j++)shoot(Z,e.x,e.y,o+j*TAU/b.n,{spd:8,rng:14,team:1,dmg:e.dmg*b.dmg,kind:'shard',slow:e.def.slow?1.5:0,tox:e.def.tox?6:0});sfx('zap',e.x,e.y)};emit('fx','ring',e.x,e.y,2);return}
   }
 }
 function stepEnemy(Z,e,dt,p,flow,night,sightMul){
@@ -508,9 +538,11 @@ function stepEnemy(Z,e,dt,p,flow,night,sightMul){
   // losing interest
   if(!e.tide&&!def.boss){if(d>def.sight*2.4){e.lose=(e.lose||0)+dt;if(e.lose>6){e.alert=false;e.st='idle';return}}else e.lose=0}
   // states with a timer
-  if(e.st==='wind'){e.t-=dt;if(e.t<=0){e.st='chase';e.cd=def.cd;if(def.proj){if(los(Z,e.x,e.y,t.x,t.y))fireAt(Z,e,t)}else if(d<=reach+.45&&!(t.pl&&t.iframe>0)&&edgeCross(Z,e.x,e.y,t.x,t.y)<0)strikeTarget(Z,e,t)}return}
-  if(e.st==='windS'){e.t-=dt;if(e.t<=0){e.st='chase';e.cd=def.cd;if(structAt(Z,e.sT)){damageObj(Z,e.sT,e.dmg*(def.sd||0));sfx('hit_wood',e.x,e.y,{vol:.5})}}return}
-  if(e.st==='cast'){e.t-=dt;if(e.t<=0){e.st='chase';if(e.cast){e.cast();e.cast=null}}return}
+  // the blow goes where it was aimed when the wind-up began: step out of its line, or out of reach, and it misses
+  if(e.st==='wind'){e.t-=dt;if(e.t<=0){e.st='chase';e.cd=def.cd;e.atkT=def.proj?.2:.3;if(def.proj){if(los(Z,e.x,e.y,t.x,t.y))fireAt(Z,e,t)}
+    else if(d<=reach+.4&&(d<e.r+.55||Math.abs(angDiff(Math.atan2(t.y-e.y,t.x-e.x),e.a))<1.15)&&!(t.pl&&t.iframe>0)&&edgeCross(Z,e.x,e.y,t.x,t.y)<0)strikeTarget(Z,e,t)}return}
+  if(e.st==='windS'){e.t-=dt;if(e.t<=0){e.st='chase';e.cd=def.cd;e.atkT=.3;if(structAt(Z,e.sT)){damageObj(Z,e.sT,e.dmg*(def.sd||0));sfx('hit_wood',e.x,e.y,{vol:.5})}}return}
+  if(e.st==='cast'){e.t-=dt;if(e.t<=0){e.st='chase';e.atkT=.3;if(e.cast){e.cast();e.cast=null}}return}
   if(e.st==='fuse'){e.t-=dt;e.flash=.1;if(e.t<=0)kill(Z,e);return}
   if(e.st==='cwind'){e.t-=dt;e.flash=.08;if(e.t<=0){e.st='charge';e.t=1.1;e.chHit=false}return}
   if(e.st==='charge'){e.t-=dt;const ox=e.x,oy=e.y,nx=e.x+Math.cos(e.a)*e.ch.spd*dt,ny=e.y+Math.sin(e.a)*e.ch.spd*dt;[e.x,e.y]=collide(Z,nx,ny,Math.min(e.r,.36),false);e.mv=e.ch.spd;
@@ -528,16 +560,16 @@ function stepEnemy(Z,e,dt,p,flow,night,sightMul){
   if(def.aura&&p&&!p.dead&&pd<def.aura.r){e.auraT=(e.auraT||0)-dt;if(e.auraT<=0){e.auraT=1;hurtPlayer(Z,0.01,{dot:1,tox:def.aura.tox})}}
   // ranged: keep a distance, shoot when the line is clear
   if(def.proj){const clear=los(Z,e.x,e.y,t.x,t.y);
-    if(clear&&d<=def.reach){e.a=Math.atan2(t.y-e.y,t.x-e.x);if(e.cd<=0){e.st='wind';e.t=def.wind;e.atkT=def.wind;return}
+    if(clear&&d<=def.reach){e.a=Math.atan2(t.y-e.y,t.x-e.x);if(e.cd<=0){e.st='wind';e.t=def.wind;return}
       if(d<3.2&&!def.rooted){const ang=Math.atan2(e.y-t.y,e.x-t.x);steer(Z,e,e.x+Math.cos(ang)*2,e.y+Math.sin(ang)*2,speed*.8,dt);e.a=ang+Math.PI}return}
-    if(def.rooted)return;const s=approach(Z,e,t.x,t.y,speed,dt,t.pl?flow:null);if(s>=0&&def.sd){if(e.cd<=0){e.st='windS';e.t=def.wind;e.sT=s;e.atkT=def.wind}}return}
-  if(def.rooted){e.a=Math.atan2(t.y-e.y,t.x-e.x);if(d<=reach&&e.cd<=0){e.st='wind';e.t=def.wind;e.atkT=def.wind}return}
+    if(def.rooted)return;const s=approach(Z,e,t.x,t.y,speed,dt,t.pl?flow:null);if(s>=0&&def.sd){if(e.cd<=0){e.st='windS';e.t=def.wind;e.sT=s}}return}
+  if(def.rooted){e.a=Math.atan2(t.y-e.y,t.x-e.x);if(d<=reach&&e.cd<=0){e.st='wind';e.t=def.wind}return}
   // melee
   // a wall between attacker and target is hit first: nothing strikes through it
   const wc=d<=reach+.6?edgeCross(Z,e.x,e.y,t.x,t.y):-1;
-  if(d<=reach&&wc<0){e.a=Math.atan2(t.y-e.y,t.x-e.x);if(e.cd<=0&&(d<1.2||los(Z,e.x,e.y,t.x,t.y))){e.st='wind';e.t=def.wind;e.atkT=def.wind}return}
+  if(d<=reach&&wc<0){e.a=Math.atan2(t.y-e.y,t.x-e.x);if(e.cd<=0&&(d<1.2||los(Z,e.x,e.y,t.x,t.y))){e.st='wind';e.t=def.wind}return}
   const s=wc>=0&&Z.home?EREF+wc:approach(Z,e,t.x,t.y,speed,dt,t.pl?flow:null);
-  if(s>=0){const[sx,sy]=structXY(Z,s);e.a=Math.atan2(sy-e.y,sx-e.x);if(def.sd&&e.cd<=0){e.st='windS';e.t=def.wind;e.sT=s;e.atkT=def.wind}}
+  if(s>=0){const[sx,sy]=structXY(Z,s);e.a=Math.atan2(sy-e.y,sx-e.x);if(def.sd&&e.cd<=0){e.st='windS';e.t=def.wind;e.sT=s}}
 }
 function wander(Z,e,dt,speed){
   e.t-=dt;if(e.t<=0){e.t=2+rnd()*5;if(rnd()<.6){const ang=rnd()*TAU,r=1+rnd()*3;e.wx=clamp(e.hx+Math.cos(ang)*r,2,Z.w-2);e.wy=clamp(e.hy+Math.sin(ang)*r,2,Z.h-2)}else e.wx=undefined}
@@ -550,8 +582,8 @@ function stepAlly(Z,e,dt,p){
   for(const a of Z.actors){if(a.team!==1||a.dead||a.def.ai==='flee'||(!a.alert&&def.ai==='pet'))continue;const d=dist(a.x,a.y,e.x,e.y);if(d<td&&(def.ai==='pet'||los(Z,e.x,e.y,a.x,a.y))){td=d;t=a}}
   if(def.ai==='guard'){if(t){e.a=Math.atan2(t.y-e.y,t.x-e.x);if(e.cd<=0){e.cd=def.cd;e.atkT=.2;fireAt(Z,e,t)}}return}
   // pet
-  if(e.st==='wind'){e.t-=dt;if(e.t<=0){e.st='idle';e.cd=def.cd;if(t&&td<=def.reach+e.r+t.r+.4)strikeTarget(Z,e,t)}return}
-  if(t&&p&&dist(t.x,t.y,p.x,p.y)<9){if(td<=def.reach+e.r+t.r){e.a=Math.atan2(t.y-e.y,t.x-e.x);if(e.cd<=0){e.st='wind';e.t=def.wind;e.atkT=def.wind}}else steer(Z,e,t.x,t.y,def.spd,dt);return}
+  if(e.st==='wind'){e.t-=dt;if(e.t<=0){e.st='idle';e.cd=def.cd;e.atkT=.3;if(t&&td<=def.reach+e.r+t.r+.4)strikeTarget(Z,e,t)}return}
+  if(t&&p&&dist(t.x,t.y,p.x,p.y)<9){if(td<=def.reach+e.r+t.r){e.a=Math.atan2(t.y-e.y,t.x-e.x);if(e.cd<=0){e.st='wind';e.t=def.wind}}else steer(Z,e,t.x,t.y,def.spd,dt);return}
   if(p){const d=dist(e.x,e.y,p.x,p.y);if(d>16){[e.x,e.y]=freeNear(Z,p.x,p.y,2)}else if(d>2.2)steer(Z,e,p.x,p.y,def.spd*(d>5?1:.6),dt)}
 }
 
@@ -573,7 +605,7 @@ function stepTurrets(Z,dt){
 
 // ---------------------------------------------------------------- frame
 export function step(dt){
-  const Z=G.Z,S=G.S;if(!Z)return;G.ds=derive(S);Z.time+=dt;
+  const Z=G.Z,S=G.S;if(!Z)return;G.ds=derive(S);if(Z.stop>0){Z.stop-=dt;dt*=.1}Z.time+=dt;
   const p=Z.pl,night=G.night,sightMul=(G.sight||1)*(Z.dark?.8:1);
   stepPlayer(Z,dt);
   const flow=p&&!p.dead?playerField(Z):null;

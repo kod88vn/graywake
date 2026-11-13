@@ -242,6 +242,19 @@ export function collide(Z,x,y,r,ally){
   const m=.3;x=x<m?m:x>Z.w-m?Z.w-m:x;y=y<m?m:y>Z.h-m?Z.h-m:y;
   return[x,y];
 }
+/** Can a body of radius r walk the straight line from (x0,y0) to (x1,y1) without being pushed aside by anything? */
+export function walkClear(Z,x0,y0,x1,y1,r,ally=false){
+  const d=Math.hypot(x1-x0,y1-y0),n=Math.max(1,Math.ceil(d/.25));
+  for(let i=1;i<=n;i++){const x=x0+(x1-x0)*i/n,y=y0+(y1-y0)*i/n,c=collide(Z,x,y,r,ally);if(Math.abs(c[0]-x)+Math.abs(c[1]-y)>.02)return false}
+  return true;
+}
+/** Where to walk next along a path field from (x,y): the farthest of the next few cells that can be reached in a straight line, so a path is walked as
+ *  lines round the corners and not from cell centre to cell centre. Null when the field leads nowhere from here. */
+export function pathAim(Z,f,x,y,r,ally=false,look=7){
+  let cx=Math.floor(x),cy=Math.floor(y),best=null;
+  for(let k=0;k<look;k++){const n=stepOn(Z,f,cx+.5,cy+.5,ally);if(n<0)break;cx=n%Z.w;cy=(n-cx)/Z.w;if(k===0||walkClear(Z,x,y,cx+.5,cy+.5,r,ally))best=[cx+.5,cy+.5];else break}
+  return best;
+}
 /** Half the thickness of an edge wall. */
 export const WT=.09;
 /** The first wall crossed on the way from (x0,y0) to (x1,y1): its edge index, or -1. `ally` passes through doors. */

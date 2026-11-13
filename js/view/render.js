@@ -255,6 +255,9 @@ function spawnFx(name,x,y,a){
 }
 
 // ---------------------------------------------------------------- per-frame sync
+/** Where a swing is in its animation, 0..1: the wind-up is squeezed or stretched so the blade crosses the target (0.38 of the keyed curve) at the
+ *  moment the simulation lands the blow, whatever the weapon's speed. */
+const swingPhase=A=>A.t<A.hitAt?.38*A.t/A.hitAt:.38+.62*(A.t-A.hitAt)/Math.max(.01,A.dur-A.hitAt);
 function swingArc(a,w){
   const m=arcPool.find(m=>m.userData.t<=0)||arcPool[0];m.visible=true;m.userData.t=.17;m.position.set(a.x,.75,a.y);m.rotation.y=Math.PI/2-a.a;const r=(w.rng||1.1)+.25;m.scale.set(r,1,r);m.material.color.set(w.fx&&w.fx.shock?'#a0d8ff':'#fff6dc');
 }
@@ -268,11 +271,11 @@ function syncActors(dt){
     if(a.mv>3.2&&!a.dead&&dt>0){r.dustT=(r.dustT||0)-dt;if(r.dustT<=0){r.dustT=.2;burst(a.x,.06,a.y,1,PAL.dust,.5,.6,.45,.1,1)}}
     if(a.pl){
       const w=weaponDef(S),wk=a.act&&a.act.mdl!==undefined?(a.act.mdl||null):(w.mdl||null);if(r.wkey!==wk){setWeapon(r,wk);r.wkey=wk}
-      if(a.atk&&!a.atk.shown){a.atk.shown=1;swingArc(a,a.atk.w)}
+      if(a.atk&&!a.atk.shown&&a.atk.t>=a.atk.hitAt*.6){a.atk.shown=1;swingArc(a,a.atk.w)}
       const gun=w.t==='gun'&&(G.inp.attack||a.cd>-.6)?(['rifle','shotgun','carbine','sniper','minigun','flamer','launcher','lance','smg','crossbow','bow'].includes(w.mdl)?2:1):0;
-      pose(r,{dt,t:time,mv:a.mv,atk:a.atk?a.atk.t/a.atk.dur:-1,act:a.act&&a.act.type==='gather'?a.act.t/a.act.dur*.5:0,gun,recoil:a.recoil,throwing:a.atkT>0?a.atkT:0,sneak:a.sneak,roll:a.roll?1-a.roll.t/.3:0,dead:a.dead,deadT:0,flash:a.hurtT>.22?1:0,vis:1});
+      pose(r,{dt,t:time,mv:a.mv,atk:a.atk?swingPhase(a.atk):-1,act:a.act&&a.act.type==='gather'?a.act.t/a.act.dur*.5:0,gun,recoil:a.recoil,throwing:a.atkT>0?a.atkT:0,sneak:a.sneak,roll:a.roll?1-a.roll.t/.3:0,dead:a.dead,deadT:0,flash:a.hurtT>.22?1:0,vis:1});
     }else{
-      const d=a.def,w=['wind','windS','cast','cwind','fuse'].includes(a.st)?clamp(a.t/(d.wind||.5),0.01,1):0;
+      const d=a.def,w=['wind','windS','cast','cwind','fuse'].includes(a.st)?clamp(1-a.t/(a.st==='cast'?a.T||1:a.st==='fuse'?.65:d.wind||.5),0.01,1):0;
       pose(r,{dt,t:time,mv:a.mv,atk:-1,wind:w,gun:d.proj&&a.alert&&r.type==='human'?1:0,recoil:d.proj&&a.atkT>0?1:0,strike:!d.proj&&a.atkT>0,charge:a.st==='charge',stun:a.stunT>0,dead:a.dead,deadT:a.deadT,flash:a.flash,vis:a.vis});
       if(!a.dead&&bars<95&&(a.hp<a.mhp||a.boss||d.boss)&&a.vis>.5){const w0=d.boss?1.6:.7,f=clamp(a.hp/a.mhp,0,1),hy=r.h+.35;
         _m.compose(_p.set(a.x,hy,a.y),camQ,_s.set(w0+.06,.13,1));barBg.setMatrixAt(bars,_m);

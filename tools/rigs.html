@@ -18,13 +18,15 @@ const outfits=[['bare',{}],['rags',{head:'bandana',body:'rag_shirt',legs:'rag_pa
 for(const[n,eq,w]of outfits){const e={};for(const k in eq)if(eq[k])e[k]={id:eq[k]};const r=playerRig(e);if(w)setWeapon(r,w);list.push([n,r,w&&['rifle','shotgun'].includes(w)?2:0])}
 let i=0;for(const k in ENEMIES){for(let v=0;v<(ENEMIES[k].rig[1].vary?3:1);v++)list.push([k,rigFor(ENEMIES[k],++i*7+3),0])}
 {const sv=+qs.get('surv')||0;for(let k=0;k<sv;k++)list.push(['survivor',rigFor({rig:['human',{}],ai:'follow'},k*13+5),0])}
-// &strip=walk|run|sneak|attack|chop|die|husk : one figure at ten successive moments of that motion, left to right (a film strip, since stills cannot show movement)
-const strip=qs.get('strip');if(strip){list.length=0;const N=10;for(let i=0;i<N;i++){const husk=strip==='husk',r=husk?rigFor(ENEMIES.shambler,11):playerRig(strip==='chop'?{w1:{id:'hatchet_stone'}}:{});if(strip==='attack')setWeapon(r,'machete');if(strip==='chop')setWeapon(r,'hatchet');r.ph=0;r.sd=1;
+// &strip=walk|run|sneak|attack|chop|die|husk|strike : one figure at ten successive moments of that motion, left to right (a film strip, since stills cannot show movement)
+const strip=qs.get('strip');if(strip){list.length=0;const N=10;for(let i=0;i<N;i++){const husk=strip==='husk',r=husk||strip==='strike'?rigFor(ENEMIES.shambler,11):playerRig(strip==='chop'?{w1:{id:'hatchet_stone'}}:{});if(strip==='attack')setWeapon(r,'machete');if(strip==='chop')setWeapon(r,'hatchet');r.ph=0;r.sd=1;
   const base={dt:1/60,t:0,mv:0,atk:-1,wind:0,gun:0,dead:false,deadT:0,flash:0,vis:1},run=(o,n)=>{for(let k=0;k<n;k++){base.t+=1/60;pose(r,Object.assign({},base,o))}};
   if(strip==='walk'||strip==='run'||strip==='sneak'||husk)run({mv:strip==='run'?5.2:strip==='sneak'?1.7:husk?1.6:3.2,sneak:strip==='sneak'},90+i*(strip==='run'?3:husk?7:4));
   else if(strip==='attack'){run({},40);for(let k=0;k<=i*3;k++){base.t+=1/60;pose(r,Object.assign({},base,{atk:Math.min(1,k/27)}))}}
   else if(strip==='chop'){run({},40);for(let k=0;k<=i*4;k++){base.t+=1/60;pose(r,Object.assign({},base,{act:(k/40)*.5}))}}
   else if(strip==='die'){run({mv:3},60);run({dead:true},i*5)}
+  // a husk's attack as the game feeds it: the wind-up rises over 0.35 s, then the blow lands and is held for 0.3 s
+  else if(strip==='strike'){run({mv:1.6},60);const W=21;for(let k=0;k<=i*4;k++){base.t+=1/60;pose(r,Object.assign({},base,k<W?{wind:Math.max(.01,k/W)}:{strike:k<W+18}))}}
   r._strip=1;list.push([strip+' '+i,r,0])}}
 const q=qs.get('q');if(q){const keep=list.filter(l=>q.split(',').some(t=>l[0].includes(t)));list.length=0;list.push(...keep)}
 const cols=Math.min(10,list.length),gap=1.5,rows=Math.ceil(list.length/cols),marks=[];

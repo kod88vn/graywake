@@ -28,7 +28,7 @@
 ## By hand, before calling a version done
 
 - Start a new game on a desktop browser: gather by hand, craft the two tools, build a fire, boil water, wall in a bed.
-- Walk to the edge, travel to Birch Hollow, fight, search a container, come back.
+- Walk to the edge, travel to Birch Hollow, fight, search a container, come back. In the fight: tap and hold, swing with the cursor off the target, sidestep a husk's blow, fight with a slow weapon and a fast one, then let auto mode fight and watch how it moves.
 - Open build mode: place, upgrade, repair, remove, rotate. Run a line of wall along the side of a row of cells by dragging, put a box in the cell behind it, walk through a door and watch it swing.
 - Let a tide arrive at home, and let one arrive while away.
 - On a phone over the LAN (`npm start` prints the address): joystick, attack, Use, the sheets, the map, nothing under the notch or home bar.

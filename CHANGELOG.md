@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.8.1 — 2026-11-13
+
+Combat that answers and reads.
+
+- **Fixed: auto mode fought in zigzags and shuffles.** 0.8.0 made it walk from cell centre to cell centre toward a target and step in and out at the edge of its reach. It now walks straight at what it can reach in a straight line, takes paths as lines round the corners (gathering too), and once in reach stands and fights. Measured over 12 fights against three husks: 2 stops and starts per fight, where 0.8.0 had about 32 and 0.7.1 about 10.
+- **Fixed: enemy attacks were animated at the wrong moment.** The arm came down when the wind-up began and the damage arrived a third of a second later with nothing to see. The arm now rises through the wind-up and comes down as the blow lands. The same for boss abilities and for what attackers do to walls.
+- **Fixed: heavy weapons hurt before they visibly hit.** The blow now lands as the blade crosses the target for every weapon, quick or slow, and the swing trail appears with the blow, not when the swing starts.
+- **A click near something in reach hits it.** With the mouse, a swing goes for the enemy nearest the line to the cursor within about 70° either side (or right under it); only a click the other way swings at air. A tapping player whose cursor sat a step to one side of the enemy used to land 13 swings in 55; that is now 15 in 15.
+- **Swings step in.** When the target stands at the edge of reach or just past it, the swing carries you the last half step, and you turn with a moving target during the wind-up.
+- **Taps are remembered.** A click or a dodge made just before the last swing or roll has finished still happens (a third of a second of memory), instead of being dropped.
+- **Blows have weight.** A hit that lands holds the world for a few hundredths of a second, longer for heavy weapons, crits and kills, and knocks its target back a little further.
+- **Enemy blows can be sidestepped.** An attack goes where it was aimed when its wind-up began: step out of its line or its reach and it misses. Before, anything within reach was hit whichever way the attacker faced.
+- **You keep facing the fight.** Between swings the character no longer spins round to face the way it is walking.
+- The tide bot's results are within noise of 0.7.1 (`docs/BALANCE.md`); the simulation step costs the same (about 0.1 ms with 70 attackers).
+
 ## 0.8.0 — 2026-11-13
 
 Walls stand on the side of a cell, not in it.

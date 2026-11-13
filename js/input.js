@@ -25,7 +25,7 @@ function init(callbacks){
       return}
     setTouch(false);mouse={x:e.clientX,y:e.clientY};
     if(G.build){if(e.button===0)cb.build('down',e.clientX,e.clientY);else if(e.button===2)cb.hot('rotate');return}
-    if(e.button===0)G.inp.attack=true;else if(e.button===2)G.inp.interact=true;
+    if(e.button===0){G.inp.attack=true;G.inp.tap=true}else if(e.button===2)G.inp.interact=true;
   });
   cv.addEventListener('pointermove',e=>{
     if(e.pointerType==='touch'){if(G.build){cb.build('move',e.clientX,e.clientY,true);return}
@@ -37,7 +37,7 @@ function init(callbacks){
   cv.addEventListener('wheel',e=>{e.preventDefault();View.setZoom(View.zoom*(e.deltaY>0?1.08:.93))},{passive:false});
   // on-screen pad
   const hold=(id,down,upf)=>{const el=document.getElementById(id);el.addEventListener('pointerdown',e=>{e.preventDefault();cb.gesture();setTouch(e.pointerType==='touch');el.setPointerCapture(e.pointerId);down()});if(upf){el.addEventListener('pointerup',upf);el.addEventListener('pointercancel',upf)}};
-  hold('b-atk',()=>{if(!G.build)G.inp.attack=true},()=>{G.inp.attack=false});hold('b-use',()=>{G.inp.interact=true});hold('b-dodge',()=>{G.inp.dodge=true});
+  hold('b-atk',()=>{if(!G.build){G.inp.attack=true;G.inp.tap=true}},()=>{G.inp.attack=false});hold('b-use',()=>{G.inp.interact=true});hold('b-dodge',()=>{G.inp.dodge=true});
   hold('b-sneak',()=>{G.inp.sneakT=!G.inp.sneakT;document.getElementById('b-sneak').classList.toggle('on',G.inp.sneakT)});
   if(matchMedia('(pointer:coarse)').matches)setTouch(true);
 }
@@ -45,9 +45,9 @@ function setTouch(on){if(Input.touch===on)return;Input.touch=on;gw.classList.tog
 /** Called every frame before the simulation. */
 function frame(){
   const I=G.inp;
-  if(G.paused||G.mode!=='play'){I.mx=I.my=0;I.attack=false;I.interact=false;I.dodge=false;return}
+  if(G.paused||G.mode!=='play'){I.mx=I.my=0;I.attack=false;I.tap=false;I.interact=false;I.dodge=false;return}
   if(joyId===null){let x=0,y=0;if(keys.KeyW||keys.ArrowUp)y-=1;if(keys.KeyS||keys.ArrowDown)y+=1;if(keys.KeyA||keys.ArrowLeft)x-=1;if(keys.KeyD||keys.ArrowRight)x+=1;const l=Math.hypot(x,y)||1;I.mx=x/l;I.my=y/l}
   I.sneak=!!(keys.ShiftLeft||keys.ShiftRight||keys.ControlLeft||I.sneakT);
   I.aim=!Input.touch&&mouse&&!G.build?View.pick(mouse.x,mouse.y):null;
-  if(G.build)I.attack=false;
+  if(G.build)I.attack=I.tap=false;
 }

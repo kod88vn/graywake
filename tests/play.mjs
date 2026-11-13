@@ -126,6 +126,12 @@ try{
   const k0=await ev(`GW.G.S.stats.kills||0`);{const s=await J(`(()=>{const s=GW.View.project(__foe.x,__foe.y,.6),r=document.getElementById('cv').getBoundingClientRect();return[s.x+r.left,s.y+r.top]})()`);
     await page.send('Input.dispatchMouseEvent',{type:'mouseMoved',x:s[0],y:s[1]});await page.send('Input.dispatchMouseEvent',{type:'mousePressed',x:s[0],y:s[1],button:'left',buttons:1,clickCount:1});await until(`(GW.G.S.stats.kills||0)>${k0}`,15000);await page.send('Input.dispatchMouseEvent',{type:'mouseReleased',x:s[0],y:s[1],button:'left',clickCount:1})}
   T.ok(await ev(`GW.G.S.stats.kills||0`)>k0,'holding the mouse button on a husk kills it');T.ok(await ev(`GW.G.S.p.hp`)>0,'and you live (health '+Math.round(await ev(`GW.G.S.p.hp`))+')');
+  // a second husk, fought the careless way: separate quick clicks with the cursor a step to one side of it, not on it
+  await ev(`import('/js/sim/actors.js').then(m=>{const Z=GW.G.Z;window.__foe=m.spawnActor(Z,'shambler',Z.pl.x+1.5,Z.pl.y,1);__foe.alert=true;__foe.st='chase'})`);await page.sleep(300);
+  {const k1=await ev(`GW.G.S.stats.kills||0`);let clicks=0;await ev(`GW.G.S.p.hp=Math.max(GW.G.S.p.hp,80)`);
+    for(;clicks<45&&!(await ev(`(GW.G.S.stats.kills||0)>${k1}`));clicks++){const s=await J(`(()=>{const p=GW.G.Z.pl,dx=__foe.x-p.x,dy=__foe.y-p.y,l=Math.hypot(dx,dy)||1,s=GW.View.project(__foe.x-dy/l*1.0,__foe.y+dx/l*1.0,.6),r=document.getElementById('cv').getBoundingClientRect();return[s.x+r.left,s.y+r.top]})()`);
+      await page.send('Input.dispatchMouseEvent',{type:'mouseMoved',x:s[0],y:s[1]});await page.send('Input.dispatchMouseEvent',{type:'mousePressed',x:s[0],y:s[1],button:'left',buttons:1,clickCount:1});await page.sleep(50);await page.send('Input.dispatchMouseEvent',{type:'mouseReleased',x:s[0],y:s[1],button:'left',clickCount:1});await page.sleep(200)}
+    T.ok(await ev(`(GW.G.S.stats.kills||0)>${k1}`),'quick clicks beside a husk still land and kill it ('+clicks+' clicks)')}
   await page.send('Input.dispatchKeyEvent',{type:'keyDown',key:' ',code:'Space'});await page.sleep(80);await page.send('Input.dispatchKeyEvent',{type:'keyUp',key:' ',code:'Space'});T.ok(await until(`GW.G.Z.pl.rollCd>0`,1500),'Space dodges');
   // ---- go home, save, reload
   await ev(`for(const a of GW.G.Z.actors)if(a.team===1)a.dead=true`);const ex=await J(`[GW.G.Z.w/2,GW.G.Z.h-1.2]`);await ev(`GW.G.Z.pl.x=${ex[0]};GW.G.Z.pl.y=${ex[1]}-3`);await walkTo(ex[0],ex[1],.8);await until(`!document.getElementById('travel').hidden`,2000);await click('#travel');await until(`GW.G.mode==='map'`,2000);
