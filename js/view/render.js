@@ -9,7 +9,7 @@ import {OBJ,GROUND,G as GT} from '../data/objects.js';
 import {BIOMES} from '../data/world.js';
 import {VEHICLES} from '../data/recipes.js';
 import {WEATHER} from '../data/events.js';
-import {G,weaponDef,maxHp,EXIT_RING} from '../sim/core.js';
+import {G,weaponDef,maxHp,EXIT_RING,NO_BUILD} from '../sim/core.js';
 import {daylight} from '../sim/world.js';
 import {hash,clamp} from '../sim/util.js';
 
@@ -86,7 +86,7 @@ function disposeZone(){
   if(ground){scene.remove(ground);ground.geometry.dispose();ground=null}if(water){scene.remove(water);water.geometry.dispose();water=null}
   for(const m of borderMeshes){scene.remove(m);m.dispose()}borderMeshes=[];for(const m of clutterMeshes){scene.remove(m);m.dispose()}clutterMeshes=[];clutterAt.clear();
   for(const e of inst.values()){scene.remove(e.mesh);e.mesh.dispose()}inst.clear();shown.length=0;shownF.length=0;shownE.length=0;dirty.clear();
-  for(const m of dyn.values())scene.remove(m);dyn.clear();for(const L of leaves.values())scene.remove(L.root);leaves.clear();
+  for(const m of dyn.values())scene.remove(m);dyn.clear();for(const L of leaves.values())scene.remove(L.root);leaves.clear();if(buildEdge){scene.remove(buildEdge);buildEdge=null}
   for(const r of rigs.values()){scene.remove(r.root);disposeRig(r)}rigs.clear();
   if(vehMesh){scene.remove(vehMesh);vehMesh=null}parts.length=0;wobble.length=0;decals.length=0;decalN=0;decalDirty=true;glows.length=0;if(aoMesh)aoMesh.count=0;
 }
@@ -382,6 +382,10 @@ function draw(dt){
   if(shakeAmt>0){cam.position.x+=(Math.random()-.5)*shakeAmt;cam.position.y+=(Math.random()-.5)*shakeAmt;shakeAmt=Math.max(0,shakeAmt-dt*1.6)}
   cam.lookAt(camT.x,.6,camT.z);cam.updateMatrixWorld();
   syncActors(dt);syncProjs(dt);stepDoors(dt);flush();stepAmbient(dt,dl);stepParts(dt);stepWeather(dt,W,dl);stepLight(dt,W,dl);
+  // in build mode at home, a faint line shows where the buildable ground ends (the last few tiles before the tree line cannot be built on)
+  if(Z.home&&G.build){if(!buildEdge){const m=NO_BUILD,g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute([m,.05,m,Z.w-m,.05,m,Z.w-m,.05,Z.h-m,m,.05,Z.h-m],3));
+      buildEdge=new THREE.LineLoop(g,new THREE.LineBasicMaterial({color:'#e3a432',transparent:true,opacity:.55,depthWrite:false,toneMapped:false}));buildEdge.renderOrder=5;scene.add(buildEdge)}buildEdge.visible=true}
+  else if(buildEdge)buildEdge.visible=false;
   const h=Z.hint;if(h&&!G.build&&!p.dead){hintRing.visible=true;hintRing.position.set(h.x,.05,h.y);hintRing.scale.setScalar(1+Math.sin(time*5)*.06)}else hintRing.visible=false;
   playerRing.visible=!p.dead;playerRing.position.set(p.x,.04,p.y);
   post.render(scene,cam,[scene.fog.near,scene.fog.far]);
@@ -393,7 +397,7 @@ function pick(cx,cy){const r=canvas.getBoundingClientRect();ndc.set((cx-r.left)/
 /** Sim point (+height) → screen pixels relative to the canvas. */
 function project(x,y,h=0){_p.set(x,h,y).project(cam);const r=canvas.getBoundingClientRect();return{x:(_p.x*.5+.5)*r.width,y:(-_p.y*.5+.5)*r.height,vis:_p.z<1}}
 /** Placement preview in build mode. kind=null hides it. */
-let ghostArrow=null;
+let ghostArrow=null,buildEdge=null;
 const ghostMat=new THREE.MeshBasicMaterial({color:'#7cff7c',transparent:true,opacity:.5,depthWrite:false,toneMapped:false});
 function setGhost(kind,tx,ty,ok,rot=0,side=-1){
   if(!ghostArrow){const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute([0,0,.72,.17,0,.47,-.17,0,.47],3));ghostArrow=new THREE.Mesh(g,new THREE.MeshBasicMaterial({color:'#ffffff',transparent:true,opacity:.95,depthTest:false,side:THREE.DoubleSide,toneMapped:false}));ghostArrow.renderOrder=9;ghostArrow.visible=false;scene.add(ghostArrow)}

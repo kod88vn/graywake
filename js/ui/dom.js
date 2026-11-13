@@ -2,6 +2,7 @@
 import {iconURL,iconFor} from './icons.js';
 import {ITEMS,SETS} from '../data/items.js';
 import {G,count} from '../sim/core.js';
+import {sourcesOf} from '../data/sources.js';
 
 export const $=id=>document.getElementById(id);
 export const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -19,7 +20,7 @@ export function slot(s,attrs='',cls=''){
 /** Ingredient chips for a cost table, coloured by whether you have enough (pack plus home stores when at home). */
 export function chips(cost,mult=1){
   const home=!!(G.Z&&G.Z.home);let h='';
-  for(const k in cost){const need=cost[k]*mult,have=count(G.S,k,home);h+=`<span class="${have>=need?'ok':'no'}" title="${esc(ITEMS[k].n)}: have ${have}">${img(k)}${need}</span>`}
+  for(const k in cost){const need=cost[k]*mult,have=count(G.S,k,home);const src=have<need?sourcesOf(k):'';h+=`<span class="${have>=need?'ok':'no'}" title="${esc(ITEMS[k].n)}: have ${have}${src?' · '+esc(src):''}">${img(k)}${need}</span>`}
   return`<div class="ing">${h}</div>`;
 }
 const BUFF={speed:'move speed',haste:'attack speed',resist:'damage resistance',regen:'health per second',vigor:'max health'};

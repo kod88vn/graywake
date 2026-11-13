@@ -54,7 +54,7 @@ try{
   const placeAt=async(cat,kind,tx,ty)=>{await click(`[data-b="cat:${cat}"]`);await click(`[data-b="kind:${kind}"]`);const[x,y]=await tileXY(tx,ty);await page.click(x,y);await page.sleep(200);const ok=await ev(`!!GW.G.Z.obj[${ty}*GW.G.Z.w+${tx}]&&GW.G.Z.obj[${ty}*GW.G.Z.w+${tx}].k==='${kind}'`);if(!ok)T.info(kind+' not placed: toasts «'+await ev(`[...document.getElementById('toasts').children].map(e=>e.textContent).join(' / ')`)+'» pack '+await ev(`GW.G.S.p.inv.filter(Boolean).length+'/'+GW.G.S.p.inv.length`)+' build '+await ev(`JSON.stringify(GW.G.build)`));return ok};
   T.ok(await placeAt('craft','campfire',c[0]+2,c[1]),'click places a campfire');
   T.ok(await placeAt('storage','box_small',c[0]+2,c[1]-1),'click places a storage box');
-  T.ok(await placeAt('storage','bed_roll',c[0]-2,c[1]),'click places a bedroll');
+  T.ok(await placeAt('base','bed_roll',c[0]-2,c[1]),'click places a bedroll');
   await click('[data-b="cat:base"]');await click('[data-b="kind:wall_stick"]');
   // walls stand on the side of a cell: press near the north side of one cell, drag along the row, and a straight line of wall follows
   {const[x0,y0]=await tileXY(c[0]-2,c[1]+2-.35),[x1,y1]=await tileXY(c[0]+2,c[1]+2-.3);await page.send('Input.dispatchMouseEvent',{type:'mouseMoved',x:x0,y:y0});await page.send('Input.dispatchMouseEvent',{type:'mousePressed',x:x0,y:y0,button:'left',buttons:1,clickCount:1});

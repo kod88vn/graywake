@@ -223,7 +223,7 @@ const GATHER_VERB={axe:'Chop',pick:'Mine',rod:'Fish',wrench:'Salvage'};
 /** What pressing "interact" would do to the object on tile i: {type,label} or null. */
 export function interactInfo(Z,i){
   const o=Z.obj[i];if(!o)return null;const d=OBJ[o.k];
-  if(d.node)return{type:'gather',label:GATHER_VERB[d.node.tool]||(o.k==='pond'?'Fill':'Gather')};
+  if(d.node){const lack=d.node.tool&&!findTool(G.S,d.node.tool,d.node.tier);return{type:'gather',label:(GATHER_VERB[d.node.tool]||(o.k==='pond'?'Fill':'Gather'))+(lack?' (needs '+(TIER_NAMES[d.node.tier]||'a')+' '+TOOL_NAMES[d.node.tool]+')':'')}}
   if(d.special==='deathbag')return{type:'loot',label:'Recover'};
   if(d.loot)return o.empty?null:{type:'loot',label:o.inv?'Search':d.lock&&!o.unlocked?(d.lock==='pry'?'Pry open':d.lock==='pick'?'Pick lock':d.lock==='guard'?(guardDown(Z)?'Open':'Locked'):'Unlock'):'Search'};
   if(d.special==='cage')return o.held?{type:'cage',label:'Free'}:null;
@@ -245,7 +245,8 @@ const walled=(Z,x0,y0,x1,y1)=>Z.ed.length>0&&edgeCross(Z,x0,y0,x1,y1,true)>=0;
 export function findInteract(Z){
   const p=Z.pl,px=Math.floor(p.x),py=Math.floor(p.y);let best=null,bs=1e9;
   for(let ty=py-2;ty<=py+2;ty++)for(let tx=px-2;tx<=px+2;tx++){if(tx<0||ty<0||tx>=Z.w||ty>=Z.h)continue;const i=ty*Z.w+tx,info=interactInfo(Z,i);if(!info)continue;
-    const d=dist(tx+.5,ty+.5,p.x,p.y);if(d>1.75||walled(Z,p.x,p.y,tx+.5,ty+.5))continue;const s=d+Math.abs(angDiff(Math.atan2(ty+.5-p.y,tx+.5-p.x),p.a))*.35;if(s<bs){bs=s;best={i,x:tx+.5,y:ty+.5,...info}}}
+    const d=dist(tx+.5,ty+.5,p.x,p.y);if(d>1.75||walled(Z,p.x,p.y,tx+.5,ty+.5))continue;// what you are standing on wins over what you happen to face; beyond that, nearer and more in front is better
+    const s=d<.6?d*.5:d+Math.abs(angDiff(Math.atan2(ty+.5-p.y,tx+.5-p.x),p.a))*.35;if(s<bs){bs=s;best={i,x:tx+.5,y:ty+.5,...info}}}
   if(!best||bs>1.2)for(const dr of Z.drops){const d=dist(dr.x,dr.y,p.x,p.y);if(d<1.3&&d<bs){bs=d;best={drop:dr,x:dr.x,y:dr.y,type:'drop',label:'Pick up'}}}
   return best;
 }

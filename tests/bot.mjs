@@ -26,7 +26,7 @@ try{
   const at=s=>{const m=/at \(([\d.]+), ([\d.]+)\)/.exec(s);return m?[+m[1],+m[2]]:null},p0=at(t);
   t=await cmd('walk','e',1);const p1=at(t);T.ok(p0&&p1&&p1[0]-p0[0]>2,'walk moves the character by held keys ('+(p1&&p0?(p1[0]-p0[0]).toFixed(1):'?')+' tiles east)');
   t=await cmd('goto','fallen','branches');T.ok(/walked to Fallen Branches/.test(t),'goto finds its way to a named thing');
-  t=await cmd('use');T.ok(/pressed E \(Gather · Fallen Branches\)/.test(t)&&/picked up/.test(t),'use presses E on it and the pickup is reported');
+  t=await cmd('use');if(!T.ok(/pressed E \(Gather · Fallen Branches\)/.test(t)&&/picked up/.test(t),'use presses E on it and the pickup is reported'))T.info(t.split('\n').filter(l=>/^»|In reach|game said|You:/.test(l)).join(' ¦ ').slice(0,600));
   t=await cmd('key','i');T.ok(/SHEET OPEN: "PACK"/.test(t)&&/Stick/.test(t),'the pack sheet lists what was gathered');await cmd('key','esc');
   t=await cmd('key','b');T.ok(/BUILD MODE/.test(t)&&/Stick Wall/.test(t),'build mode lists its pieces');await cmd('key','esc');
   t=await cmd('bug','minor','self-test report :: filed by tests/bot.mjs');st=await get('/api/status');const b=st.bugs.find(b=>/self-test/.test(b.title));

@@ -11,6 +11,7 @@ import {EVENTS,TIDE_KINDS} from '../data/events.js';
 import {STORY,PERKS,PERK_TREES,ACHIEVEMENTS,SURV_TRAITS,JOBS} from '../data/progress.js';
 import {FACTIONS,COMM} from '../data/community.js';
 import {REGIONS} from '../data/world.js';
+import {sourcesOf} from '../data/sources.js';
 import {dayOf} from '../sim/util.js';
 import {$,esc,img,gimg,slot,chips,tags,bus,fmtMin,TYPE_NAMES} from './dom.js';
 
@@ -25,7 +26,7 @@ let sel=null;
 const EQ=[['w1','Hand'],['w2','Spare'],['head','Head'],['body','Body'],['hands','Hands'],['legs','Legs'],['feet','Feet'],['pack','Pack']];
 function itemCard(s,actions){
   if(!s)return`<div class="card"><p>Select something to see what it does.</p></div>`;const it=ITEMS[s.id];
-  return`<div class="card"><div class="row" style="align-items:flex-start;flex-wrap:nowrap"><div style="width:52px;flex:none">${slot({id:s.id})}</div><div style="min-width:0"><h3>${esc(it.n)}${s.n>1?' × '+s.n:''}</h3><small style="color:var(--dim)">${TYPE_NAMES[it.t]||''}</small></div></div>${it.d?`<p>${esc(it.d)}</p>`:''}${tags(it,s)}${it.set?`<p>${esc(SETS[it.set].n)} (all four pieces): ${esc(SETS[it.set].d)}</p>`:''}<div class="row">${actions}</div></div>`;
+  return`<div class="card"><div class="row" style="align-items:flex-start;flex-wrap:nowrap"><div style="width:52px;flex:none">${slot({id:s.id})}</div><div style="min-width:0"><h3>${esc(it.n)}${s.n>1?' × '+s.n:''}</h3><small style="color:var(--dim)">${TYPE_NAMES[it.t]||''}</small></div></div>${it.d?`<p>${esc(it.d)}</p>`:''}${tags(it,s)}${sourcesOf(s.id)?`<p style="font-size:12.5px">Where it comes from: ${esc(sourcesOf(s.id))}.</p>`:''}${it.set?`<p>${esc(SETS[it.set].n)} (all four pieces): ${esc(SETS[it.set].d)}</p>`:''}<div class="row">${actions}</div></div>`;
 }
 PANELS.inv={title:'Pack',live:true,open(){sel=null},
   render(){
@@ -66,8 +67,10 @@ function recipeRow(r,at,tier){
   let lock='';if(!vis)lock=r.bp?'Schematic needed':'Level '+r.lv;else if(higher){const up=Object.values(OBJ).find(o=>o.station===r.s&&o.sl===r.sl);lock='Needs '+(up?up.n:'a better station')}
   const why=lock?lock:canCraft(s,r,1,at),home=!!(G.Z&&G.Z.home);let max=99;for(const k in r.i)max=Math.min(max,Math.floor(count(s,k,home)/r.i[k]));if(r.fx)max=Math.min(max,1);
   const ic=r.fx?gimg('cart','#8a8f6a'):img(r.o);
-  return`<div class="rec ${why?'off':''}">${ic}<div><b>${esc(name)}${r.q>1?' × '+r.q:''}</b> <small>${r.t?fmtMin(r.t):''}${lock?' · '+lock:''}${!r.fx&&count(s,r.o,home)?' · you have '+count(s,r.o,home):''}</small>${chips(r.i)}${r.fx?`<small>${esc(VEHICLES[r.fx.veh].d)}</small>`:it.d&&!why?'':''}</div>
-    <div class="row" style="flex-wrap:nowrap">${why?`<small style="color:var(--dim);max-width:110px;text-align:right">${lock?'':esc(why)}</small>`:btn('Make','make',`data-r="${r.id}" data-n="1"`,'go')+(max>=2?btn('×'+Math.min(max,r.t?10:max>20?20:max),'make',`data-r="${r.id}" data-n="${Math.min(max,r.t?10:max>20?20:max)}"`):'')}</div></div>`;
+  // when something is short, say where it comes from
+  const short=!lock&&why?Object.keys(r.i).find(k=>count(s,k,home)<r.i[k]):null,src=short?sourcesOf(short):'';
+  return`<div class="rec ${why?'off':''}">${ic}<div><b>${esc(name)}${r.q>1?' × '+r.q:''}</b> <small>${r.t?fmtMin(r.t):''}${lock?' · '+lock:''}${!r.fx&&count(s,r.o,home)?' · you have '+count(s,r.o,home):''}</small>${chips(r.i)}${src?`<small style="display:block;color:var(--dim)">${esc(ITEMS[short].n)}: ${esc(src)}</small>`:''}${r.fx?`<small>${esc(VEHICLES[r.fx.veh].d)}</small>`:it.d&&!why?'':''}</div>
+    <div class="row" style="flex-wrap:nowrap">${why?`<small style="color:var(--dim);max-width:110px;text-align:right">${lock?'':esc(why)}</small>`:btn('Make','make',`data-r="${r.id}" data-n="1"`,'go')+(max>=2?btn('×'+Math.min(max,r.t?10:max>20?20:max),'make',`data-r="${r.id}" data-n="${Math.min(max,r.t?10:max>20?20:max)}" title="Make ${Math.min(max,r.t?10:max>20?20:max)} at once"`):'')}</div></div>`;
 }
 PANELS.craft={title:a=>a!=null&&G.Z&&G.Z.obj[a]?OBJ[G.Z.obj[a].k].n:'Crafting',live:true,
   open(a){if(a!=null&&G.Z&&G.Z.obj[a]&&G.Z.obj[a].out)collectStation(S(),a)},

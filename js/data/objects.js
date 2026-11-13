@@ -176,9 +176,9 @@ box_small:{n:'Small Box',solid:1,store:10,cat:'storage',lv:1,cost:{log:6,rope:1}
 chest:{n:'Chest',solid:1,store:20,cat:'storage',lv:8,cost:{plank:12,nails:12,iron_bar:1},hp:300,up:'locker_big'},
 locker_big:{n:'Steel Locker',solid:1,store:30,cat:'storage',lv:22,cost:{iron_bar:10,bolts:10,steel_bar:2},hp:800,up:'vault_box'},
 vault_box:{n:'Strongroom',solid:1,store:42,cat:'storage',lv:40,cost:{steel_bar:14,titan_bar:4,gear:4},hp:2400},
-bed_roll:{n:'Bedroll',solid:0,bed:1,cat:'storage',lv:1,cost:{fiber:10,rags:3},hp:60,up:'bed',d:'Sleep through the night. Sets where you wake.'},
-bed:{n:'Bed',solid:1,low:1,bed:2,cat:'storage',lv:9,cost:{plank:10,cloth:6,nails:8},hp:200,up:'bed2'},
-bed2:{n:'Bunk',solid:1,bed:3,cat:'storage',lv:26,cost:{steel_bar:4,canvas:6,plank:8},hp:500},
+bed_roll:{n:'Bedroll',solid:0,bed:1,cat:'base',lv:1,cost:{fiber:10,rags:3},hp:60,up:'bed',d:'Sleep through the night. Sets where you wake.'},
+bed:{n:'Bed',solid:1,low:1,bed:2,cat:'base',lv:9,cost:{plank:10,cloth:6,nails:8},hp:200,up:'bed2'},
+bed2:{n:'Bunk',solid:1,bed:3,cat:'base',lv:26,cost:{steel_bar:4,canvas:6,plank:8},hp:500},
 // ================= farm & passive =================
 garden:{n:'Garden Bed',solid:0,special:'garden',cat:'farm',lv:3,cost:{log:4,fiber:4},hp:80},
 collector:{n:'Rain Catcher',solid:1,special:'prod',prod:{item:'water',every:200,cap:5,rain:3},cat:'farm',lv:3,cost:{log:4,rags:3,rope:1},hp:120,up:'well'},
