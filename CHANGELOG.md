@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.9.6 — 2026-11-13
+
+- **Nothing is spent behind your back.** Quick-heal, the health bar and auto mode now say what they used and how many are left ("Used Bandage · 5 left"). The bot lost six bandages in one fight to auto mode's healing and reported them as vanished.
+- **Mending says how much is short**: "Missing Plant Fibre: need 3, have 2 (pack and boxes)".
+- **Esc on the map** explains the choices (pick a place, or go back in) instead of opening the menu over it; P still opens the menu.
+
 ## 0.9.5 — 2026-11-13
 
 The bot cleared most of a Corner Grocery, could not find the last husks in the maze of rooms, and left without the prize.
