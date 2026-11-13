@@ -37,7 +37,7 @@ for(const[k,p]of[['a',A],['b',B]]){const u=`http://127.0.0.1:${p}/`,img=document
 async function worlds(){
   let ws=[];try{ws=await (await fetch('/api/worlds')).json()}catch(e){}
   document.getElementById('worlds').innerHTML=ws.length?ws.map(w=>`<div class="world"><b>${esc(w.name)}</b> <span class="tag">day ${w.day} · ${esc(w.stageName)} · tides ×${w.fx.tide}${w.next?` · ${w.points}/${w.next}`:''}</span>`+
-    w.enclaves.map((e,i)=>`<div class="row"><span class="tag">${i+1}</span><span>${esc(e.name)} <span class="tag">${e.kind==='npc'?'settlement':e.kind}${e.idle?' · away':''}</span></span><span class="bar" title="hold ${e.hold}"><i style="width:${e.hold}%;background:${e.hold<25?'#c8503c':e.hold<50?'#e3a432':'#8fc060'}"></i></span><span style="text-align:right">${e.score}</span></div>`).join('')+
+    w.enclaves.map((e,i)=>`<div class="row"><span class="tag">${i+1}</span><span title="${esc(e.about||'')}">${esc(e.name)} <span class="tag">${e.kind==='npc'?'settlement':e.kind} · L${e.level}${e.idle?' · away':''}</span></span><span class="bar" title="hold ${e.hold}"><i style="width:${e.hold}%;background:${e.hold<25?'#c8503c':e.hold<50?'#e3a432':'#8fc060'}"></i></span><span style="text-align:right">${e.score}</span></div>`).join('')+
     (w.gone.length?`<div class="tag" style="margin-top:4px">fallen: ${w.gone.map(g=>esc(g.name)).join(', ')}</div>`:'')+`</div>`).join(''):'<span class="tag">No worlds yet: they are made when the first game joins.</span>';
   const feed=ws.flatMap(w=>w.feed.map(f=>({...f,w:w.name}))).sort((a,b)=>b.at-a.at).slice(0,5);
   document.getElementById('news').innerHTML=feed.map(f=>`<div class="${f.kind}">${esc(f.w)}: ${esc(f.text)}</div>`).join('');

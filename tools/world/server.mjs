@@ -11,6 +11,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import {fileURLToPath} from 'node:url';
 import {SITES} from '../../js/data/world.js';
+import {seedSettlement,settlementDay,describe} from './settle.mjs';
 
 const HERE=path.dirname(fileURLToPath(import.meta.url)),ROOT=path.resolve(HERE,'../..');
 const arg=(k,d)=>{const i=process.argv.indexOf('--'+k);return i>=0?process.argv[i+1]:d};
@@ -49,8 +50,9 @@ export function makeServer({dir=path.join(ROOT,'.out/worlds'),rnd=Math.random,no
   function createWorld(name){
     const used=new Set(DB.worlds.map(w=>w.name));name=(name||'').trim().slice(0,24)||WORLD_NAMES.find(n=>!used.has(n))||pick(WORLD_NAMES)+' '+(DB.n+1);
     const w={rel:1,id:'w'+(++DB.n),name,seed:Math.floor(rnd()*2**31),created:now(),last:now(),t:7*60,points:0,stage:0,leadN:0,leadAt:7*60+240,npcDay:0,enclaves:[],leads:[],feed:[],gone:[]};
+    // the settlements are seeded from the world: the same world seed gives the same people, and they start where a new player starts
     const names=NPC_NAMES.slice().sort(()=>rnd()-.5).slice(0,RULES.npcs);
-    for(const n of names)w.enclaves.push({id:id(),name:n,kind:'npc',status:'holding',hold:RULES.hold0-10+Math.floor(rnd()*30),score:0,day:1,level:1,deeds:{held:0,lost:0,deaths:0,leads:0},joined:now(),seen:now()});
+    names.forEach((n,i)=>w.enclaves.push({id:id(),name:n,kind:'npc',status:'holding',hold:RULES.hold0,score:0,day:1,level:1,deeds:{held:0,lost:0,deaths:0,leads:0},joined:now(),seen:now(),st:seedSettlement(w.seed,i)}));
     news(w,'A new world: '+name+'. '+names.join(', ')+' are already holding ground here.');DB.worlds.push(w);save();return w;
   }
   function join(wid,name,kind){
@@ -60,14 +62,20 @@ export function makeServer({dir=path.join(ROOT,'.out/worlds'),rnd=Math.random,no
     const e={id:id(),token:id()+id(),name,kind:kind==='bot'?'bot':'human',status:'holding',hold:RULES.hold0,score:0,day:1,level:1,deeds:{held:0,lost:0,deaths:0,leads:0},joined:now(),seen:now()};
     w.enclaves.push(e);w.last=now();news(w,name+' has settled in '+w.name+'.','good');save();return{w,e};
   }
-  /** The settlements the server plays: once a game day each holds or loses a little ground, sometimes gets to a lead first, and can fall. Later stages are harder on them too. */
+  /** The settlements the world plays itself (settle.mjs): each lives the day on its own plan, with the world's stage and open leads in front of it.
+   *  What happens to them moves their hold, their score and the world's event track by the same numbers as a player's deeds. */
   function npcDay(w){
-    const st=stageOf(w);
-    for(const e of holding(w).filter(e=>e.kind==='npc')){e.day++;
-      if(rnd()<.34-.03*st){e.hold=Math.min(RULES.holdMax,e.hold+RULES.tideHeld-4);e.deeds.held++;e.score+=RULES.score.held}
-      else if(rnd()<.16+.05*st){e.hold+=Math.round(RULES.tideLost*(.5+rnd()*.5));e.deeds.lost++;news(w,'The tide went through '+e.name+'.','bad')}
-      const open=w.leads.filter(l=>!l.by&&w.t-l.born>RULES.headStart);if(open.length&&rnd()<.1){const l=pick(open);l.by=e.name;l.byId=e.id;l.byT=w.t;e.hold=Math.min(RULES.holdMax,e.hold+RULES.lead);e.deeds.leads++;e.score+=RULES.score.lead;w.points+=3;news(w,e.name+' reached the '+SITES[l.kind].n+' first.','bad')}
-      if(e.hold<=0)fall(w,e)}
+    const st=stageOf(w),tideMult=RULES.stages[st].tide;
+    for(const e of holding(w).filter(e=>e.kind==='npc')){
+      if(!e.st){e.st=seedSettlement(w.seed,w.enclaves.indexOf(e));for(let d=1;d<Math.min(w.npcDay,9);d++)settlementDay(e.st,{day:d,stage:0,tideMult:1,leads:[]})}   // a settlement from before they were simulated: it gets the days it would have had, quietly
+      const leads=w.leads.filter(l=>!l.by).map(l=>({id:l.id,kind:l.kind,age:w.t-l.born})),ev=settlementDay(e.st,{day:w.npcDay,stage:st,tideMult,leads,headStart:RULES.headStart});
+      e.day++;e.level=e.st.lvl;
+      for(const x of ev){
+        if(x.k==='held'){e.hold=Math.min(RULES.holdMax,e.hold+RULES.tideHeld);e.deeds.held++;e.score+=RULES.score.held;w.points+=2;news(w,e.name+' held the tide.','good')}
+        else if(x.k==='lost'){e.hold+=RULES.tideLost;e.deeds.lost++;news(w,'The tide went through '+e.name+'.','bad')}
+        else if(x.k==='death'){e.hold+=RULES.death;e.deeds.deaths++;news(w,e.name+' were '+x.text+'.','bad')}
+        else if(x.k==='take'){const l=w.leads.find(l=>l.id===x.lead);if(l&&!l.by){l.by=e.name;l.byId=e.id;l.byT=w.t;e.hold=Math.min(RULES.holdMax,e.hold+RULES.lead);e.deeds.leads++;e.score+=RULES.score.lead;w.points+=3;news(w,e.name+' reached the '+SITES[l.kind].n+' first.','bad')}}}
+      e.score+=RULES.score.day;if(e.hold<=0)fall(w,e)}
   }
   function fall(w,e){e.status='fallen';e.hold=0;w.gone.push({name:e.name,kind:e.kind,day:Math.floor(w.t/1440)+1,score:e.score});news(w,e.name+' has fallen. '+(e.kind==='npc'?'Nobody is left there.':'Its people are on the road, looking for another valley.'),'bad')}
   function tick(w){
@@ -88,7 +96,7 @@ export function makeServer({dir=path.join(ROOT,'.out/worlds'),rnd=Math.random,no
   }
   const publicWorld=w=>({id:w.id,name:w.name,seed:w.seed,t:w.t,day:Math.floor(w.t/1440)+1,stage:w.stage,stageName:RULES.stages[w.stage].n,stageText:RULES.stages[w.stage].d,points:w.points,next:RULES.stages[w.stage+1]?RULES.stages[w.stage+1].need:null,
     fx:{tide:RULES.stages[w.stage].tide},room:RULES.room-players(w).length,
-    enclaves:w.enclaves.filter(e=>e.status==='holding').sort((a,b)=>b.score-a.score).map(e=>({id:e.id,name:e.name,kind:e.kind,hold:Math.round(e.hold),score:e.score,day:e.day,level:e.level,deeds:e.deeds,idle:e.kind!=='npc'&&now()-e.seen>90e3})),
+    enclaves:w.enclaves.filter(e=>e.status==='holding').sort((a,b)=>b.score-a.score).map(e=>({id:e.id,name:e.name,kind:e.kind,hold:Math.round(e.hold),score:e.score,day:e.day,level:e.level,deeds:e.deeds,idle:e.kind!=='npc'&&now()-e.seen>90e3,about:e.kind==='npc'&&e.st?describe(e.st):''})),
     leads:w.leads.map(l=>({id:l.id,kind:l.kind,ang:l.ang,far:l.far,until:l.until,by:l.by||null})),feed:w.feed.slice(-14),gone:w.gone.slice(-8)});
 
   /** One enclave reports what it has done since last time; gets the world back. */

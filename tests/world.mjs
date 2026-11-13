@@ -5,6 +5,9 @@ import os from 'node:os';
 import path from 'node:path';
 import {reporter} from '../tools/lib.mjs';
 import {makeServer,RULES} from '../tools/world/server.mjs';
+import {seedSettlement,settlementDay,defence,describe,leader,TRAITS} from '../tools/world/settle.mjs';
+import * as World from '../js/sim/world.js';
+import {SITES} from '../js/data/world.js';
 const T=reporter('world server'),dir=fs.mkdtempSync(path.join(os.tmpdir(),'gw-world-'));
 let seed=7;const rnd=()=>{seed=(seed*16807)%2147483647;return seed/2147483647};let clock=1e12;
 const S=makeServer({dir,rnd,now:()=>clock});
@@ -34,6 +37,18 @@ try{
   T.ok(last.world.day===1&&last.world.enclaves.every(e=>e.day<=2),'a character on its day 30 joining a new world does not drag the world to day 30: every day shown is days in this world');
   for(let d=31;d<=90;d++)last=rep(c,{t:d*1440+600,day:d,level:9,deeds:{held:d%3===0?1:0}});
   const npcs=last.world.enclaves.filter(e=>e.kind==='npc');T.ok(last.world.gone.some(g=>g.kind==='npc')||npcs.some(e=>e.hold!==RULES.hold0),'over sixty days the settlements gain and lose ground by themselves ('+npcs.map(e=>e.name+' '+e.hold).join(', ')+'; fallen: '+last.world.gone.map(g=>g.name).join(', ')+')');
+  // ---- the settlements: seeded, levelled with their world, on a plan of their own, judged by the game's rules (no model, no fixed dice)
+  {const life=(seed,i,days,leads)=>{const st=seedSettlement(seed,i),log=[];for(let d=1;d<=days;d++)log.push(settlementDay(st,{day:d,stage:d<10?0:1,tideMult:d<10?1:1.1,leads:leads?leads(d):[],headStart:480}).map(e=>e.k).join('+'));return{st,log}};
+    const a1=life(4242,1,30),a2=life(4242,1,30),b1=life(4243,1,30);
+    T.ok(JSON.stringify(a1)===JSON.stringify(a2)&&JSON.stringify(a1.st)!==JSON.stringify(b1.st),'the same world seed gives a settlement the same thirty days; another seed gives another settlement');
+    const young=life(4242,1,2).st,st=a1.st;T.ok(young.lvl<=3&&st.lvl>=8&&defence(st)>defence(young)*3&&st.people>young.people&&st.wpn>0&&st.set>=0,'it starts like a new player and grows with the world: '+describe(young)+'  →  day 30, level '+st.lvl+': '+describe(st));
+    T.ok(a1.log.filter(x=>/held|lost/.test(x)).length===10&&a1.log.slice(0,2).every(x=>x===''),'it meets a tide every third day, like everyone ('+a1.log.filter(x=>/held/.test(x)).length+' held, '+a1.log.filter(x=>/lost/.test(x)).length+' lost in thirty days)');
+    // leads: it goes only where the game's own rating says its gear can go
+    const all=[];for(let s=1;s<=12;s++)for(let i=0;i<3;i++){const r=life(s*101,i,6,d=>[{id:'x'+d,kind:'lead_checkpoint',age:999}]);all.push(...r.log)}
+    T.ok(!all.some(x=>/take|death/.test(x)),'no young settlement walks into an Army Checkpoint: the rating for its gear is far past what it will risk');
+    const went=[];for(let s=1;s<=12;s++)for(let i=0;i<3;i++){const r=life(s*101,i,24,d=>[{id:'g'+d,kind:'lead_grocery',age:999}]);const st=r.st,odds=World.leadOdds(leader(st),SITES.lead_grocery,1);went.push([r.log.filter(x=>/take/.test(x)).length,r.log.filter(x=>/death/.test(x)).length,st.trait,odds])}
+    T.ok(went.some(w=>w[0]>0)&&went.every(w=>w[0]+w[1]<=8),'with a grocery always on the radio they do go, at most once in three days ('+went.reduce((a,w)=>a+w[0],0)+' strongrooms and '+went.reduce((a,w)=>a+w[1],0)+' beaten back across 36 settlements in 24 days)');
+    const pub=S.api['POST /api/worlds']({name:'Seedwater'}),np=pub&&pub.enclaves.find(e=>e.kind==='npc');T.ok(!!np&&/people/.test(np.about)&&np.level>=1,'the world tells every game what each settlement is and has ('+(np&&np.name+': '+np.about)+')')}
   // over HTTP, from another origin
   await new Promise(r=>S.server.listen(0,'127.0.0.1',r));const port=S.server.address().port,res=await fetch(`http://127.0.0.1:${port}/api/worlds`);
   T.ok(res.headers.get('access-control-allow-origin')==='*'&&Array.isArray(await res.json()),'the API answers over HTTP to a page on another port');

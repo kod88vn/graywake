@@ -25,7 +25,7 @@ The address is remembered in the browser; `?world=off` forgets it. `&enclave=Nam
 | Leads | Up to two at a time per world, the first four game hours in. Everyone hears them; each game pitches the place to its own player. The first to open the strongroom takes it. |
 | Event track | Six stages. A tide held is worth 2 points to the world, a strongroom 3. Each stage multiplies everyone's tide budget (×1.0, 1.1, 1.2, 1.35, 1.5, 1.7). |
 | Score | Tide held 10, strongroom 15, each day 2, each level 3. It ranks the standings; it decides nothing else yet. |
-| Settlements | Once a game day each may hold a tide, lose one, or beat everyone to a lead; later stages are harder on them. They fall like anyone else. |
+| Settlements | Simulated, not rolled, and no model drives them (`tools/world/settle.mjs`). Each is seeded from its world's seed and starts like a new player: two or three people, a club, no walls. Every game day it works to a plan set by what kind of people they are (wall builders, fighters, scavengers, farmers): raise and upgrade walls, lay traps, make the next weapon and clothes its level allows, take people in. It gains levels at the world's pace. Every third day it meets a tide of the game's own strength (`tideBudget`, `tideLevel`, the world's stage) against a defence counted as the game counts a homestead (wall health, traps, guards). It goes for a radio lead only when the game's own rating (`leadOdds`) for its leader's gear is within what its kind will risk, never on a tide day, at most once in three days, and only after players have had eight hours' start. Hold, score and the world's event track move by the same numbers as for players. Measured over 120 settlements: they fall between about day 30 and day 60 as the stages make tides heavier. |
 
 ## How it fits together
 
@@ -37,4 +37,5 @@ The address is remembered in the browser; `?world=off` forgets it. `&enclave=Nam
 
 ## Not built yet
 
+New settlements arriving when old ones fall (a world can end up with players only). 
 Seeing each other in the same place; trade, gifts, raids and pacts between player enclaves (the single-player communities in `js/sim/community.js` are the model for these); a world's end and a winner; accounts (an enclave is whoever holds its token, which lives in the save); running the server anywhere but this machine.
