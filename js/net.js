@@ -11,7 +11,9 @@ export const Net={url:null,name:'',kind:'human',pick:'',state:'off',err:'',world
     const q=new URLSearchParams(location.search);let u=q.get('world');
     try{if(u==='off'){localStorage.removeItem(KEY);u=null}else if(u)localStorage.setItem(KEY,u);else u=localStorage.getItem(KEY)}catch(e){}
     this.url=u?u.replace(/\/+$/,''):null;this.name=(q.get('enclave')||'').slice(0,24);this.kind=q.get('kind')==='bot'?'bot':'human';this.pick=q.get('join')||'';
-    if(!this.url)return;this.state='joining';setInterval(()=>this.tick(),EVERY);this.list()},
+    if(!this.url)return;this.state='joining';setInterval(()=>this.tick(),EVERY);this.list();
+    // a deed is told to the world at once, not at the next round: the hold should move while the tide's last body is still warm
+    setInterval(()=>{const d=G.S&&G.S.net&&G.S.net.token&&G.S.deeds;if(d&&(d.held||d.lost||d.deaths||d.leads.length))this.tick()},1200)},
   async call(path,body){const r=await fetch(this.url+path,body?{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)}:undefined);if(!r.ok)throw new Error('world server said '+r.status);return r.json()},
   /** The worlds there are, for the title screen. */
   async list(){if(!this.url)return[];try{this.worlds=await this.call('/api/worlds');this.err=''}catch(e){this.err='The world server is not answering';this.worlds=[]}return this.worlds},

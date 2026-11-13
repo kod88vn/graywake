@@ -283,6 +283,8 @@ export function worldNews(S,W,you){
   if(!W)return;const was=S.world,me=you&&you.name;
   S.world={id:W.id,name:W.name,day:W.day,stage:W.stage,stageName:W.stageName,stageText:W.stageText,points:W.points,next:W.next,fx:W.fx||{},enclaves:W.enclaves||[],feed:W.feed||[],gone:W.gone||[],leads:(W.leads||[]).map(l=>({id:l.id,by:l.by||null})),you:you||null};
   if(was&&was.id===W.id&&W.stage>was.stage){toast('The world moves on: '+W.stageName,'bad');sfx('warning')}
+  // the hold never changes without a word: a bot (and its developer) twice took a silent change for a fault
+  if(was&&was.id===W.id&&was.you&&you&&was.you.hold!==undefined&&you.hold!==was.you.hold)toast('Your hold on '+W.name+': '+was.you.hold+' → '+you.hold+(you.hold<=25?'. At nothing the enclave falls':''),you.hold>was.you.hold?'good':'bad');
   const net=S.net||(S.net={});net.heard=net.heard||{};
   // leads heard before joining belong to no world: they are struck off, so the same place is never on the map twice (one being stood in, or holding a dropped pack, stays)
   S.sites=S.sites.filter(s=>!(SITES[s.site]&&SITES[s.site].lead&&!s.wid&&!(G.Z&&G.Z.site===s.id)&&!(s.bag&&s.bag.some(Boolean))));if(S.lead.note&&!S.sites.some(s=>s.id===S.lead.note))S.lead.note=null;
