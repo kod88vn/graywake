@@ -6,7 +6,7 @@ import {RECIPES,VEHICLES} from '../data/recipes.js';
 import {PERK,xpFor,MAX_LEVEL} from '../data/progress.js';
 import {clamp,rnd} from './util.js';
 
-export const VERSION='0.9.10';
+export const VERSION='0.10.0';
 export const SAVE_V=2;
 export const HOME_W=46,HOME_H=46,EXIT_RING=2,NO_BUILD=4;
 export const MIN_PER_SEC=1.5;            // game minutes per real second: a day is 16 real minutes
@@ -30,6 +30,9 @@ export function blankState(seed){
     surv:[],survN:0,morale:60,wait:[],fac:{},clog:[],
     q:{i:0,base:{},contracts:[],refresh:0,done:[]},
     flags:{},seen:{},ach:{},stats:{},codex:{it:{},en:{}},scrip:0,veh:0,mut:0,depth:0,trader:null,nextEv:0,
+    // a shared world, when the game is joined to one (js/net.js): `net` is the pass to it, `world` the last news of it, `deeds` what this
+    // enclave has done that the world has not been told yet. All three are idle in a game played alone.
+    net:null,world:null,deeds:{held:0,lost:0,deaths:0,leads:[]},
     set:{music:true,sfx:true,vol:.8,quality:'auto',shake:true,autoPick:true,autoRepair:true,replant:true,hints:true,tides:'standard'},
   };
 }

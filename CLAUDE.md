@@ -18,6 +18,8 @@ node tests/audio.mjs # level table for every sound and music scene
 npm run bot          # a Claude model (Haiku) plays the game by itself for 30 minutes; watch at http://127.0.0.1:8777/ (docs/AUTOMATION.md)
 npm run bot:report   # the latest bot session: bugs, ideas, where it struggled
 npm run test:bot     # self-test of the bot harness, no model, 40 s
+npm run world        # the shared-world server on :8795; play with ?world=http://127.0.0.1:8795 (docs/MULTIPLAYER.md)
+npm run test:world   # world server rules, then a real game page against it
 ```
 
 ## Map
@@ -38,7 +40,9 @@ npm run test:bot     # self-test of the bot harness, no model, 40 s
 
 - `tools/bot/` automated play: `session.mjs` (a Chrome of its own, command API, live picture, logs), `page.js` (what the bot can see), `mcp.mjs` (the bot's tools), `run.mjs` (runs a model in shifts), `watch.html`, `PLAYER.md` (the bot's brief), `report.mjs`, `ctl.mjs` (the same commands by hand). Session files go to `.out/bot/`.
 
-Guides: `docs/ARCHITECTURE.md`, `docs/CONTENT_GUIDE.md`, `docs/BALANCE.md`, `docs/TESTING.md`, `docs/AUTOMATION.md`.
+- `tools/world/` and `js/net.js` shared worlds: a world server (enclaves, hold, shared leads, event stages) and the game's client for it. Off unless the page is given `?world=URL`. `docs/MULTIPLAYER.md`.
+
+Guides: `docs/MULTIPLAYER.md`, `docs/ARCHITECTURE.md`, `docs/CONTENT_GUIDE.md`, `docs/BALANCE.md`, `docs/TESTING.md`, `docs/AUTOMATION.md`.
 
 ## Rules that are easy to break
 
@@ -56,7 +60,7 @@ Guides: `docs/ARCHITECTURE.md`, `docs/CONTENT_GUIDE.md`, `docs/BALANCE.md`, `doc
 - **Gear can be found, and what is found gets worn.** The user: "the bot is almost always naked. It should know to wear the best gears. We also need to have more useful items for it to loot, weapons and gears included." `LOOT.finds` in `js/data/world.js` holds every weapon and wearable by tier (a test fails if one is craft-only); `FIND` gives ordinary containers a chance of one, and a lead's strongroom always has two. A new weapon or wearable needs a row in `finds`. `gained()` in `core.js` puts a thing on when its slot is empty; `betterGear()` and `wearBest()` are behind the pack's Wear best button and the bot's "Wearing" line.
 - **Whatever is missing, the game says where it comes from.** `js/data/sources.js` works that out from the tables; show it wherever a new "missing X" appears.
 - **Bit shifts on `hash()` results use `>>>`**, never `>>`: the hash is unsigned and `>>` turns the top half negative (this once produced `undefined` model ids).
-- **Publishing sends every file under `js/`**, including `js/data/community.js`, `js/data/sources.js` and `js/sim/community.js`: a new module that is left out of the publish breaks the page.
+- **Publishing sends every file under `js/`**, including `js/net.js`, `js/data/community.js`, `js/data/sources.js` and `js/sim/community.js`: a new module that is left out of the publish breaks the page.
 - **Every id is checked.** `npm run check` fails on an unknown item, object, creature, loot family, model, icon glyph or sound, and on any item that cannot be obtained. Run it after touching `js/data/`.
 - **Feedback must be visible where the player is looking.** Toasts, the pickup feed and banners sit above sheets (`z-index` in `index.html`); a sheet must fit the screen and scroll inside `#pb`. An action that cannot complete (full pack, missing tool) refuses with a message and takes nothing.
 - **The simulation runs in real time at any frame rate** (`main.js` splits slow frames into steps). Never cap `dt` in a way that slows the game down.

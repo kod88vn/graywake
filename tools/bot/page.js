@@ -105,6 +105,8 @@ B.observe=(full=false)=>{
       weapon:it?it.n+(it.dur?' ('+Math.round((e.d||0)/it.dur*100)+'% condition)':'')+(it.ammo?', '+(p.inv.filter(s=>s&&s.id===it.ammo).reduce((a,s)=>a+s.n,0))+' '+ITEMS[it.ammo].n:''):'bare fists',
       spare:sp&&ITEMS[sp.id]?ITEMS[sp.id].n:null,auto:!!G.auto,build:!!G.build};
     o.you.pack=(p.inv||[]).filter(Boolean).length;
+    // the shared world, if this game is in one: where this enclave stands and who else holds ground
+    if(S.world){const w=S.world,y=w.you||{};o.world={name:w.name,stage:w.stageName,tide:w.fx&&w.fx.tide||1,hold:y.hold,rank:y.rank,of:y.of,score:y.score,rivals:w.enclaves.filter(e=>e.name!==y.name).map(e=>e.name+' ('+(e.kind==='npc'?'settlement':e.kind)+', hold '+e.hold+', score '+e.score+')'),leads:S.sites.filter(s=>s.wid).length,news:w.feed.slice(-3).map(f=>f.text)}}
     // what is worn, what in the pack would be better, and what could be made by hand this minute for a slot that is bare or poorly covered
     {const W=['head','body','legs','feet','hands'];o.you.wearing=W.map(k=>k+': '+(p.eq[k]&&ITEMS[p.eq[k].id]?ITEMS[p.eq[k].id].n:'NOTHING')).join(', ');o.you.armour=ds.arm||0;
       o.you.better=betterGear(S).map(b=>ITEMS[b.id].n+' ('+(b.slot==='w1'?'weapon in hand':b.slot==='w2'?'spare weapon':b.slot)+(b.was?', better than your '+ITEMS[b.was].n:', you have nothing there')+')');

@@ -23,7 +23,7 @@ let st=await alive(),started=false;
 if(st&&!st.ready)for(let i=0;i<120&&!((st=await alive())&&st.ready);i++)await sleep(250);
 if(!st){
   fs.mkdirSync(BOT,{recursive:true});const log=fs.openSync(path.join(BOT,'session.log'),'a');
-  const a=['--profile',PROFILE,'--port',String(PORT),'--pace',String(arg('pace','live'))];if(arg('window',false))a.push('--window');if(arg('fresh',false))a.push('--fresh');if(arg('sound',false))a.push('--sound');
+  const a=['--profile',PROFILE,'--port',String(PORT),'--pace',String(arg('pace','live'))];if(arg('window',false))a.push('--window');if(arg('fresh',false))a.push('--fresh');if(arg('sound',false))a.push('--sound');if(arg('world',false))a.push('--world',String(arg('world')));if(arg('name',false))a.push('--name',String(arg('name')));
   spawn(process.execPath,[path.join(HERE,'session.mjs'),...a],{detached:true,stdio:['ignore',log,log]}).unref();started=true;
   for(let i=0;i<160&&!((st=await alive())&&st.ready);i++)await sleep(250);
   if(!st){console.error('The play session did not start. See '+path.join(BOT,'session.log'));process.exit(1)}

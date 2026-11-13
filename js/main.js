@@ -7,6 +7,7 @@ import {View} from './view/render.js';
 import {UI} from './ui/ui.js';
 import {Input} from './input.js';
 import {Snd} from './audio.js';
+import {Net} from './net.js';
 
 const KEY='graywake.save.v1';
 // a save about to be converted to a newer format is first copied aside, once per old format, under KEY + '.format' + its number
@@ -55,14 +56,14 @@ function loop(ts){
 function boot(){
   const cv=document.getElementById('cv');
   try{View.init(cv,'auto')}catch(e){console.error(e);document.querySelector('#title .in').innerHTML='<h1>Gray<i>wake</i></h1><p>This browser could not start WebGL, which the game needs to draw its world. Try a current version of Chrome, Safari, Firefox or Edge with hardware acceleration switched on.</p>';return}
-  UI.init(api);
+  UI.init(api);Net.init();
   Input.init({hot:k=>UI.hot(k),build:(t,x,y,d)=>UI.buildPointer(t,x,y,d),gesture:()=>Snd.init()});
   addEventListener('resize',()=>{View.resize();UI.resize()});
   document.addEventListener('visibilitychange',()=>{if(document.hidden){save();Snd.suspend()}else Snd.resume()});
   addEventListener('pagehide',save);
   document.addEventListener('pointerdown',()=>Snd.init(),{once:true});
   if(window.claude&&window.claude.hot&&window.claude.hot.snapshot)try{window.claude.hot.snapshot(()=>{save();return{}})}catch(e){}
-  window.GW={G,World,View,UI,Snd,api,VERSION};
+  window.GW={G,World,View,UI,Snd,Net,api,VERSION};
   UI.title();requestAnimationFrame(loop);
 }
 boot();

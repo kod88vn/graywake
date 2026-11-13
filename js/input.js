@@ -4,7 +4,7 @@ import {View} from './view/render.js';
 
 const keys={};let mouse=null,joyId=null,joyO=null,cb={},gw,cv,joy,knob;
 export const Input={touch:false,init,frame};
-const HOT={KeyI:'inv',Tab:'inv',KeyC:'craft',KeyB:'build',KeyJ:'journal',KeyL:'camp',Escape:'esc',KeyQ:'swap',KeyF:'auto',Digit1:'q_hp',Digit2:'q_food',Digit3:'q_water',Digit4:'q_tox',KeyR:'rotate',KeyM:'leave',KeyP:'menu'};
+const HOT={KeyI:'inv',Tab:'inv',KeyC:'craft',KeyB:'build',KeyJ:'journal',KeyL:'camp',KeyO:'world',Escape:'esc',KeyQ:'swap',KeyF:'auto',Digit1:'q_hp',Digit2:'q_food',Digit3:'q_water',Digit4:'q_tox',KeyR:'rotate',KeyM:'leave',KeyP:'menu'};
 
 function init(callbacks){
   cb=callbacks;gw=document.getElementById('gw');cv=document.getElementById('cv');joy=document.getElementById('joy');knob=joy.firstElementChild;

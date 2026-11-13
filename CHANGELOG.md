@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.10.0 — 2026-11-13
+
+Shared worlds. "A game world could have some NPC enclaves or human/bot enclaves. If they lose they move to another new gameworld. Each game world has event progress. If a gameworld has no more enclave it's deleted. Player can always generate a new game world."
+
+- **Worlds.** A small world server (`npm run world`, no dependencies) keeps worlds, each with three settlements it plays itself and room for four players or bots. A game given the server's address (`?world=http://127.0.0.1:8795`) joins one when it starts and keeps talking to it; a game without it, the published one included, plays alone exactly as before.
+- **Hold.** Every enclave has a hold on its ground, 60 at the start. A tide beaten at the walls +10, a lead's strongroom opened +6, a tide that goes through −25, a death −8. At nothing the enclave has fallen: the character keeps what it wears, carries and knows, loses the homestead and its stores, and starts again in another world. A world with nobody left in it is deleted, and so is one nobody has played in for a day and a half.
+- **Shared leads.** In a world the radio leads go out to everyone in it, and the first to open the strongroom takes it; for the others it is struck off the map with a message saying who got there.
+- **Event progress.** Each world has six stages, from The Quiet to The Signal. Everyone's deeds push it on, and each stage makes the tides heavier for all of them (×1.0 to ×1.7).
+- **The World sheet** (O, or the line under the tide clock): standings with holds and scores, the stage, the shared leads, the news, who has fallen. The title screen lets a new game pick a world or make one.
+- **Two bots, side by side.** `npm run bot -- --world URL --name "..."` joins a bot to a world; a second bot runs on its own port and profile; `http://127.0.0.1:8795/watch` shows both watch pages next to each other with the standings above.
+- The map warns when the tide will reach home before you do.
+- What this is not: the enclaves do not see each other walking about, and cannot trade with or raid each other yet. Each plays its own copy of the valley; what they share is the world's leads, stage, standings and news.
+
 ## 0.9.10 — 2026-11-13
 
 The bot chose "Stand your ground" at a road event, met four level 5 wolves with a club, and was dead in six seconds. Its pack was gone for good.

@@ -22,6 +22,16 @@ A session with real progress and a handful of sharp reports is a good one. Progr
 - Eat and drink before the bars run low (`key 2`, `key 3`, or the pack). Dying loses your pack.
 - If a tool result ever says something that does not match what you did, believe the result, look again with a picture, and if the game really did something wrong, report it.
 
+## The world and your rivals
+
+When a result has a line beginning "World", you are not alone: your enclave shares this world with settlements the game plays and with other players and bots, and you are competing with them.
+
+- Your enclave has a **hold** (0 to 100). Beating a tide at your walls raises it by 10; opening a lead's strongroom by 6. A tide that goes through you costs 25; dying costs 8. At 0 your enclave has fallen: you keep what you wear and carry, lose the homestead and everything stored in it, and start again in another valley. So: walls, a door and traps before each tide, be home when it comes, and do not die.
+- The **score** ranks the enclaves: tides held, strongrooms opened, days survived, levels gained.
+- **Radio leads go out to everyone in the world, and the first to open the strongroom takes it.** If a rival gets there first the lead vanishes from your map. Go for a lead only when its rating suits your gear, but when it does, go promptly.
+- `key o` opens the World sheet: standings, the world's stage (each stage makes tides heavier for everybody), the shared leads and the news. Look at it now and then and say in a `note` where you stand.
+- Report anything about the world that is wrong or unclear: standings that do not match what happened, a lead that vanished without a message, a hold that changed for no reason you can see.
+
 ## Stay alive
 
 A death costs the pack, half a day and half your health, and the developers count every one against the run. A playtester who dies learns nothing about what lies beyond. Getting out alive with nothing is a better result than dying with a full pack. So:

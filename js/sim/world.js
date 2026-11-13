@@ -259,6 +259,7 @@ export function addLead(S,kind,offset,want){
 }
 /** Leads come over the truck's radio a couple of times a day, two on the map at most; a Radio Mast at home hears them more often and keeps three. */
 function leadTick(S){
+  if(S.net)return;   // in a shared world the leads are the world's: everyone hears the same ones (worldNews below)
   const L=S.lead;if(!L.next){L.next=S.t+(5+rnd()*4)*60;return}if(S.t<L.next)return;
   const mast=homeHas(S,'radio'),day=dayOf(S.t),active=S.sites.filter(s=>SITES[s.site]&&SITES[s.site].lead).length;
   L.next=S.t+(mast?6+rnd()*4:8+rnd()*6)*60;if(active>=(mast?3:2)||S.tide.live)return;
@@ -270,6 +271,30 @@ function leadTick(S){
   L.note=site.id;sfx('radio');toast((mast?'Radio: ':'Truck radio: ')+(I.again?'another ':'')+I.name+' · '+I.word+' (threat '+I.skulls+' of 5)','info');
 }
 /** The radio note waiting to be read, shown as a sheet when the player is home and nothing else is going on. */
+// ---------------------------------------------------------------- a shared world (the news arrives through js/net.js; nothing here talks to a network)
+/** Take in the world's news: its stage and standings, and the radio leads everyone in it hears. A lead someone else has opened is struck off
+ *  the map (unless the player is standing in it); a new one is put on the map, pitched to this player like any other lead. */
+export function worldNews(S,W,you){
+  if(!W)return;const was=S.world,me=you&&you.name;
+  S.world={id:W.id,name:W.name,day:W.day,stage:W.stage,stageName:W.stageName,stageText:W.stageText,points:W.points,next:W.next,fx:W.fx||{},enclaves:W.enclaves||[],feed:W.feed||[],gone:W.gone||[],you:you||null};
+  if(was&&was.id===W.id&&W.stage>was.stage){toast('The world moves on: '+W.stageName,'bad');sfx('warning')}
+  const net=S.net||(S.net={});net.heard=net.heard||{};
+  for(const l of W.leads||[]){const site=S.sites.find(s=>s.wid===l.id);
+    if(l.by&&l.by!==me){if(site&&!(G.Z&&G.Z.site===site.id)){S.sites=S.sites.filter(s=>s!==site);if(S.lead.note===site.id)S.lead.note=null;toast('Radio: '+l.by+' reached the '+SITES[l.kind].n+' first','bad');sfx('radio')}net.heard[l.id]=1;continue}
+    if(site||l.by||net.heard[l.id]||!SITES[l.kind]||S.tide.live)continue;
+    const st=addLead(S,l.kind,undefined,S.lead.n===0?2:undefined);if(!st)continue;net.heard[l.id]=1;st.wid=l.id;st.until=S.t+Math.max(120,l.until-W.t);
+    // the same place for everyone: a bearing and a distance from the world, turned into a spot one and a half to two and a half hours from this home
+    {const h=LOC.home,v=VEHICLES[S.veh||0].spd*(1+perk('travel')),r=(1.5+l.far)*v;st.x=clamp(h.x+Math.cos(l.ang)*r,30,970);st.y=clamp(h.y+Math.sin(l.ang)*r,25,615);st.reg=1}
+    const I=leadInfo(S,st);S.lead.note=st.id;sfx('radio');toast('Radio, to everyone in '+W.name+': '+I.name+' · '+I.word+' (threat '+I.skulls+' of 5). First there takes it','info')}
+}
+/** The enclave has fallen and its people move to another valley: the character keeps what they wear, carry and know; the homestead, its
+ *  stores, its people and the map of the old valley are gone. A new homestead is laid out and the tides start over. */
+export function exile(S){
+  S.seed=(S.seed*1103515245+12345)>>>0;S.home={obj:[],fl:[],ed:[],regrow:[],pile:{},report:null};S.loc={};S.sites=[];S.lead={next:0,note:null,last:'',n:0};
+  S.surv=[];S.wait=[];S.morale=60;S.fac={};S.clog=[];S.trader=null;S.tide={n:0,at:0,kind:'shamble',dir:0,weak:0,warned:0,live:null};S.deeds={held:0,lost:0,deaths:0,leads:[]};S.world=null;if(S.net)S.net.heard={};
+  S.p.bed=null;S.p.hp=Math.max(S.p.hp,derive(S).maxHp*.6);S.p.food=Math.max(S.p.food,50);S.p.water=Math.max(S.p.water,50);
+  G.Z=null;G.pending=null;genHome(S);scheduleTide(S,true);S.nextEv=S.t+600;S.pos='home';goHome(false);emit('save');
+}
 export function leadNote(S){const L=S.lead;if(!L.note)return null;const site=S.sites.find(s=>s.id===L.note);if(!site){L.note=null;return null}return site}
 export function leadRead(S){S.lead.note=null}
 
@@ -397,7 +422,7 @@ function processHome(S,m){
 
 // ---------------------------------------------------------------- tides
 export const TIDE_DIFF={gentle:.65,standard:1,brutal:1.5};
-export const tideBudget=(S,n)=>(2+2.6*n+.3*n*n)*(1-S.tide.weak)*(1+.5*S.mut)*(TIDE_DIFF[S.set.tides]||1);
+export const tideBudget=(S,n)=>(2+2.6*n+.3*n*n)*(1-S.tide.weak)*(1+.5*S.mut)*(TIDE_DIFF[S.set.tides]||1)*(S.world&&S.world.fx&&S.world.fx.tide||1);   // a shared world's stage makes tides heavier for everyone in it
 export const tideLevel=(S,n)=>1+Math.round(1.1*(n-1))+S.mut*10;
 function scheduleTide(S,first){
   const T=S.tide,n=T.n+1,day=dayOf(S.t)-1;T.at=(day+(first?2:3))*1440+21*60;if(T.at-S.t<26*60)T.at+=1440;
@@ -432,7 +457,7 @@ function tickTide(S,Z,dt){
   if(!L.q.length&&alive===0)endTide(S,Z,true);
 }
 function endTide(S,Z,won){
-  const n=S.tide.n+1,kind=TIDE_KINDS.find(k=>k.id===S.tide.kind)||TIDE_KINDS[0];S.tide.n=n;S.tide.live=null;stat('tides');
+  const n=S.tide.n+1,kind=TIDE_KINDS.find(k=>k.id===S.tide.kind)||TIDE_KINDS[0];S.tide.n=n;S.tide.live=null;stat('tides');S.deeds[won?'held':'lost']++;
   if(G.Z&&G.Z.home)for(let i=G.Z.actors.length-1;i>=0;i--)if(G.Z.actors[i].from)G.Z.actors.splice(i,1);   // allied fighters go home
   const res={n,name:kind.n,won,lost:Z?Z.tideLost||0:0,xp:0,scrip:0,items:[]};
   if(won){res.xp=60+45*n;res.scrip=12+8*n;addXp(S,res.xp);S.scrip+=res.scrip;stat('earned',res.scrip);
@@ -454,7 +479,7 @@ function resolveAway(S){
   const lost=raidBase(S,clamp(ratio*.3,.04,.85),true);let stolen=0;
   if(ratio>1.3)for(const b of homeStores(S))for(let i=0;i<b.inv.length;i++)if(b.inv[i]&&rnd()<Math.min(.4,(ratio-1.3)*.25)){stolen++;b.inv[i]=null}
   for(const o of S.home.obj){if(!o)continue;const k=OBJ[o.k];if(k&&k.trap)o.uses=Math.min(k.trap.uses-1,(o.uses||0)+Math.ceil(k.trap.uses*Math.min(.8,ratio*.4)));if(k&&k.turret&&o.ammo)o.ammo=Math.floor(o.ammo*Math.max(.2,1-ratio*.5))}
-  S.tide.n=n;stat('tides');if(ratio<1)addXp(S,Math.round((60+45*n)*.5));
+  S.tide.n=n;stat('tides');S.deeds[ratio<1?'held':'lost']++;if(ratio<1)addXp(S,Math.round((60+45*n)*.5));
   S.home.report={n,name:kind.n,held:ratio<1,lost,stolen};scheduleTide(S);if(G.mode==='map'||G.Z)toast('A tide hit the homestead while you were away','bad');
 }
 /** Damage a share of the base's walls. Returns how many structures were destroyed (or damaged when not `count`). */
@@ -524,7 +549,7 @@ export function sleep(i){
   S.p.hp=Math.min(ds.maxHp,S.p.hp+ds.maxHp*([0,.35,.6,1][tier]+(medic?.25:0)));S.p.tox=Math.max(0,S.p.tox-25);S.p.buffs=[];
   sfx('sleep');emit('ui','wake',dayOf(S.t));emit('save');return true;
 }
-G.hooks.die=()=>{const S=G.S;stat('deaths');G.auto=false;emit('ui','death',{where:G.Z?G.Z.name:'',day:dayOf(S.t)})};
+G.hooks.die=()=>{const S=G.S;stat('deaths');S.deeds.deaths++;G.auto=false;emit('ui','death',{where:G.Z?G.Z.name:'',day:dayOf(S.t)})};
 /** After the death screen: lose the pack where you fell, wake at home next morning. */
 export function respawn(){
   const S=G.S,Z=G.Z,items=S.p.inv.filter(Boolean),day=Math.floor(S.t/1440),wake=(hourOf(S.t)>=6?day+1:day)*1440+7*60;

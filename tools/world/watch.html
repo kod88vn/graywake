@@ -1,0 +1,34 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Graywake worlds: side by side</title><meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+:root{--bg:#14170f;--panel:#1c2016;--line:#343a2a;--ink:#e9e3d1;--dim:#9c9884;--amber:#e3a432;--green:#8fc060;--red:#ff9a8a}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:13px/1.35 system-ui,sans-serif}
+body{display:grid;grid-template-rows:auto 1fr}
+header{display:flex;gap:14px;align-items:stretch;padding:8px 12px;border-bottom:1px solid var(--line);background:var(--panel);overflow-x:auto}
+h1{font-size:14px;margin:0 6px 0 0;letter-spacing:.08em;text-transform:uppercase;color:var(--amber);align-self:center;white-space:nowrap}
+.world{border:1px solid var(--line);padding:6px 10px;min-width:260px}.world b{letter-spacing:.06em;text-transform:uppercase}
+.row{display:grid;grid-template-columns:16px 1fr 70px 34px;gap:6px;align-items:center;margin-top:3px}.bar{height:5px;background:#0a0c08;border:1px solid var(--line)}.bar i{display:block;height:100%}
+.tag{color:var(--dim);font-size:11px}.news{min-width:280px;max-width:460px;color:var(--dim);font-size:12px}.news div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.news .bad{color:var(--red)}.news .good{color:var(--green)}
+main{display:grid;grid-template-columns:1fr 1fr;gap:2px;min-height:0;background:var(--line)}
+section{display:grid;grid-template-rows:auto 1fr;min-height:0;background:var(--bg)}section h2{margin:0;padding:4px 10px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);background:var(--panel);display:flex;justify-content:space-between}
+iframe{border:0;width:100%;height:100%;background:#000}
+@media(max-width:900px){main{grid-template-columns:1fr;grid-auto-rows:70vh}}
+</style></head><body>
+<header><h1>Graywake worlds</h1><div id="worlds" style="display:flex;gap:10px"></div><div class="news" id="news"></div></header>
+<main><section><h2><span id="la">bot A</span><a id="oa" target="_blank" style="color:var(--dim)">open alone</a></h2><iframe id="fa" title="bot A: side by side"></iframe></section>
+<section><h2><span id="lb">bot B</span><a id="ob" target="_blank" style="color:var(--dim)">open alone</a></h2><iframe id="fb" title="bot B: side by side"></iframe></section></main>
+<script>
+// Two bot watch pages next to each other with the world's standings above them. Watch-only: nothing here plays either game.
+// /watch?a=8777&b=8778 names the two sessions' ports (those are the defaults).
+const q=new URLSearchParams(location.search),A=q.get('a')||'8777',B=q.get('b')||'8778',esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+for(const[k,p]of[['a',A],['b',B]]){const u=`http://127.0.0.1:${p}/`;document.getElementById('f'+k).src=u;document.getElementById('o'+k).href=u;
+  const lab=document.getElementById('l'+k),poll=async()=>{try{const s=await (await fetch(u+'api/status')).json();lab.textContent=`${s.profile||'bot'} · port ${p} · ${s.zone&&s.zone.name||''} · level ${s.you&&s.you.level||'?'} · ${s.actions||0} moves · ${s.deaths||0} deaths`}catch(e){lab.textContent=`port ${p}: no session running`}};poll();setInterval(poll,4000)}
+async function worlds(){
+  let ws=[];try{ws=await (await fetch('/api/worlds')).json()}catch(e){}
+  document.getElementById('worlds').innerHTML=ws.length?ws.map(w=>`<div class="world"><b>${esc(w.name)}</b> <span class="tag">day ${w.day} · ${esc(w.stageName)} · tides ×${w.fx.tide}${w.next?` · ${w.points}/${w.next}`:''}</span>`+
+    w.enclaves.map((e,i)=>`<div class="row"><span class="tag">${i+1}</span><span>${esc(e.name)} <span class="tag">${e.kind==='npc'?'settlement':e.kind}${e.idle?' · away':''}</span></span><span class="bar" title="hold ${e.hold}"><i style="width:${e.hold}%;background:${e.hold<25?'#c8503c':e.hold<50?'#e3a432':'#8fc060'}"></i></span><span style="text-align:right">${e.score}</span></div>`).join('')+
+    (w.gone.length?`<div class="tag" style="margin-top:4px">fallen: ${w.gone.map(g=>esc(g.name)).join(', ')}</div>`:'')+`</div>`).join(''):'<span class="tag">No worlds yet: they are made when the first game joins.</span>';
+  const feed=ws.flatMap(w=>w.feed.map(f=>({...f,w:w.name}))).sort((a,b)=>b.at-a.at).slice(0,5);
+  document.getElementById('news').innerHTML=feed.map(f=>`<div class="${f.kind}">${esc(f.w)}: ${esc(f.text)}</div>`).join('');
+}
+worlds();setInterval(worlds,3000);
+</script></body></html>

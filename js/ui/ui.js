@@ -1,5 +1,6 @@
 // The interface: HUD, toasts, build mode, title screen, and the plumbing that opens sheets and the map.
 import {G,VERSION,weaponDef,count,quickUse,place,upgrade,repair,demolish,rotateObj,moveObj,canMove,canPlace,canUpgrade,isEdgeKind,edgeIdx,EREF,structAt,buildCost,buildUnlocked,repairCost,maxHp,inBuildArea,freeSlots} from '../sim/core.js';
+import {Net} from '../net.js';
 import * as World from '../sim/world.js';
 import {story,goalProgress,goalText,contractReady} from '../sim/quests.js';
 import {autoPlan} from '../sim/actors.js';
@@ -31,7 +32,7 @@ function init(a){
   $('tabs').addEventListener('click',e=>{const el=e.target.closest('[data-t]');if(el){curTab=el.dataset.t;refresh();$('pb').scrollTop=0;sfx('ui_tap')}});
   $('stat').addEventListener('click',e=>{const el=e.target.closest('[data-q]');if(el&&G.S&&!G.paused){quickUse(G.S,el.dataset.q);needHud=true}});
   $('quest').onclick=()=>open('journal');
-  $('travel').onclick=()=>{World.leaveZone()};
+  $('travel').onclick=()=>{World.leaveZone()};$('worldchip').onclick=()=>hot('world');
   $('btns').addEventListener('click',e=>{const el=e.target.closest('[data-h]');if(el)hot(el.dataset.h)});
   $('weap').addEventListener('click',e=>{const el=e.target.closest('[data-w]');if(!el)return;if(el.dataset.w==='auto'){hot('auto')}else if(el.dataset.w==='w1'||el.dataset.w==='w2'){G.S.p.active=el.dataset.w;bus.emitEq();needHud=true}});
   $('build').addEventListener('click',e=>{const el=e.target.closest('[data-b]');if(!el)return;const[k,v]=el.dataset.b.split(':');
@@ -54,7 +55,9 @@ function title(){
     <div id="t-confirm" hidden><p>This replaces your saved homestead. Start over?</p><div class="row" style="justify-content:center"><button class="btn bad" id="t-yes">Start over</button><button class="btn" id="t-no">Keep my save</button></div></div>
     <p>A clearing, a dead truck, and a valley full of husks. Fell trees, raise walls, plant a garden, walk out past the tree line for everything else. Every third night the tide comes for whatever you have built.</p>
     <div class="keys"><span><b>WASD</b> move</span><span><b>Mouse</b> aim · <b>click</b> attack</span><span><b>E</b> interact · <b>F</b> auto-gather</span><span><b>Space</b> dodge · <b>Shift</b> sneak</span><span><b>I</b> pack · <b>C</b> craft · <b>B</b> build</span><span><b>J</b> journal · <b>Q</b> swap weapon</span><span><b>Touch</b> left thumb moves, pad on the right</span><span>Progress saves in this browser</span></div>
+    ${Net.url?`<div id="t-world" style="margin:10px auto 0;max-width:30em;font-size:13px;color:var(--dim)">Shared worlds: <select id="t-wsel" style="max-width:20em"><option value="">any world with room</option></select> <span id="t-werr"></span><br><small>A new game settles there. A game you continue stays in its own world.</small></div>`:''}
     <p style="font-size:11px;opacity:.6">v${VERSION}</p>`;
+  if(Net.url)Net.list().then(ws=>{const sel=$('t-wsel');if(!sel)return;sel.innerHTML='<option value="">any world with room</option>'+ws.map(w=>`<option value="${w.id}" ${w.room>0?'':'disabled'}>${w.name} · ${w.stageName} · ${w.enclaves.length} enclaves${w.room>0?'':' · full'}</option>`).join('')+'<option value="new">a new world of your own</option>';sel.value=Net.pick||'';sel.onchange=()=>{Net.pick=sel.value};$('t-werr').textContent=Net.err||''});
   const go=fn=>{$('fade').classList.add('on');setTimeout(()=>{fn();setTimeout(()=>$('fade').classList.remove('on'),150)},300)};
   if(has)$('t-cont').onclick=()=>go(()=>{if(!api.continueGame())title()});
   $('t-new').onclick=()=>{if(has){$('t-confirm').hidden=false}else go(()=>api.newGame())};
@@ -94,6 +97,7 @@ function onEvent(e){
     else if(n==='tideWarn'){const k=TIDE_KINDS.find(k=>k.id===S.tide.kind);banner('Tide coming',k.n+' from the '+DIRS[S.tide.dir]);if(G.mode==='map')MapScreen.draw()}
     else if(n==='tideStart'){const k=TIDE_KINDS.find(k=>k.id===S.tide.kind);banner('The tide',k.n+' · from the '+DIRS[S.tide.dir]);closeQuiet();buildClose()}
     else if(n==='tideEnd')setTimeout(()=>open('tideEnd',a),900);
+    else if(n==='exile'){closeQuiet();buildClose();open('exile',a)}
     else if(n==='wake')banner('Day '+a,WEATHER[S.weather.id].n);
     else if(n==='ending')setTimeout(()=>open('ending'),2500);
     else if(PANELS[n])open(n,a);
@@ -126,6 +130,7 @@ function hot(k){
   if(k==='inv')open('inv');else if(k==='journal')open('journal');else if(k==='menu')open('menu');
   else if(k==='craft'){const h=Z&&Z.hint;open('craft',h&&h.type==='station'?h.i:null)}
   else if(k==='camp'){if(Z&&Z.home)open('camp');else toast('Your camp ledger is at home','info')}
+  else if(k==='world'){if(S.world)open('world');else toast(Net.url?(Net.state==='down'?'The world server is not answering':'Joining a world…'):'This game is not joined to a shared world','info')}
   else if(k==='build'){if(G.build)buildClose();else if(Z&&Z.home&&!S.tide.live)buildOpen();else toast(S.tide.live?'Not during a tide':'You can only build at home','info')}
   else if(G.mode!=='play'||!Z)return;
   else if(k==='swap'){S.p.active=S.p.active==='w1'?'w2':'w1';bus.emitEq();sfx('equip');needHud=true}
@@ -213,6 +218,7 @@ function frame(dt){if(cur==='inv')Portrait.frame(dt||.016);
   const bf=S.p.buffs.map(b=>`<span>${{speed:'Quick',haste:'Sharp',resist:'Steady',regen:'Mending',vigor:'Hale',weak:'Weak'}[b.k]||b.k} ${Math.ceil(b.t)}s</span>`).join('')+(p.sneak?'<span style="color:var(--violet)">Sneaking</span>':'')+(p.rest?'<span style="color:var(--green)">Catching breath</span>':p.rested&&!p.fed?'<span>Rested: eat well or use medicine for more</span>':'')+(p.fed&&S.p.hp<ds.maxHp?'<span style="color:var(--green)">Well fed: healing</span>':'')+(ds.set?`<span>Set bonus</span>`:'')+(Z.cold&&ds.cold<.95?'<span class="danger">Freezing</span>':'')+(Z.heat?'<span>Heat</span>':'');
   if($('buffs')._h!==bf){$('buffs')._h=bf;$('buffs').innerHTML=bf}
   const W=WEATHER[S.weather.id];$('clock').firstElementChild.innerHTML=`DAY ${dayOf(S.t)} · ${fmtTime(S.t)}<span>${W.n}</span>`;
+  {const w=S.world,we=$('worldchip');we.hidden=!w;if(w){const y=w.you||{};we.textContent=`${w.name.toUpperCase()} · ${w.stageName.toUpperCase()} · HOLD ${y.hold??'?'} · ${y.rank||'?'} OF ${y.of||w.enclaves.length}`;we.className=(y.hold??60)<25?'low':''}}
   const T=S.tide,te=$('tide');if(T.live){te.className='live';te.textContent=`TIDE ${T.n+1} · ${T.live.left||T.live.total} LEFT`}else{const left=T.at-S.t;te.className=left<12*60?'soon':'';te.textContent=`TIDE ${T.n+1} IN ${fmtMin(left).toUpperCase()}`+(T.warned?' · '+DIRS[T.dir].toUpperCase():'')}
   let boss=null;for(const a of Z.actors)if(a.team===1&&!a.dead&&(a.def.boss)&&a.alert){boss=a;break}
   $('boss').hidden=!boss;if(boss){$('boss').firstElementChild.textContent=boss.def.n.toUpperCase();$('boss').querySelector('i').style.width=boss.hp/boss.mhp*100+'%'}

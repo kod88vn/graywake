@@ -2,7 +2,7 @@
 // A play session for a bot: the game in a Chrome of its own (own profile, own save, a frozen copy of the code), a small command API to play it
 // through real key and mouse events, a live picture for people to watch, and a log of everything that happens.
 //
-//   node tools/bot/session.mjs [--profile haiku] [--port 8777] [--pace live|turns] [--window] [--fresh] [--sound]
+//   node tools/bot/session.mjs [--profile haiku] [--port 8777] [--pace live|turns] [--window] [--fresh] [--sound] [--world http://127.0.0.1:8795 --name "Camp name"]
 //
 // Nothing here touches your own browser, keyboard or mouse. See docs/AUTOMATION.md.
 import fs from 'node:fs';
@@ -39,7 +39,8 @@ let chromeProc=null,send,ev;
 async function startChrome(){
   const flags=['--no-first-run','--no-default-browser-check','--remote-debugging-port=0','--user-data-dir='+chromeDir,'--disable-background-timer-throttling','--disable-renderer-backgrounding','--disable-backgrounding-occluded-windows','--disable-features=CalculateNativeWinOcclusion,MacWebContentsOcclusion','--autoplay-policy=no-user-gesture-required'];
   if(!SOUND)flags.push('--mute-audio');
-  const url=`http://127.0.0.1:${PORT}/play/`;
+  // joined to a shared world when asked: the game page is told where the world server is and what this enclave is called (docs/MULTIPLAYER.md)
+  const WORLD=arg('world',''),NAME=arg('name',''),url=`http://127.0.0.1:${PORT}/play/`+(WORLD&&WORLD!==true?`?world=${encodeURIComponent(WORLD)}&kind=bot&enclave=${encodeURIComponent(NAME&&NAME!==true?NAME:PROFILE)}`:'');
   if(WINDOW){
     // a real window, opened behind whatever you are doing (-g), as a bare app window; your clicks and keys in it are swallowed by the page shield
     flags.push(`--window-size=${W},${H+28}`,'--app='+url);
@@ -224,6 +225,7 @@ function describe(o){
   if(o.mode==='menu'||o.layer==='title'){L.push(`== Graywake ${o.version} · title screen`);if(o.text)L.push(o.text)}
   else{L.push(`== ${o.zone?o.zone.name+(o.zone.home?' (your homestead)':''):o.mode==='map'?'The map':'Graywake'} · ${(o.clock||'').replace(/\n/g,' · ')} · ${o.tide||''}`+(o.boss?' · BOSS '+o.boss.replace(/\n/g,' '):''));
     if(y)L.push(`You: health ${y.hp}/${y.maxHp}, food ${y.food}, water ${y.water}${y.tox?', toxin '+y.tox:''} · level ${y.level}${y.perkPoints?' ('+y.perkPoints+' perk point'+(y.perkPoints>1?'s':'')+' to spend)':''} · in hand: ${y.weapon}${y.spare?' (spare: '+y.spare+')':''} · pack holds ${y.pack} stacks`+(y.at?` · at (${y.at[0]}, ${y.at[1]}), ${y.dead?'DEAD':y.doing}${y.sneaking?', sneaking':''}`:'')+` · Auto ${y.auto?'ON':'off'}${y.build?' · BUILD MODE':''}`);
+    if(o.world){const w=o.world;L.push(`World ${w.name} (stage: ${w.stage}, tides ×${w.tide}): your enclave's hold is ${w.hold} of 100, score ${w.score}, place ${w.rank} of ${w.of}. Rivals: ${w.rivals.join('; ')}.`+(w.news.length?` News: ${w.news.join(' | ')}`:'')+(w.hold<30?' !! YOUR HOLD IS LOW: at 0 the enclave falls and you start again in another valley. Hold the next tide at your walls and do not die.':''))}
     if(y&&!y.dead&&y.hp<y.maxHp*.4)L.push(`!! HEALTH ${y.hp}/${y.maxHp}: do not fight on. Heal (key 1) if you carry medicine and get clear, otherwise \`flee\`.`);
     if(y&&y.wearing)L.push(`Wearing (armour ${y.armour}): ${y.wearing}`+(y.better&&y.better.length?`\n!! BETTER GEAR IS IN YOUR PACK: ${y.better.join('; ')}. Open the pack (key i) and tap "Wear best".`:'')+(y.canMake&&y.canMake.length?`\n!! YOU CAN MAKE BY HAND RIGHT NOW (key c): ${y.canMake.join(', ')}. Clothes go on by themselves when made.`:''));
     if(o.buffs)L.push('Effects: '+o.buffs.replace(/\n/g,', '));

@@ -274,7 +274,9 @@ export function interact(Z,target){
       if(d.lock==='pry'){const tool=findTool(S,'pry');if(!tool){toast('Needs a crowbar','bad');sfx('error');return false}wearTool(S,tool,3);o.unlocked=1;sfx('break',t.x,t.y,{vol:.6});noise(Z,t.x,t.y,8)}
       else if(d.lock==='pick'){if(!take(S,'lockpick',1)){toast('Needs a lockpick','bad');sfx('error');return false}
         if(rnd()<.5+perk('lock')*.5+.0){o.unlocked=1;sfx('door',t.x,t.y)}else{toast('The pick snaps','bad');sfx('trap_snap',t.x,t.y,{vol:.5});return false}}
-      else if(d.lock==='guard'){if(!guardDown(Z)){const b=Z.def&&Z.def.boss&&ENEMIES[Z.def.boss];const left=enemiesAlive(Z)+Z.spawns.filter(s=>!s.done&&!s.night).length;toast(b?'Locked. '+b.n+' carries the keys':'Barred from inside: it opens when the place is clear. '+left+' of the garrison still alive (red on the minimap)','bad');sfx('error');return false}o.unlocked=1;sfx('door',t.x,t.y)}
+      else if(d.lock==='guard'){if(!guardDown(Z)){const b=Z.def&&Z.def.boss&&ENEMIES[Z.def.boss];const left=enemiesAlive(Z)+Z.spawns.filter(s=>!s.done&&!s.night).length;toast(b?'Locked. '+b.n+' carries the keys':'Barred from inside: it opens when the place is clear. '+left+' of the garrison still alive (red on the minimap)','bad');sfx('error');return false}o.unlocked=1;sfx('door',t.x,t.y);
+        // in a shared world this is the deed the others are racing for: it is reported the next time the game talks to the world
+        {const st=Z.site&&S.sites.find(x=>x.id===Z.site);if(st&&st.wid&&!S.deeds.leads.includes(st.wid))S.deeds.leads.push(st.wid)}}
       else{if(count(S,d.lock)<1){toast('Locked. Needs '+ITEMS[d.lock].n,'bad');sfx('error');return false}o.unlocked=1;sfx('door',t.x,t.y)}
     }
     p.act={type:'open',i:t.i,t:0,dur:o.inv?.15:.7};return true}
