@@ -29,7 +29,7 @@
 
 - Start a new game on a desktop browser: gather by hand, craft the two tools, build a fire, boil water, wall in a bed.
 - Walk to the edge, travel to Birch Hollow, fight, search a container, come back.
-- Open build mode: place, upgrade, repair, remove, rotate.
+- Open build mode: place, upgrade, repair, remove, rotate. Run a line of wall along the side of a row of cells by dragging, put a box in the cell behind it, walk through a door and watch it swing.
 - Let a tide arrive at home, and let one arrive while away.
 - On a phone over the LAN (`npm start` prints the address): joystick, attack, Use, the sheets, the map, nothing under the notch or home bar.
 - Toggle music and effects; lock and unlock the phone.

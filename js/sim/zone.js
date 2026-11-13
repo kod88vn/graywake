@@ -7,9 +7,9 @@ import {G,emit,HOME_W,HOME_H,EXIT_RING,perk} from './core.js';
 import {RNG,noise2,Heap,rnd} from './util.js';
 
 export function newZone(id,w,h,base){
-  return{id,w,h,g:new Uint8Array(w*h).fill(base),fl:[],obj:[],actors:[],projs:[],drops:[],areas:[],spawns:[],uid:0,time:0,pl:null,
+  return{id,w,h,g:new Uint8Array(w*h).fill(base),fl:[],obj:[],ed:[],actors:[],projs:[],drops:[],areas:[],spawns:[],uid:0,time:0,pl:null,
     navDirty:true,flow:null,flowKey:-1,flowT:0,biome:'forest',lvl:1,lt:1,home:false,
-    touch(i){this.navDirty=true;emit('obj',i)}};
+    touch(i){this.navDirty=true;emit('obj',i)},touchEdge(e){this.navDirty=true;emit('edge',e)}};
 }
 export const inZone=(Z,x,y)=>x>=0&&y>=0&&x<Z.w&&y<Z.h;
 export const atExit=(Z,x,y)=>x<EXIT_RING||y<EXIT_RING||x>=Z.w-EXIT_RING||y>=Z.h-EXIT_RING;
@@ -184,11 +184,11 @@ export function genHome(S){
   scat('tree_pine',66,8.5,40);scat('tree_birch',38,8,40);scat('tree_dead',6,8,40);scat('rock',18,7,40);scat('rock_flint',4,12,40);scat('bush_berry',9,7,40);
   scat('grass_tall',22,5,40);scat('stone_pile',12,4,40);scat('log_pile',9,4,40);scat('mushrooms',4,10,40);scat('herb_patch',3,9,40);scat('pond',2,8,14);scat('clay_pit',2,13,40);scat('flowers',14,3,40);
   put(Z,Math.floor(cx)+4,Math.floor(cy)-3,'car_wreck',rng,{r:1,starter:1});put(Z,Math.floor(cx)+3,Math.floor(cy)-1,'crate',rng,{starter:2});put(Z,Math.floor(cx)-4,Math.floor(cy)+1,'log_pile',rng);
-  S.home.obj=Z.obj;S.home.fl=[];
+  S.home.obj=Z.obj;S.home.fl=[];S.home.ed=[];
 }
 export function homeZone(S){
   const Z=newZone('home',HOME_W,HOME_H,GT.grass);homeGround(Z,S);
-  Z.obj=S.home.obj;Z.fl=S.home.fl;Z.home=true;Z.biome='forest';Z.lvl=1+Math.floor(S.tide.n*1.2);Z.lt=1;Z.reg=1;Z.name='Homestead';Z.def=LOC.home;Z.seed=S.seed;
+  if(!S.home.ed)S.home.ed=[];Z.obj=S.home.obj;Z.fl=S.home.fl;Z.ed=S.home.ed;for(let e=0;e<Z.ed.length;e++)if(Z.ed[e]&&!OBJ[Z.ed[e].k])Z.ed[e]=null;Z.home=true;Z.biome='forest';Z.lvl=1+Math.floor(S.tide.n*1.2);Z.lt=1;Z.reg=1;Z.name='Homestead';Z.def=LOC.home;Z.seed=S.seed;
   for(let i=0;i<Z.fl.length;i++)if(Z.fl[i]&&!OBJ[Z.fl[i]])Z.fl[i]=null;
   for(let i=0;i<Z.obj.length;i++)if(Z.obj[i]&&!OBJ[Z.obj[i].k])Z.obj[i]=null;
   let sx=HOME_W/2+.5,sy=HOME_H/2+2.5;
@@ -231,14 +231,35 @@ export function collide(Z,x,y,r,ally){
       if(d2<r*r){if(d2>1e-8){const d=Math.sqrt(d2);x=nx+dx/d*r;y=ny+dy/d*r}else{const l=x-tx,rt=tx+1-x,u=y-ty,dn=ty+1-y,m=Math.min(l,rt,u,dn);if(m===l)x=tx-r;else if(m===rt)x=tx+1+r;else if(m===u)y=ty-r;else y=ty+1+r}}
     }
   }
+  // walls on cell edges: thin boxes along the grid lines. Doors let allies through.
+  if(Z.ed.length)for(let pass=0;pass<2;pass++){
+    const tx0=Math.floor(x-r-WT),tx1=Math.floor(x+r+WT),ty0=Math.floor(y-r-WT),ty1=Math.floor(y+r+WT),W=Z.w;
+    for(let ty=ty0;ty<=ty1;ty++)for(let tx=tx0;tx<=tx1;tx++){if(tx<0||ty<0||tx>=W||ty>=Z.h)continue;const e=(ty*W+tx)*2;
+      for(let s=0;s<2;s++){const w=Z.ed[e+s];if(!w||(ally&&OBJ[w.k].door))continue;
+        const x0=s?tx-WT:tx,x1=s?tx+WT:tx+1,y0=s?ty:ty-WT,y1=s?ty+1:ty+WT,nx=x<x0?x0:x>x1?x1:x,ny=y<y0?y0:y>y1?y1:y,dx=x-nx,dy=y-ny,d2=dx*dx+dy*dy;
+        if(d2<r*r){if(d2>1e-8){const d=Math.sqrt(d2);x=nx+dx/d*r;y=ny+dy/d*r}else if(s)x=x<tx?tx-WT-r:tx+WT+r;else y=y<ty?ty-WT-r:ty+WT+r}}}
+  }
   const m=.3;x=x<m?m:x>Z.w-m?Z.w-m:x;y=y<m?m:y>Z.h-m?Z.h-m:y;
   return[x,y];
 }
+/** Half the thickness of an edge wall. */
+export const WT=.09;
+/** The first wall crossed on the way from (x0,y0) to (x1,y1): its edge index, or -1. `ally` passes through doors. */
+export function edgeCross(Z,x0,y0,x1,y1,ally=false){
+  const ed=Z.ed;if(!ed.length)return-1;const W=Z.w,H=Z.h,dx=x1-x0,dy=y1-y0;let best=-1,bt=2;
+  if(dx){const a=Math.floor(Math.min(x0,x1))+1,b=Math.floor(Math.max(x0,x1));for(let k=a;k<=b;k++){const t=(k-x0)/dx;if(t<0||t>1||t>=bt)continue;const ty=Math.floor(y0+dy*t);if(k<0||k>=W||ty<0||ty>=H)continue;const e=(ty*W+k)*2+1,w=ed[e];if(w&&!(ally&&OBJ[w.k].door)){bt=t;best=e}}}
+  if(dy){const a=Math.floor(Math.min(y0,y1))+1,b=Math.floor(Math.max(y0,y1));for(let k=a;k<=b;k++){const t=(k-y0)/dy;if(t<0||t>1||t>=bt)continue;const tx=Math.floor(x0+dx*t);if(tx<0||tx>=W||k<0||k>=H)continue;const e=(k*W+tx)*2,w=ed[e];if(w&&!(ally&&OBJ[w.k].door)){bt=t;best=e}}}
+  return best;
+}
+/** The wall or door on the edge between two cells that share a side: its edge index, or -1. */
+export function edgeBetween(Z,x0,y0,x1,y1){const W=Z.w,e=y1<y0?(y0*W+x0)*2:y1>y0?(y1*W+x0)*2:x1<x0?(y0*W+x0)*2+1:(y0*W+x1)*2+1;return Z.ed[e]?e:-1}
+/** Does any wall touch the corner shared by two diagonal cells? (Nothing cuts a corner a wall ends on.) */
+function cornerWalled(Z,x0,y0,x1,y1){const W=Z.w,cx=Math.max(x0,x1),cy=Math.max(y0,y1),ed=Z.ed;return!!(ed[(cy*W+cx-1)*2]||ed[(cy*W+cx)*2]||ed[((cy-1)*W+cx)*2+1]||ed[(cy*W+cx)*2+1])}
 /** Does a wall stand between two points? Low cover (barricades, furniture) does not block sight or shots. */
 export function los(Z,x0,y0,x1,y1){
   const dx=x1-x0,dy=y1-y0,d=Math.hypot(dx,dy),n=Math.ceil(d*3);if(n<1)return true;
   for(let i=1;i<n;i++){const x=x0+dx*i/n,y=y0+dy*i/n,tx=Math.floor(x),ty=Math.floor(y);if(tx<0||ty<0||tx>=Z.w||ty>=Z.h)return false;const o=Z.obj[ty*Z.w+tx];if(o){const k=OBJ[o.k];if(k.solid===1&&!k.low)return false}}
-  return true;
+  return edgeCross(Z,x0,y0,x1,y1)<0;
 }
 /** What a projectile hits at (x,y): tile index of a blocking object, or -1. */
 export function shotBlock(Z,x,y){
@@ -257,23 +278,26 @@ function enterCost(Z,i,ally){
 /** Dijkstra distance field toward (tx,ty). d[i] = cost to reach the target from tile i. */
 export function field(Z,tx,ty,ally=false,maxCost=400){
   const W=Z.w,H=Z.h,d=new Float32Array(W*H).fill(Infinity),heap=new Heap(),s=ty*W+tx;if(tx<0||ty<0||tx>=W||ty>=H)return d;
-  d[s]=0;heap.push(0,s);
+  d[s]=0;heap.push(0,s);const hasEd=Z.ed.length>0;
   const cost=new Float32Array(W*H),hard=new Uint8Array(W*H);for(let i=0;i<W*H;i++){cost[i]=enterCost(Z,i,ally);const o=Z.obj[i];hard[i]=GROUND[Z.g[i]].walk===false||(o&&OBJ[o.k].solid===1&&!(ally&&OBJ[o.k].door))?1:0}cost[s]=1;
   while(heap.size){const i=heap.pop(),di=d[i];if(di>maxCost)break;const x=i%W,y=(i-x)/W;
     for(let k=0;k<8;k++){const dx=NB[k][0],dy=NB[k][1],nx=x+dx,ny=y+dy;if(nx<0||ny<0||nx>=W||ny>=H)continue;const j=ny*W+nx;
       // moving out of j into i costs entering i; diagonal only if both sides are open
       const c=cost[i];if(c===Infinity&&i!==s)continue;
       if(dx&&dy&&(hard[y*W+nx]||hard[ny*W+x]))continue;
-      const nd=di+(dx&&dy?1.414:1)*(i===s?1:c);if(nd<d[j]&&cost[j]!==Infinity){d[j]=nd;heap.push(nd,j)}else if(nd<d[j]&&cost[j]===Infinity&&j!==s){/* blocked tile: unreachable */}}
+      // a wall on the edge between the two cells: allies only pass doors, attackers pay to break through; nobody cuts a walled corner
+      let wall=0;if(hasEd){if(dx&&dy){if(cornerWalled(Z,x,y,nx,ny))continue}else{const e=edgeBetween(Z,x,y,nx,ny);if(e>=0){const w=Z.ed[e];if(ally){if(!OBJ[w.k].door)continue}else wall=3+Math.min(80,w.hp/25)}}}
+      const nd=di+(dx&&dy?1.414:1)*(i===s?1:c)+wall;if(nd<d[j]&&cost[j]!==Infinity){d[j]=nd;heap.push(nd,j)}else if(nd<d[j]&&cost[j]===Infinity&&j!==s){/* blocked tile: unreachable */}}
   }
   return d;
 }
 const NB=[[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]];
-/** Best neighbouring tile to step to from (x,y) on a field: returns tile index or -1. */
-export function stepOn(Z,f,x,y){
-  const W=Z.w,tx=Math.floor(x),ty=Math.floor(y);let best=-1,bd=f[ty*W+tx];
+/** Best neighbouring tile to step to from (x,y) on a field: returns tile index or -1. An ally never steps through a wall; an attacker may, and then has to break it. */
+export function stepOn(Z,f,x,y,ally=false){
+  const W=Z.w,tx=Math.floor(x),ty=Math.floor(y),hasEd=Z.ed.length>0;let best=-1,bd=f[ty*W+tx];
   for(let k=0;k<8;k++){const nx=tx+NB[k][0],ny=ty+NB[k][1];if(nx<0||ny<0||nx>=W||ny>=Z.h)continue;
-    if(NB[k][0]&&NB[k][1]){const b1=blockAt(Z,nx,ty),b2=blockAt(Z,tx,ny);if(b1===1||b1===3||b2===1||b2===3)continue}
+    if(NB[k][0]&&NB[k][1]){const b1=blockAt(Z,nx,ty),b2=blockAt(Z,tx,ny);if(b1===1||b1===3||b2===1||b2===3)continue;if(hasEd&&cornerWalled(Z,tx,ty,nx,ny))continue}
+    else if(hasEd&&ally){const e=edgeBetween(Z,tx,ty,nx,ny);if(e>=0&&!OBJ[Z.ed[e].k].door)continue}
     const v=f[ny*W+nx];if(v<bd){bd=v;best=ny*W+nx}}
   return best;
 }

@@ -1,5 +1,5 @@
 // The interface: HUD, toasts, build mode, title screen, and the plumbing that opens sheets and the map.
-import {G,VERSION,weaponDef,count,quickUse,place,upgrade,repair,demolish,rotateObj,moveObj,canMove,canPlace,canUpgrade,buildCost,buildUnlocked,repairCost,maxHp,inBuildArea,freeSlots} from '../sim/core.js';
+import {G,VERSION,weaponDef,count,quickUse,place,upgrade,repair,demolish,rotateObj,moveObj,canMove,canPlace,canUpgrade,isEdgeKind,edgeIdx,EREF,structAt,buildCost,buildUnlocked,repairCost,maxHp,inBuildArea,freeSlots} from '../sim/core.js';
 import * as World from '../sim/world.js';
 import {story,goalProgress,goalText,contractReady} from '../sim/quests.js';
 import {autoPlan} from '../sim/actors.js';
@@ -16,7 +16,7 @@ import {PANELS} from './panels.js';
 import {MapScreen} from './map.js';
 
 let api,cur=null,curArg=null,curTab=null,hudT=0,miniT=0,questT=0,deathT=0,needHud=true,hints=[],hintT=0;
-const B={tool:'place',cat:'base',kind:'wall_stick',rot:0,last:-1,hover:null,moving:null};
+const B={tool:'place',cat:'base',kind:'wall_stick',rot:0,last:-1,hover:null,side:0,run:null,moving:null};
 const FACING=['south','east','north','west'];
 const DIRS=['north','east','south','west'];
 export const UI={init,title,start,zone,frame,onEvent,dirty(){needHud=true;if(cur&&PANELS[cur].live)refresh()},hot,buildPointer,resize(){if(G.mode==='map')MapScreen.draw()},toast,open,close,refresh,banner,get panel(){return cur}};
@@ -129,7 +129,7 @@ function hot(k){
   else if(k==='auto'){G.auto=!G.auto;if(Z.pl){Z.pl.auto=null;Z.pl.fight=null}if(G.auto){const pl=autoPlan(Z);toast('Auto-gather on'+(pl.using.length?': using '+pl.using.join(', ').toLowerCase():': by hand only'),'info');if(pl.skipping.length)toast('Skipping '+pl.skipping.slice(0,3).join(', '),'bad')}else toast('Auto-gather off','info');needHud=true}
   else if(k==='rotate'){if(!G.build)return;
     // placing or carrying: turn the piece in hand. Otherwise turn the structure under the pointer where it stands.
-    if(B.tool==='place'||(B.tool==='move'&&B.moving!=null)){B.rot=(B.rot+1)%4;sfx('ui_tap')}else if(B.hover){const[tx,ty]=B.hover,i=ty*Z.w+tx;if(tx>=0&&ty>=0&&tx<Z.w&&ty<Z.h&&Z.obj[i]&&OBJ[Z.obj[i].k].cost)rotateObj(S,i);else toast('Point at one of your structures to turn it','info')}}
+    if(B.tool==='place'||(B.tool==='move'&&B.moving!=null)){B.rot=(B.rot+1)%4;sfx('ui_tap')}else if(B.hover){const[tx,ty]=B.hover,T=buildTarget(tx,ty);if(tx>=0&&ty>=0&&tx<Z.w&&ty<Z.h&&T.o&&OBJ[T.o.k].cost)rotateObj(S,T.ref,tx,ty);else toast('Point at one of your structures to turn it','info')}}
   else if(k==='leave'){if(Z.exit)World.leaveZone();else toast('Walk to the edge of the area to leave','info')}
   else if(k.startsWith('q_')){quickUse(S,k.slice(2));needHud=true}
 }
@@ -146,39 +146,51 @@ function renderBuild(){
   $('bpieces').innerHTML=list.map(o=>{const ok=buildUnlocked(S,o.id);return`<button class="bp ${B.kind===o.id&&B.tool==='place'?'on':''} ${ok?'':'off'}" data-b="kind:${o.id}" title="${esc(o.d||o.n)}"><b>${esc(o.n)}</b>${ok?chips(buildCost(o.id)):`<div class="ing"><span class="no">${o.bp&&!S.p.known[o.bp]?'Schematic':'Level '+o.lv}</span></div>`}</button>`}).join('');
   $('bpieces').style.display=B.tool==='place'?'':'none';$('bcat').style.display=B.tool==='place'?'':'none';
 }
+/** What a build tool is pointing at: the wall on the nearest side of the cell when the pointer is close to that side, otherwise the cell's object. */
+function buildTarget(tx,ty){const Z=G.Z,i=ty*Z.w+tx;if(tx<0||ty<0||tx>=Z.w||ty>=Z.h)return{i,ref:i,o:null};
+  if(B.near<.3||!Z.obj[i]){const e=edgeIdx(Z.w,tx,ty,B.side);if(Z.ed[e]&&(B.near<.3||!Z.fl[i]))return{i,ref:EREF+e,o:Z.ed[e],edge:true}}
+  return{i,ref:i,o:Z.obj[i]}}
 function buildApply(tx,ty){
   const S=G.S,Z=G.Z,i=ty*Z.w+tx;if(tx<0||ty<0||tx>=Z.w||ty>=Z.h)return;let ok=false;
-  if(B.tool==='place')ok=place(S,B.kind,tx,ty,B.rot);
+  const T=buildTarget(tx,ty);
+  if(B.tool==='place')ok=isEdgeKind(B.kind)?place(S,B.kind,tx,ty,B.side):place(S,B.kind,tx,ty,B.rot);
   else if(B.tool==='move'){
-    if(B.moving==null){const o=Z.obj[i];if(o&&OBJ[o.k].cost){B.moving=i;B.rot=o.r||0;sfx('ui_tap');toast('Picked up '+OBJ[o.k].n.toLowerCase()+': tap where it should go','info')}else{toast('Tap one of your structures to pick it up','info')}}
-    else if(!Z.obj[B.moving])B.moving=null;
-    else if(moveObj(S,B.moving,tx,ty,B.rot)){B.moving=null;ok=true}}
-  else if(B.tool==='turn')ok=rotateObj(S,i);
-  else if(B.tool==='upgrade')ok=upgrade(S,i,!Z.obj[i]&&!!Z.fl[i]);
-  else if(B.tool==='repair'){if(Z.obj[i])ok=repair(S,i)}
-  else if(B.tool==='remove')ok=demolish(S,i,!Z.obj[i]&&!!Z.fl[i]);
+    if(B.moving==null){const o=T.o;if(o&&OBJ[o.k].cost){B.moving=T.ref;if(!T.edge)B.rot=o.r||0;sfx('ui_tap');toast('Picked up '+OBJ[o.k].n.toLowerCase()+(T.edge?': tap the side of a cell where it should stand':': tap where it should go'),'info')}else{toast('Tap one of your structures to pick it up','info')}}
+    else if(!structAt(Z,B.moving))B.moving=null;
+    else if(moveObj(S,B.moving,tx,ty,B.moving>=EREF?B.side:B.rot)){B.moving=null;ok=true}}
+  else if(B.tool==='turn')ok=T.edge?rotateObj(S,T.ref,tx,ty):rotateObj(S,i);
+  else if(B.tool==='upgrade')ok=T.o?upgrade(S,T.ref,false):upgrade(S,i,!!Z.fl[i]);
+  else if(B.tool==='repair'){if(T.o)ok=repair(S,T.ref)}
+  else if(B.tool==='remove')ok=T.o?demolish(S,T.ref,false):demolish(S,i,!!Z.fl[i]);
   if(ok)renderBuild();
 }
 function buildPointer(type,x,y,down){
   if(!G.build||!G.Z)return;const p=View.pick(x,y);if(!p)return;const tx=Math.floor(p.x),ty=Math.floor(p.y),i=ty*G.Z.w+tx;B.hover=[tx,ty];
-  if(type==='up'){B.last=-1;return}
+  // the nearest side of the cell under the pointer (0 north, 1 east, 2 south, 3 west) and how far the pointer is from it
+  {const fx=p.x-tx,fy=p.y-ty,d=[fy,1-fx,1-fy,fx];let sd=0;for(let k=1;k<4;k++)if(d[k]<d[sd])sd=k;B.side=sd;B.near=d[sd]}
+  if(type==='up'){B.last=-1;B.run=null;return}
+  // walls: press to set the first piece, then drag along it to run a straight line
+  if(B.tool==='place'&&isEdgeKind(B.kind)){const S=G.S,Z=G.Z;
+    if(type==='down'){const horiz=B.side===0||B.side===2;B.run={horiz,line:horiz?(B.side===0?ty:ty+1):(B.side===3?tx:tx+1)};if(place(S,B.kind,tx,ty,B.side))renderBuild();return}
+    if(type==='move'&&down&&B.run){const r=B.run,cx=r.horiz?tx:r.line,cy=r.horiz?r.line:ty,sd=r.horiz?0:3,key=cx+'_'+cy;if(key!==B.last&&cx>=0&&cy>=0&&cx<Z.w&&cy<Z.h){B.last=key;if(canPlace(S,B.kind,cx,cy,sd)===null&&place(S,B.kind,cx,cy,sd))renderBuild()}}
+    return}
   // painting by dragging is for placing and clearing; moving and turning act once per tap
   if((type==='down'||(type==='move'&&down&&B.tool!=='move'&&B.tool!=='turn'))&&i!==B.last){B.last=i;buildApply(tx,ty)}
 }
 function buildFrame(){
   const S=G.S,Z=G.Z,h=B.hover;let info='';
-  if(B.tool==='place'){const d=OBJ[B.kind];info=`<b style="color:var(--ink)">${esc(d.n)}</b> · ${esc(d.d||(d.wall?'Blocks everything. '+d.hp+' health.':d.door?'You walk through it. They have to break it.':d.floor?'Flooring.':d.store?d.store+' slots of storage.':d.station?'Crafting station.':d.trap?'Triggers when something walks over it.':d.turret?'Fires on anything hostile in range. Needs loading.':''))}`}
-  else info={move:B.moving!=null&&Z.obj[B.moving]?`Carrying <b style="color:var(--ink)">${esc(OBJ[Z.obj[B.moving].k].n)}</b>: tap a free tile to set it down. Esc puts it back.`:'Tap a structure to pick it up, then tap where it should go. Moving is free and keeps its contents.',turn:'Tap a structure to turn it a quarter turn. R does the same to whatever you point at.',upgrade:'Tap a structure to raise it to the next tier.',repair:'Tap a damaged structure to mend it.',remove:'Tap a structure to take it down. Half the materials come back.'}[B.tool];
-  if(B.tool==='place'||(B.tool==='move'&&B.moving!=null))info+=` · facing ${FACING[B.rot]}`;
-  if(h){const[tx,ty]=h,i=ty*Z.w+tx;let why=null,kind='*';
+  if(B.tool==='place'){const d=OBJ[B.kind];info=`<b style="color:var(--ink)">${esc(d.n)}</b> · ${esc(d.d||(d.wall?'Stands on the side of a cell you point at; the cell stays free. Drag to run a line. '+d.hp+' health.':d.door?'Stands on the side of a cell. You walk through it; they have to break it.':d.floor?'Flooring.':d.store?d.store+' slots of storage.':d.station?'Crafting station.':d.trap?'Triggers when something walks over it.':d.turret?'Fires on anything hostile in range. Needs loading.':''))}`}
+  else info={move:B.moving!=null&&structAt(Z,B.moving)?`Carrying <b style="color:var(--ink)">${esc(OBJ[structAt(Z,B.moving).k].n)}</b>: ${B.moving>=EREF?'tap the side of a cell to stand it there':'tap a free tile to set it down'}. Esc puts it back.`:'Tap a structure to pick it up, then tap where it should go. Moving is free and keeps its contents.',turn:'Tap a structure to turn it a quarter turn; a wall swings to the next side of its cell. R does the same to whatever you point at.',upgrade:'Tap a structure to raise it to the next tier.',repair:'Tap a damaged structure to mend it.',remove:'Tap a structure to take it down. Half the materials come back.'}[B.tool];
+  if((B.tool==='place'&&!isEdgeKind(B.kind))||(B.tool==='move'&&B.moving!=null&&B.moving<EREF))info+=` · facing ${FACING[B.rot]}`;
+  if(h){const[tx,ty]=h,i=ty*Z.w+tx,T=buildTarget(tx,ty);let why=null,kind='*',edge=T.edge?B.side:-1;
     if(tx<0||ty<0||tx>=Z.w||ty>=Z.h)why='Out of bounds';
-    else if(B.tool==='place'){kind=B.kind;why=canPlace(S,B.kind,tx,ty)}
-    else if(B.tool==='move'){if(B.moving!=null&&Z.obj[B.moving]){kind=Z.obj[B.moving].k;why=canMove(S,B.moving,tx,ty)}else{const o=Z.obj[i];if(!(o&&OBJ[o.k].cost))why='Nothing of yours here'}}
-    else if(B.tool==='turn'){const o=Z.obj[i];if(!(o&&OBJ[o.k].cost))why='Nothing of yours here';else info+=` · ${esc(OBJ[o.k].n)} faces ${FACING[o.r||0]}`}
-    else if(B.tool==='upgrade'){why=canUpgrade(S,i,!Z.obj[i]&&!!Z.fl[i]);const k=Z.obj[i]?Z.obj[i].k:Z.fl[i];if(k&&OBJ[k].up)info=`${esc(OBJ[k].n)} → <b style="color:var(--ink)">${esc(OBJ[OBJ[k].up].n)}</b> ${chips(buildCost(OBJ[k].up))}`}
-    else if(B.tool==='repair'){const o=Z.obj[i];if(!o||!OBJ[o.k].cost)why='Nothing to repair';else{const c=repairCost(o);if(!c)why='No damage';else info=`${esc(OBJ[o.k].n)} ${Math.round(o.hp)}/${maxHp(o.k)} ${chips(c)}`}}
-    else if(B.tool==='remove'){const o=Z.obj[i];if(!(o&&OBJ[o.k].cost)&&!Z.fl[i])why='Nothing of yours here'}
-    View.setGhost(kind,tx,ty,!why,B.rot);if(why)info+=` · <span class="danger">${esc(why)}</span>`}
+    else if(B.tool==='place'){kind=B.kind;why=canPlace(S,B.kind,tx,ty,B.side);edge=isEdgeKind(B.kind)?B.side:-1}
+    else if(B.tool==='move'){const m=B.moving!=null&&structAt(Z,B.moving);if(m){const ed=B.moving>=EREF;kind=m.k;why=canMove(S,B.moving,tx,ty,ed?B.side:B.rot);edge=ed?B.side:-1}else{const o=T.o;if(!(o&&OBJ[o.k].cost))why='Nothing of yours here'}}
+    else if(B.tool==='turn'){const o=T.o;if(!(o&&OBJ[o.k].cost))why='Nothing of yours here';else if(!T.edge)info+=` · ${esc(OBJ[o.k].n)} faces ${FACING[o.r||0]}`}
+    else if(B.tool==='upgrade'){why=T.o?canUpgrade(S,T.ref,false):canUpgrade(S,i,!!Z.fl[i]);const k=T.o?T.o.k:Z.fl[i];if(k&&OBJ[k].up)info=`${esc(OBJ[k].n)} → <b style="color:var(--ink)">${esc(OBJ[OBJ[k].up].n)}</b> ${chips(buildCost(OBJ[k].up))}`}
+    else if(B.tool==='repair'){const o=T.o;if(!o||!OBJ[o.k].cost)why='Nothing to repair';else{const c=repairCost(o);if(!c)why='No damage';else info=`${esc(OBJ[o.k].n)} ${Math.round(o.hp)}/${maxHp(o.k)} ${chips(c)}`}}
+    else if(B.tool==='remove'){const o=T.o;if(!(o&&OBJ[o.k].cost)&&!Z.fl[i])why='Nothing of yours here'}
+    View.setGhost(kind,tx,ty,!why,B.rot,edge);if(why)info+=` · <span class="danger">${esc(why)}</span>`}
   else View.setGhost(null);
   const el=$('binfo');if(el._h!==info){el._h=info;el.innerHTML=info}
 }
@@ -221,6 +233,7 @@ function minimap(Z,p){
   const x0=Math.max(0,Math.floor(px-range)),x1=Math.min(Z.w-1,Math.ceil(px+range)),y0=Math.max(0,Math.floor(py-range)),y1=Math.min(Z.h-1,Math.ceil(py+range));
   for(let ty=y0;ty<=y1;ty++)for(let tx=x0;tx<=x1;tx++){const o=Z.obj[ty*Z.w+tx];if(!o)continue;const d=OBJ[o.k];
     if(d.wall||d.door){x.fillStyle=d.cost?'#b8a070':'#6a6f66';x.fillRect(X(tx),Y(ty),k+.5,k+.5)}else if(d.loot&&!o.empty){x.fillStyle='#e3a432';x.fillRect(X(tx+.25),Y(ty+.25),k*.5,k*.5)}else if(d.station||d.store||d.turret){x.fillStyle='#8a9a78';x.fillRect(X(tx+.15),Y(ty+.15),k*.7,k*.7)}else if(d.special==='deathbag'){x.fillStyle='#fff';x.fillRect(X(tx),Y(ty),k,k)}}
+  if(Z.ed.length){x.fillStyle='#b8a070';for(let ty=y0;ty<=y1+1;ty++)for(let tx=x0;tx<=x1+1;tx++){const e=(ty*Z.w+tx)*2;if(Z.ed[e])x.fillRect(X(tx),Y(ty)-1,k+.5,2.5);if(Z.ed[e+1])x.fillRect(X(tx)-1,Y(ty),2.5,k+.5)}}
   for(const d of Z.drops){x.fillStyle='#fff';x.fillRect(X(d.x)-2,Y(d.y)-2,4,4)}
   for(const a of Z.actors){if(a.pl||a.dead)continue;if(a.team===1&&!a.alert&&Math.hypot(a.x-px,a.y-py)>range*.6)continue;if(a.vis<.5)continue;x.fillStyle=a.team===0?'#60c0ff':a.def.ai==='flee'?'#c8c8a0':a.def.boss?'#ff9030':'#e04030';x.beginPath();x.arc(X(a.x),Y(a.y),a.def.boss?6:3.5,0,7);x.fill()}
   x.translate(R,R);x.rotate(p.a+Math.PI/2);x.fillStyle='#fff';x.beginPath();x.moveTo(0,-8);x.lineTo(6,7);x.lineTo(0,4);x.lineTo(-6,7);x.closePath();x.fill();x.restore();

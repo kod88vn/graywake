@@ -1,5 +1,5 @@
 // Boot and main loop: wires the simulation to the renderer, the interface, input and sound.
-import {G,VERSION} from './sim/core.js';
+import {G,VERSION,SAVE_V} from './sim/core.js';
 import * as World from './sim/world.js';
 import {threatNear} from './sim/actors.js';
 import {BIOMES} from './data/world.js';
@@ -9,13 +9,15 @@ import {Input} from './input.js';
 import {Snd} from './audio.js';
 
 const KEY='graywake.save.v1';
+// a save about to be converted to a newer format is first copied aside, once per old format, under KEY + '.format' + its number
+const keepOld=raw=>{try{const v=JSON.parse(raw).v;if(v<SAVE_V&&!localStorage.getItem(KEY+'.format'+v))localStorage.setItem(KEY+'.format'+v,raw)}catch(e){}};
 const store={get(){try{return localStorage.getItem(KEY)}catch(e){return null}},set(v){try{localStorage.setItem(KEY,v);return true}catch(e){return false}},del(){try{localStorage.removeItem(KEY)}catch(e){}}};
 function save(){if(!G.S||G.mode==='menu')return false;const s=World.serialize();return s?store.set(s):false}
 function applySettings(){const s=G.S.set;Snd.setMusic(!!s.music);Snd.setSfx(!!s.sfx);Snd.setVolume(s.vol);View.setQuality(s.quality||'auto')}
 const api={
   hasSave:()=>!!store.get(),
   newGame(){G.ev.length=0;World.newGame();applySettings();begin()},
-  continueGame(){try{const S=World.deserialize(store.get());G.ev.length=0;World.resume(S);applySettings();begin();return true}catch(e){console.error(e);UI.toast('That save could not be read: '+e.message,'bad');return false}},
+  continueGame(){try{const raw=store.get();keepOld(raw);const S=World.deserialize(raw);G.ev.length=0;World.resume(S);applySettings();begin();return true}catch(e){console.error(e);UI.toast('That save could not be read: '+e.message,'bad');return false}},
   save,applySettings,
   exportSave:()=>{save();return store.get()||''},
   importSave(str){try{const S=World.deserialize(str.trim());store.set(str.trim());G.ev.length=0;World.resume(S);applySettings();begin();return true}catch(e){UI.toast('Not a valid save: '+e.message,'bad');return false}},
@@ -30,7 +32,7 @@ function drain(){
     if(t==='zone'){View.setZone(G.Z);UI.zone()}
     else if(t==='save')save();
     else if(t==='sfx'){const o=Object.assign({},e[4]);if(p&&e[2]!==undefined){const dx=e[2]-p.x,dy=e[3]-p.y;o.dist=Math.hypot(dx,dy);o.pan=Math.max(-1,Math.min(1,dx/12))}Snd.sfx(e[1],o)}
-    else if(t==='obj'||t==='floor'||t==='fx'||t==='shake'||t==='eq'||t==='veh'||t==='zoneDirty'){View.onEvent(e);if(t==='eq'||t==='obj')UI.dirty()}
+    else if(t==='obj'||t==='edge'||t==='floor'||t==='fx'||t==='shake'||t==='eq'||t==='veh'||t==='zoneDirty'){View.onEvent(e);if(t==='eq'||t==='obj')UI.dirty()}
     else UI.onEvent(e)}
 }
 let last=0,sceneT=0;

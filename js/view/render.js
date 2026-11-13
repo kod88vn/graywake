@@ -19,7 +19,7 @@ const MARGIN=18,QUAL={low:{pr:1,shadow:0,dens:.3,aa:0},med:{pr:1.5,shadow:1024,d
 let R,post,scene,cam,sun,hemi,plight,fxLight,canvas,quality='high',zoom=.82,Z=null,frame=0,time=0;
 let ground=null,water=null,borderMeshes=[],clutterMeshes=[],vehMesh=null,clouds=null;
 let matStd,matTree,matBush,matGrass,matClutter,matClutterWind,matGround,matWater,texCloud;
-const geoCache=new Map(),inst=new Map(),shown=[],shownF=[],dirty=new Set(),dyn=new Map(),wobble=[],clutterAt=new Map();
+const geoCache=new Map(),inst=new Map(),shown=[],shownF=[],shownE=[],dirty=new Set(),dyn=new Map(),leaves=new Map(),wobble=[],clutterAt=new Map();
 const rigs=new Map(),lightPool=[],lightSrc=[];
 let projMesh,dropMesh,barBg,barFg,partMesh,wxMesh,decalMesh,glowMesh,aoMesh,aoActors,hintRing,ghost=null,ghostTile,areaPool=[],arcPool=[],playerRing;
 const parts=[],wx=[],decals=[],glows=[];let decalN=0,decalDirty=true,shakeAmt=0,flashT=0,boltT=8,boltF=0,ambT=0;
@@ -85,8 +85,8 @@ function resize(){if(!R)return;const w=canvas.clientWidth||innerWidth,h=canvas.c
 function disposeZone(){
   if(ground){scene.remove(ground);ground.geometry.dispose();ground=null}if(water){scene.remove(water);water.geometry.dispose();water=null}
   for(const m of borderMeshes){scene.remove(m);m.dispose()}borderMeshes=[];for(const m of clutterMeshes){scene.remove(m);m.dispose()}clutterMeshes=[];clutterAt.clear();
-  for(const e of inst.values()){scene.remove(e.mesh);e.mesh.dispose()}inst.clear();shown.length=0;shownF.length=0;dirty.clear();
-  for(const m of dyn.values())scene.remove(m);dyn.clear();
+  for(const e of inst.values()){scene.remove(e.mesh);e.mesh.dispose()}inst.clear();shown.length=0;shownF.length=0;shownE.length=0;dirty.clear();
+  for(const m of dyn.values())scene.remove(m);dyn.clear();for(const L of leaves.values())scene.remove(L.root);leaves.clear();
   for(const r of rigs.values()){scene.remove(r.root);disposeRig(r)}rigs.clear();
   if(vehMesh){scene.remove(vehMesh);vehMesh=null}parts.length=0;wobble.length=0;decals.length=0;decalN=0;decalDirty=true;glows.length=0;if(aoMesh)aoMesh.count=0;
 }
@@ -148,7 +148,7 @@ function setZone(z){
     const kind=b.border[(h>>>8)%b.border.length],key=kind+'|'+((h>>>12)%3);(lists[key]=lists[key]||[]).push([x,y,h])}
   for(const key in lists){const L=lists[key],m=new THREE.InstancedMesh(modelGeo(key,quality==='low'),matFor(key),L.length);m.castShadow=false;m.receiveShadow=true;m.frustumCulled=false;
     L.forEach(([x,y,h],i)=>{const s=.9+((h>>>16)%100)/250;_q.setFromAxisAngle(UP,((h>>>4)%628)/100);_m.compose(_p.set(x+.5,0,y+.5),_q,_s.set(s,s,s));m.setMatrixAt(i,_m)});scene.add(m);borderMeshes.push(m)}
-  for(let i=0;i<W*H;i++){if(Z.obj[i])syncObj(i);if(Z.fl[i])syncFloor(i)}flush();
+  for(let i=0;i<W*H;i++){if(Z.obj[i])syncObj(i);if(Z.fl[i])syncFloor(i)}for(let e=0;e<Z.ed.length;e++)if(Z.ed[e])syncEdge(e);flush();
   if(Z.home&&G.S.veh>0&&VEHICLES[G.S.veh].m)parkVehicle();
   const p=Z.pl;if(p)camT.set(p.x,0,p.y);scene.fog.color.set(b.fog);time=0;
 }
@@ -175,12 +175,32 @@ function syncFloor(i){
   const k=Z.fl[i],key=k?'F:'+k:null,old=shownF[i];if(k)hideClutter(i);
   if(old&&old!==key){entry(old).set.delete(i);dirty.add(old)}if(key){entry(key).set.add(i);dirty.add(key)}shownF[i]=key;
 }
+/** A wall or door on a cell edge: drawn at the middle of that edge, turned a quarter turn when it runs north to south. */
+function syncEdge(e){
+  const w=Z.ed[e],d=w&&OBJ[w.k],key=d?'E:'+w.k+(d.door?'|1':''):null,old=shownE[e];
+  if(old&&old!==key){entry(old).set.delete(e);dirty.add(old)}if(key){entry(key).set.add(e);dirty.add(key)}shownE[e]=key;
+  // a door's frame is drawn with the walls; its leaf hangs on a hinge of its own so it can swing (see stepDoors)
+  let L=leaves.get(e);if(L&&(!d||!d.door||L.k!==w.k)){scene.remove(L.root);leaves.delete(e);L=null}
+  if(d&&d.door&&!L){const ti=e>>1,x=ti%Z.w,y=(ti-x)/Z.w,root=new THREE.Group(),hinge=new THREE.Group(),mesh=new THREE.Mesh(modelGeo(d.m+'|2'),matStd);mesh.castShadow=mesh.receiveShadow=true;
+    mesh.position.x=HINGE;hinge.position.x=-HINGE;hinge.add(mesh);root.add(hinge);root.position.set(e&1?x:x+.5,0,e&1?y+.5:y);root.rotation.y=e&1?Math.PI/2:0;scene.add(root);leaves.set(e,{root,hinge,k:w.k,mx:root.position.x,my:root.position.z,ns:e&1,ang:0,dir:0})}
+}
+/** Doors open for you and yours: the leaf swings away from whoever of your side comes within a step of it and closes behind them, eased both ways. */
+const HINGE=.34;
+function stepDoors(dt){
+  if(!leaves.size)return;const k=1-Math.exp(-dt*9);
+  for(const L of leaves.values()){let near=null,nd=.95;for(const a of Z.actors){if(a.team!==0||a.dead)continue;const d=Math.hypot(a.x-L.mx,a.y-L.my);if(d<nd){nd=d;near=a}}
+    if(near&&Math.abs(L.ang)<.06)L.dir=(L.ns?near.x-L.mx:near.y-L.my)>=0?1:-1;
+    const want=near?L.dir*1.42:0;L.ang+=(want-L.ang)*k;if(!near&&Math.abs(L.ang)<.002)L.ang=0;L.hinge.rotation.y=L.ang}
+}
 function flush(){
   if(!dirty.size)return;const W=Z.w;
-  for(const key of dirty){const e=inst.get(key);if(!e)continue;const n=e.set.size,floor=key.startsWith('F:');
-    if(n>e.cap||!e.mesh){if(e.mesh){scene.remove(e.mesh);e.mesh.dispose()}e.cap=Math.max(8,Math.ceil(n*1.5));const gk=floor?key.slice(2)+'|0':key;
+  for(const key of dirty){const e=inst.get(key);if(!e)continue;const n=e.set.size,floor=key.startsWith('F:'),edge=key.startsWith('E:');
+    if(n>e.cap||!e.mesh){if(e.mesh){scene.remove(e.mesh);e.mesh.dispose()}e.cap=Math.max(8,Math.ceil(n*1.5));const gk=floor?key.slice(2)+'|0':edge?key.slice(2)+(key.includes('|')?'':'|0'):key;
       e.mesh=new THREE.InstancedMesh(modelGeo(gk),matFor(gk),e.cap);e.mesh.castShadow=!e.flat&&!floor;e.mesh.receiveShadow=true;e.mesh.frustumCulled=false;scene.add(e.mesh)}
     let j=0;const mesh=e.mesh;
+    if(edge){for(const ei of e.set){const w=Z.ed[ei];if(!w)continue;const ti=ei>>1,x=ti%W,y=(ti-x)/W,f=w.hp/maxHp(w.k),hit=w.hit!==undefined&&Z.time-w.hit<.14,tint=f<.6?.6+f*.6:1,red=f<.6?(.6-f)*.5:0;
+      _q.setFromAxisAngle(UP,ei&1?Math.PI/2:0);_m.compose(_p.set(ei&1?x:x+.5,0,ei&1?y+.5:y),_q,_s.set(hit?1.03:1,hit?.94:1,hit?1.03:1));mesh.setMatrixAt(j,_m);mesh.setColorAt(j,_c.setRGB(Math.min(1,tint+red),tint,tint));j++}
+      mesh.count=j;mesh.instanceMatrix.needsUpdate=true;if(mesh.instanceColor)mesh.instanceColor.needsUpdate=true;continue}
     for(const i of e.set){const x=i%W,y=(i-x)/W,o=floor?null:Z.obj[i],h=hash(x*31+7,y*17+3);let rot=0,s=1,sy=1,tint=1,red=0;
       if(o){const d=OBJ[o.k];if(d.node||(!d.cost&&d.solid!==1&&!d.loot)){rot=((h>>>4)%628)/100;s=.88+((h>>>14)%100)/400}else rot=(o.r||0)*Math.PI/2;
         if(d.wall&&!d.cost)rot=0;if(o.hit!==undefined&&Z.time-o.hit<.14){sy=.9;s*=1.05}
@@ -190,6 +210,7 @@ function flush(){
   dirty.clear();lightSrc.length=0;lightSrc.dirty=true;
   // contact shadows follow the objects
   let n=0;for(let i=0;i<Z.obj.length&&n<3190;i++){const o=Z.obj[i];if(!o)continue;const d=OBJ[o.k];if(!d||!d.solid)continue;const x=i%W,y=(i-x)/W,s=d.solid===1?(d.low?1.5:1.75):(d.r||.3)*3.2+.45;_m.makeScale(s,1,s);_m.setPosition(x+.5,.008,y+.5);aoMesh.setMatrixAt(n++,_m)}
+  for(let e=0;e<Z.ed.length&&n<3190;e++){if(!Z.ed[e])continue;const ti=e>>1,x=ti%W,y=(ti-x)/W;_m.makeScale(e&1?.62:1.5,1,e&1?1.5:.62);_m.setPosition(e&1?x:x+.5,.008,e&1?y+.5:y);aoMesh.setMatrixAt(n++,_m)}
   aoMesh.count=quality==='low'?0:n;aoMesh.instanceMatrix.needsUpdate=true;
 }
 function collectLights(){
@@ -202,7 +223,8 @@ function onEvent(e){
   if(!Z)return;const t=e[0];
   if(t==='obj'){syncObj(e[1]);const o=Z.obj[e[1]];if(o&&o.hit!==undefined&&Z.time-o.hit<.05)wobble.push({i:e[1],t:.16})}
   else if(t==='floor')syncFloor(e[1]);
-  else if(t==='zoneDirty'){for(let i=0;i<Z.w*Z.h;i++)if(Z.obj[i]||shown[i])syncObj(i)}
+  else if(t==='edge'){syncEdge(e[1]);const k=shownE[e[1]];if(k){dirty.add(k);const w=Z.ed[e[1]];if(w&&w.hit!==undefined&&Z.time-w.hit<.05)wobble.push({e:e[1],t:.16})}}
+  else if(t==='zoneDirty'){for(let i=0;i<Z.w*Z.h;i++)if(Z.obj[i]||shown[i])syncObj(i);for(let e=0;e<Math.max(Z.ed.length,shownE.length);e++)if(Z.ed[e]||shownE[e])syncEdge(e)}
   else if(t==='fx')spawnFx(e[1],e[2],e[3],e[4]);
   else if(t==='shake'){if(G.S.set.shake)shakeAmt=Math.max(shakeAmt,e[1])}
   else if(t==='eq'){const r=rigs.get(0);if(r){scene.remove(r.root);disposeRig(r);rigs.delete(0)}}
@@ -280,7 +302,7 @@ function syncProjs(dt){
   if(Z.lure&&k<areaPool.length){const g=areaPool[k++],u=g.userData;g.visible=true;g.position.set(Z.lure.x,.05,Z.lure.y);g.scale.setScalar(.6+Math.sin(time*10)*.2);u.disc.scale.setScalar(1);u.disc.material.color.set('#ffd040');u.rim.material.color.set('#ffd040');u.disc.material.opacity=.4;u.rim.material.opacity=.9}
   for(;k<areaPool.length;k++)areaPool[k].visible=false;
   for(const[i,m]of dyn){const o=Z.obj[i];if(o&&o.a!==undefined){let ty=Math.PI/2-o.a,dy=ty-m.rotation.y;dy=((dy+Math.PI)%(Math.PI*2)+Math.PI*2)%(Math.PI*2)-Math.PI;m.rotation.y+=dy*Math.min(1,dt*10)}}
-  for(let w=wobble.length-1;w>=0;w--){wobble[w].t-=dt;if(wobble[w].t<=0){const key=shown[wobble[w].i];if(key)dirty.add(key);wobble.splice(w,1)}}
+  for(let w=wobble.length-1;w>=0;w--){wobble[w].t-=dt;if(wobble[w].t<=0){const key=wobble[w].e!==undefined?shownE[wobble[w].e]:shown[wobble[w].i];if(key)dirty.add(key);wobble.splice(w,1)}}
   // stains on the ground
   let growing=false;for(const d of decals)if(d.t<1){d.t=Math.min(1,d.t+dt*1.2);growing=true}
   if(decalDirty||growing){decalDirty=false;let j=0;for(const d of decals){const r=d.r*(.35+.65*d.t);_q.setFromAxisAngle(UP,d.rot);_m.compose(_p.set(d.x,.012+j*.0002,d.y),_q,_s.set(r*d.sx,1,r));decalMesh.setMatrixAt(j,_m);decalMesh.setColorAt(j,_c.setRGB(d.cr,d.cg,d.cb));j++}decalMesh.count=j;decalMesh.instanceMatrix.needsUpdate=true;if(decalMesh.instanceColor)decalMesh.instanceColor.needsUpdate=true}
@@ -356,7 +378,7 @@ function draw(dt){
   const ze=zoomEff();cam.position.set(camT.x,camOff.y*ze,camT.z+camOff.z*ze);
   if(shakeAmt>0){cam.position.x+=(Math.random()-.5)*shakeAmt;cam.position.y+=(Math.random()-.5)*shakeAmt;shakeAmt=Math.max(0,shakeAmt-dt*1.6)}
   cam.lookAt(camT.x,.6,camT.z);cam.updateMatrixWorld();
-  syncActors(dt);syncProjs(dt);flush();stepAmbient(dt,dl);stepParts(dt);stepWeather(dt,W,dl);stepLight(dt,W,dl);
+  syncActors(dt);syncProjs(dt);stepDoors(dt);flush();stepAmbient(dt,dl);stepParts(dt);stepWeather(dt,W,dl);stepLight(dt,W,dl);
   const h=Z.hint;if(h&&!G.build&&!p.dead){hintRing.visible=true;hintRing.position.set(h.x,.05,h.y);hintRing.scale.setScalar(1+Math.sin(time*5)*.06)}else hintRing.visible=false;
   playerRing.visible=!p.dead;playerRing.position.set(p.x,.04,p.y);
   post.render(scene,cam,[scene.fog.near,scene.fog.far]);
@@ -370,13 +392,15 @@ function project(x,y,h=0){_p.set(x,h,y).project(cam);const r=canvas.getBoundingC
 /** Placement preview in build mode. kind=null hides it. */
 let ghostArrow=null;
 const ghostMat=new THREE.MeshBasicMaterial({color:'#7cff7c',transparent:true,opacity:.5,depthWrite:false,toneMapped:false});
-function setGhost(kind,tx,ty,ok,rot=0){
+function setGhost(kind,tx,ty,ok,rot=0,side=-1){
   if(!ghostArrow){const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute([0,0,.72,.17,0,.47,-.17,0,.47],3));ghostArrow=new THREE.Mesh(g,new THREE.MeshBasicMaterial({color:'#ffffff',transparent:true,opacity:.95,depthTest:false,side:THREE.DoubleSide,toneMapped:false}));ghostArrow.renderOrder=9;ghostArrow.visible=false;scene.add(ghostArrow)}
   if(!kind||tx==null){if(ghost)ghost.visible=false;ghostTile.visible=false;ghostArrow.visible=false;return}
-  ghostTile.visible=true;ghostTile.position.set(tx+.5,.06,ty+.5);ghostTile.material.color.set(ok?'#7cff7c':'#ff5a4a');
+  // a wall or door is shown on the side of the cell it will stand on
+  const ex=side<0?tx+.5:side===1?tx+1:side===3?tx:tx+.5,ez=side<0?ty+.5:side===0?ty:side===2?ty+1:ty+.5,ery=side>=0&&(side&1)?Math.PI/2:0;
+  ghostTile.visible=true;ghostTile.position.set(ex,.06,ez);ghostTile.rotation.y=ery;ghostTile.scale.set(1,1,side<0?1:.3);ghostTile.material.color.set(ok?'#7cff7c':'#ff5a4a');
   // a white arrow shows which way the piece will face
-  ghostArrow.visible=kind!=='*';ghostArrow.position.set(tx+.5,.09,ty+.5);ghostArrow.rotation.y=rot*Math.PI/2;
+  ghostArrow.visible=kind!=='*'&&side<0;ghostArrow.position.set(tx+.5,.09,ty+.5);ghostArrow.rotation.y=rot*Math.PI/2;
   if(kind==='*'){if(ghost)ghost.visible=false;return}
   const key=OBJ[kind].m+'|0';if(!ghost){ghost=new THREE.Mesh(modelGeo(key),ghostMat);scene.add(ghost)}if(ghost.userData.key!==key){ghost.geometry=modelGeo(key);ghost.userData.key=key}
-  ghost.visible=true;ghost.position.set(tx+.5,.02,ty+.5);ghost.rotation.y=rot*Math.PI/2;ghostMat.color.set(ok?'#7cff7c':'#ff5a4a');
+  ghost.visible=true;ghost.position.set(ex,.02,ez);ghost.rotation.y=side<0?rot*Math.PI/2:ery;ghostMat.color.set(ok?'#7cff7c':'#ff5a4a');
 }

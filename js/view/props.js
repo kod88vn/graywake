@@ -51,7 +51,11 @@ const car=(g,c,wreck)=>{const d=shade(c,.8);g.box(.7,.2,1.38,c,0,.28,0);g.box(.6
   g.box(.72,.07,.06,C.steelD,0,.22,.7);g.box(.72,.07,.06,C.steelD,0,.22,-.7);for(const x of[-1,1]){g.box(.12,.06,.03,wreck?'#5a5a52':'#f0e8b0',x*.24,.33,.695);g.box(.1,.05,.03,'#7a2a22',x*.26,.33,-.695)}};
 // player building
 /** Door: two piers, thin lintel, recessed leaf, threshold. 60 tris; tiers add their own leaf detail and handle. */
-const door=(g,H,fc,lc,cap=shade(fc,1.14))=>{for(const x of[-1,1])g.box(.16,H-.12,.9,fc,x*.42,(H-.12)/2,0);g.box(1,.12,.4,cap,0,H-.06,0);g.box(.68,H-.12,.12,lc,0,(H-.12)/2,0);g.box(.68,.03,.9,shade(fc,.6),0,.015,0)};
+/** Draw something made for a whole cell, then press it to a third of its depth: how the doors became thin enough for a cell edge. */
+const thin=(g,fn,k=.32)=>{const i0=g.pos.length;fn();for(let i=i0+2;i<g.pos.length;i+=3)g.pos[i]*=k};
+// part: 0 the whole door, 1 the frame alone (piers, lintel, threshold), 2 the leaf alone. The renderer draws the frame with the walls and hangs the leaf
+// on a hinge so it can swing; every door model takes the same part number.
+const door=(g,H,fc,lc,cap=shade(fc,1.14),part=0)=>{if(part!==2){for(const x of[-1,1])g.box(.16,H-.12,.9,fc,x*.42,(H-.12)/2,0);g.box(1,.12,.4,cap,0,H-.06,0);g.box(.68,.03,.9,shade(fc,.6),0,.015,0)}if(part!==1)g.box(.68,H-.12,.12,lc,0,(H-.12)/2,0)};
 const bottle=(g,x,y,z,c,s=1)=>{g.cyl(.035*s,.035*s,.1*s,c,x,y+.05*s,z,5);g.cyl(.012*s,.02*s,.06*s,shade(c,1.2),x,y+.13*s,z,4)};   // 36
 const flask=(g,x,y,z,c,s=1)=>{g.cone(.07*s,.12*s,c,x,y+.06*s,z,6);g.cyl(.015*s,.015*s,.08*s,C.glass,x,y+.14*s,z,4)};   // 28
 /** Long gun lying along Z (muzzle +Z), for racks and benches. 36 tris. */
@@ -267,20 +271,27 @@ floor_wood(g){g.box(1,.03,1,C.woodD,0,.015,0);for(let i=0;i<4;i++)g.box(.235,.02
 floor_stone(g){g.box(1,.03,1,'#5a5a56',0,.015,0);[[-.2,-.255,.58,.47],[.3,-.255,.38,.47],[-.3,.245,.38,.49],[.2,.245,.58,.49]].forEach(([x,z,w,d],i)=>g.box(w,.025,d,shade(C.stone,.92+(i*3%4)*.07),x,.0385,z))},
 floor_metal(g){g.box(1,.03,1,C.steelD,0,.015,0);for(const x of[-.25,.25])g.box(.485,.025,.98,shade(C.steel,x>0?1.06:.96),x,.0385,0);for(const x of[-.43,.43])for(const z of[-.43,.43])g.box(.05,.012,.05,C.steelL,x,.056,z);g.box(.6,.008,.06,shade(C.steel,.8),0,.054,0)},
 // ================= walls & doors =================
-wall_stick(g){for(const z of[-.33,.33])for(let i=0;i<3;i++){const k=i+(z>0?3:0),h=1.14+(k*5%4)*.05;g.cyl(.14,.165,h,shade(C.log,.86+(k*3%4)*.09),-.33+i*.33,h/2,z,5,0,k)}g.box(.98,1.08,.36,C.woodD,0,.54,0);for(const z of[-.33,.33])g.box(1,.07,.3,'#b49c6c',0,.82,z)},
-wall_plank(g){for(let i=0;i<4;i++){const h=1.25-(i*3%4)*.025;g.box(.245,h,.98,shade(C.plank,.88+(i*3%4)*.08),-.375+i*.25,h/2,0)}for(const z of[-.5,.5])g.box(1.3,.1,.03,C.woodD,0,.62,z,0,0,z>0?.85:-.85);g.box(1,.1,1,C.woodD,0,1.1,0);g.box(1,.1,1,C.woodD,0,.1,0)},
-wall_stone(g){for(let i=0;i<4;i++)g.box(1-(i%2)*.04,.29,1-(i%2)*.04,shade(C.stone,i%2?.84:.98),0,.145+i*.29,0);g.box(1,.09,1,C.stoneL,0,1.205,0);for(const[x,y]of[[-.28,.15],[.2,.44],[-.1,.73],[.3,1.02]])g.box(.3,.2,.02,shade(C.stone,1.12),x,y,.5)},
-wall_metal(g){const c='#74828e';g.box(1,.1,1,C.steelD,0,.05,0);g.box(.96,1.1,.96,c,0,.65,0);g.box(1,.06,1,C.steelD,0,1.22,0);for(const x of[-.3,0,.3])g.box(.08,1.08,1,shade(c,1.15),x,.64,0);for(const x of[-.44,.44])for(const z of[-.44,.44])g.box(.06,.02,.06,C.steelL,x,1.258,z)},
-wall_reinf(g){const t='#93a8ba';g.box(1,.5,1,C.conc,0,.25,0);g.box(1,.14,1,C.yel,0,.57,0);for(let i=0;i<4;i++)g.box(.07,.15,.02,C.black,-.36+i*.24,.57,.5,0,0,-.6);g.box(.98,.56,.98,t,0,.92,0);g.box(1,.06,1,shade(t,1.15),0,1.22,0);
-  for(const x of[-.42,.42])for(const z of[-.42,.42])g.box(.08,.03,.08,C.steelD,x,1.26,z);g.box(.5,.02,.5,shade(t,.82),0,1.255,0)},
-door_stick(g){for(const x of[-.42,.42])for(const z of[-.25,.25])g.cyl(.07,.085,1.25+(z>0?.05:0),shade(C.log,z>0?1:.86),x,.63,z,5);g.cyl(.06,.06,1,C.log,0,1.14,0,5,0,0,H2);g.box(.66,1.02,.05,C.woodD,0,.54,0);
+// ---- walls and doors you build: thin, standing on the edge of a cell. Each runs along X from -.5 to .5, about a fifth of a cell deep,
+// with a post at both ends so two that meet at a corner join cleanly. The renderer turns them a quarter turn for a west edge.
+wall_stick(g){for(let i=0;i<7;i++){const h=1.14+(i*5%4)*.055,x=-.43+i*.1433,z=i%2?.014:-.014;g.cyl(.064,.076,h,shade(C.log,.86+(i*3%4)*.09),x,h/2,z,6);g.cone(.064,.11,shade(C.log,1.08),x,h+.055,z,6)}
+  for(const y of[.32,.84])g.box(1,.055,.19,C.woodD,0,y,0);for(const x of[-.5,.5])g.cyl(.085,.095,1.3,C.woodD,x,.65,0,6)},
+wall_plank(g){for(let i=0;i<5;i++){const h=1.24-(i*3%4)*.025;g.box(.196,h,.08,shade(C.plank,.88+(i*3%4)*.08),-.4+i*.2,h/2,0)}
+  for(const z of[-.052,.052]){g.box(1,.07,.028,C.woodD,0,.2,z);g.box(1,.07,.028,C.woodD,0,1.02,z);g.box(1.12,.06,.024,C.woodD,0,.61,z,0,0,z>0?.74:-.74)}
+  for(const x of[-.5,.5])g.box(.13,1.3,.15,C.woodD,x,.65,0)},
+wall_stone(g){for(let r=0;r<4;r++){const n=r%2?4:5;for(let i=0;i<n;i++){const w=1/n;g.box(w-.012,.28,.22-(i+r)%2*.02,shade(C.stone,.82+((i*7+r*3)%5)*.06),-.5+w*(i+.5),.145+r*.29,0)}}
+  g.box(1.02,.07,.27,C.stoneL,0,1.2,0);for(const x of[-.5,.5])g.box(.17,1.25,.29,shade(C.stone,.78),x,.625,0)},
+wall_metal(g){const c='#74828e';g.box(1,.1,.2,C.steelD,0,.05,0);g.box(1,1.1,.09,c,0,.65,0);g.box(1.02,.06,.16,C.steelD,0,1.22,0);for(const x of[-.3,0,.3])g.box(.07,1.08,.15,shade(c,1.15),x,.64,0);
+  for(const x of[-.44,-.15,.15,.44])for(const y of[.2,1.08])for(const z of[-.05,.05])g.box(.03,.03,.012,C.steelL,x,y,z);for(const x of[-.5,.5])g.box(.12,1.28,.2,C.steelD,x,.64,0)},
+wall_reinf(g){const t='#93a8ba';g.box(1,.5,.3,C.conc,0,.25,0);g.box(1,.14,.31,C.yel,0,.57,0);for(const z of[-.157,.157])for(let i=0;i<4;i++)g.box(.07,.15,.012,C.black,-.36+i*.24,.57,z,0,0,-.6);
+  g.box(.98,.58,.16,t,0,.93,0);g.box(1.02,.06,.22,shade(t,1.15),0,1.25,0);for(const x of[-.5,.5]){g.box(.16,1.3,.34,C.conc,x,.65,0);g.box(.1,.03,.1,C.steelD,x,1.31,0)}},
+door_stick(g,v){if(v!==2){for(const x of[-.44,.44])g.cyl(.08,.092,1.3,C.woodD,x,.65,0,6);g.cyl(.06,.06,1,C.log,0,1.14,0,5,0,0,H2)}if(v===1)return;g.box(.66,1.02,.05,C.woodD,0,.54,0);
   for(let i=0;i<4;i++)g.box(.13,1.06,.07,shade(C.log,.9+(i*3%4)*.08),-.24+i*.16,.55,.02);for(const y of[.3,.8])g.box(.68,.04,.1,'#b49c6c',0,y,.02);g.box(.05,.12,.05,'#b49c6c',.22,.56,.09)},
-door_plank(g){door(g,1.25,C.woodD,C.plank,C.wood);for(const y of[.25,.9])g.box(.66,.09,.03,C.woodD,0,y,.07);g.box(.8,.08,.03,C.woodD,0,.575,.07,0,0,.72);g.box(.05,.14,.05,C.iron,.24,.6,.1)},
-door_stone(g){door(g,1.25,C.stone,C.wood,C.stoneL);for(const y of[.2,.56,.92])g.box(.69,.07,.14,C.iron,0,y,0);g.cyl(.06,.06,.03,C.steelL,.2,.56,.085,6,H2);for(const x of[-1,1])g.box(.165,.29,.905,shade(C.stone,.84),x*.42,.435,0)},
-door_metal(g){const c='#74828e';door(g,1.25,c,shade(c,1.15),C.steelD);g.box(.5,.4,.02,shade(c,.85),0,.8,.065);g.cyl(.1,.1,.04,C.steelD,0,.5,.08,6,H2);g.box(.24,.03,.03,C.steelL,0,.5,.1);g.box(.03,.24,.03,C.steelL,0,.5,.1);
-  for(const x of[-.3,.3])for(const y of[.12,1])g.box(.04,.04,.03,C.steelL,x,y,.07)},
-door_reinf(g){const t='#93a8ba';door(g,1.25,C.conc,t,C.yel);for(let i=0;i<4;i++)g.box(.07,.125,.02,C.black,-.36+i*.24,1.19,.2,0,0,-.6);g.box(.03,1.1,.14,C.steelD,0,.56,0);for(const y of[.3,.82])g.box(.6,.1,.03,C.steelD,0,y,.07);
-  g.box(.14,.14,.04,C.yel,0,.56,.08);g.box(.06,.05,.06,C.amber,.42,1.275,.3);for(const x of[-1,1])g.box(.165,.3,.905,t,x*.42,.75,0)},
+door_plank(g,v){thin(g,()=>{door(g,1.25,C.woodD,C.plank,C.wood,v);if(v===1)return;for(const y of[.25,.9])g.box(.66,.09,.03,C.woodD,0,y,.07);g.box(.8,.08,.03,C.woodD,0,.575,.07,0,0,.72);g.box(.05,.14,.05,C.iron,.24,.6,.1)})},
+door_stone(g,v){thin(g,()=>{door(g,1.25,C.stone,C.wood,C.stoneL,v);if(v!==2)for(const x of[-1,1])g.box(.165,.29,.905,shade(C.stone,.84),x*.42,.435,0);if(v===1)return;for(const y of[.2,.56,.92])g.box(.69,.07,.14,C.iron,0,y,0);g.cyl(.06,.06,.03,C.steelL,.2,.56,.085,6,H2)})},
+door_metal(g,v){thin(g,()=>{const c='#74828e';door(g,1.25,c,shade(c,1.15),C.steelD,v);if(v===1)return;g.box(.5,.4,.02,shade(c,.85),0,.8,.065);g.cyl(.1,.1,.04,C.steelD,0,.5,.08,6,H2);g.box(.24,.03,.03,C.steelL,0,.5,.1);g.box(.03,.24,.03,C.steelL,0,.5,.1);
+  for(const x of[-.3,.3])for(const y of[.12,1])g.box(.04,.04,.03,C.steelL,x,y,.07)})},
+door_reinf(g,v){thin(g,()=>{const t='#93a8ba';door(g,1.25,C.conc,t,C.yel,v);if(v!==2){for(let i=0;i<4;i++)g.box(.07,.125,.02,C.black,-.36+i*.24,1.19,.2,0,0,-.6);g.box(.06,.05,.06,C.amber,.42,1.275,.3);for(const x of[-1,1])g.box(.165,.3,.905,t,x*.42,.75,0)}
+  if(v===1)return;g.box(.03,1.1,.14,C.steelD,0,.56,0);for(const y of[.3,.82])g.box(.6,.1,.03,C.steelD,0,y,.07);g.box(.14,.14,.04,C.yel,0,.56,.08)})},
 barricade(g){const c=C.log;g.cyl(.065,.065,1,c,0,.42,0,5,0,0,H2);for(const x of[-.36,.36]){limb(g,.015,.05,.95,shade(c,.86),x,0,.34,.72,-H2,4);limb(g,.015,.05,.95,shade(c,1.1),x+.03,0,-.34,.72,H2,4);g.box(.1,.08,.1,'#b49c6c',x,.42,0,.5)}
   for(const x of[-.18,0,.18])limb(g,.01,.045,.8,shade(c,.94+x),x,.04,-.28,.9,H2,4)},
 barricade2(g){const c='#b49f74',bag=(x,y,z,w,d,i)=>frus(g,w,d,w*.86,d*.8,.17,shade(c,.86+(i*5%4)*.08),x,y,z,0,((i*7)%3-1)*.05);for(let i=0;i<3;i++)for(const z of[-.2,.2])bag(-.33+i*.33,.085,z,.32,.38,i+(z>0?1:4));

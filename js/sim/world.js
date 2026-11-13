@@ -8,7 +8,7 @@ import {EVENTS,WEATHER,WEATHER_BY_REG,TIDE_KINDS,TIDE_COST} from '../data/events
 import {SURV_NAMES,SURV_TRAITS,JOBS,TRADE,TRADE_BP} from '../data/progress.js';
 import {ENEMIES} from '../data/enemies.js';
 import {FACTIONS} from '../data/community.js';
-import {G,emit,toast,sfx,stat,statMax,blankState,derive,perk,count,take,give,addTo,removeFrom,slotCount,homeStores,addXp,addBuff,produce,maxHp,hasBuilt,countBuilt,compact,dropAt,SAVE_V,MIN_PER_SEC,HOME_W,HOME_H} from './core.js';
+import {G,emit,toast,sfx,stat,statMax,blankState,derive,perk,count,take,give,addTo,removeFrom,slotCount,homeStores,addXp,addBuff,produce,maxHp,hasBuilt,countBuilt,compact,dropAt,SAVE_V,edgeIdx,MIN_PER_SEC,HOME_W,HOME_H} from './core.js';
 import {genHome,homeZone,genZone,siteDef,freeNear,rollLoot,playerField} from './zone.js';
 import {spawnActor,spawnPlayer,populate,enemiesAlive,step,alertActor,harvest,plant} from './actors.js';
 import {startQuest,checkStory,checkAch,fillContracts,noteClear,maxRegion} from './quests.js';
@@ -223,7 +223,7 @@ function dawn(S){
       if(sv.job!=='idle')sv.xp=(sv.xp||0)+1;
       if(J.out){const k=(sv.job==='forage'?tm('strong'):sv.job==='medic'?tm('nurse')*1.3:1)*Community.svMult(sv);for(const[id,a,b]of J.out){const n=Math.round((a+rnd()*(b-a))*mult*k*(sv.job==='forage'||sv.job==='hunt'||sv.job==='scav'?.6+rnd()*.8:1));if(n>0&&rnd()<.85)pile(S,id,n)}
         if(J.rare&&rnd()<(sv.trait==='lucky'?.8:.45)){const[id,a,b]=J.rare[Math.floor(rnd()*J.rare.length)];pile(S,id,Math.round(a+rnd()*(b-a)))}}
-      if(J.repair){let f=J.repair*(sv.trait==='tinker'?2:1)*mult;for(const o of S.home.obj)if(o&&o.hp>0&&OBJ[o.k].cost){const mh=maxHp(o.k);if(o.hp<mh)o.hp=Math.min(mh,o.hp+mh*f)}}
+      if(J.repair){let f=J.repair*(sv.trait==='tinker'?2:1)*mult;for(const o of[...S.home.obj,...(S.home.ed||[])])if(o&&o.hp>0&&OBJ[o.k].cost){const mh=maxHp(o.k);if(o.hp<mh)o.hp=Math.min(mh,o.hp+mh*f)}}
       if(sv.trait==='cheer')S.morale+=2;if(J.morale)S.morale+=J.morale}
     let comfort=0;for(const o of S.home.obj)if(o&&OBJ[o.k].comfort)comfort+=OBJ[o.k].comfort;
     S.morale+=Math.min(8,comfort*.5)-hungry*5+(hungry?0:1)+(60-S.morale)*.05-(S.surv.length>survCap(S)?4:0);S.morale=clamp(Math.round(S.morale),0,100);
@@ -355,7 +355,7 @@ function endTide(S,Z,won){
   scheduleTide(S);emit('ui','tideEnd',res);emit('save');
 }
 function defenceScore(S){
-  let d=0;const n=S.tide.n;
+  let d=0;const n=S.tide.n;for(const w of S.home.ed||[])if(w&&OBJ[w.k])d+=w.hp/50;
   for(const o of S.home.obj){if(!o)continue;const k=OBJ[o.k];if(!k||!k.cost)continue;
     if(k.wall||k.door||(k.low&&k.cat==='defense'))d+=o.hp/50;else if(k.trap)d+=Math.max(0,(k.trap.dmg+(k.trap.slow?30:0))*(k.trap.uses-(o.uses||0))/90);
     else if(k.turret){const t=k.turret,shots=t.power?200:Math.floor((o.ammo||0)/(t.per||1));d+=Math.min(shots,150)*t.dmg/90}}
@@ -375,6 +375,7 @@ function raidBase(S,frac,destroyCount){
   let n=0;const obj=S.home.obj,atHome=G.Z&&G.Z.home;
   for(let i=0;i<obj.length;i++){const o=obj[i];if(!o||!(o.hp>0))continue;const k=OBJ[o.k];if(!k.cost||!(k.wall||k.door||k.low||k.trap||rnd()<.25))continue;if(rnd()>Math.min(1,frac*2.2))continue;
     o.hp-=maxHp(o.k)*frac*(.5+rnd()*1.2);if(o.hp<=0){if(o.inv&&o.inv.some(Boolean)){o.hp=1}else{obj[i]=null;n++;if(atHome)G.Z.touch(i);continue}}if(!destroyCount)n++;if(atHome)emit('obj',i)}
+  const ed=S.home.ed||[];for(let e=0;e<ed.length;e++){const w=ed[e];if(!w||rnd()>Math.min(1,frac*2.2))continue;w.hp-=maxHp(w.k)*frac*(.5+rnd()*1.2);if(w.hp<=0){ed[e]=null;n++;if(atHome)G.Z.touchEdge(e)}else{if(!destroyCount)n++;if(atHome)emit('edge',e)}}
   return n;
 }
 
@@ -500,13 +501,25 @@ export function raiseMutation(S){if(!S.flags.core_dead)return false;S.mut++;stat
 // ---------------------------------------------------------------- save format
 export function serialize(){
   const S=G.S;if(!S)return null;const sparse=a=>{const o={};for(let i=0;i<a.length;i++)if(a[i])o[i]=a[i];return o};
-  return JSON.stringify(S,(k,v)=>k==='home'?{...v,obj:sparse(v.obj),fl:sparse(v.fl)}:k.startsWith('_')?undefined:v);
+  return JSON.stringify(S,(k,v)=>k==='home'?{...v,obj:sparse(v.obj),fl:sparse(v.fl),ed:sparse(v.ed||[])}:k.startsWith('_')?undefined:v);
 }
-const MIGRATE={/* 1: S=>{...; S.v=2} */};
+const MIGRATE={
+  // 1 → 2: walls and doors moved from filling a cell to standing on a cell's edge. A wall cell that closed something in becomes a wall on its
+  // outward face (so the old wall cells become usable ground inside); a free-standing run becomes one line of walls.
+  1:S=>{const W=HOME_W,H=HOME_H,obj=S.home.obj||{},ed={},wasW=new Uint8Array(W*H);for(const key in obj){const o=obj[key];if(o&&OBJ[o.k]&&OBJ[o.k].cost&&(OBJ[o.k].wall||OBJ[o.k].door))wasW[+key]=1}const isW=i=>wasW[i]===1;
+    const out=new Uint8Array(W*H),q=[];for(let x=0;x<W;x++)q.push(x,(H-1)*W+x);for(let y=0;y<H;y++)q.push(y*W,y*W+W-1);
+    while(q.length){const i=q.pop();if(out[i]||isW(i))continue;out[i]=1;const x=i%W,y=(i-x)/W;if(x>0)q.push(i-1);if(x<W-1)q.push(i+1);if(y>0)q.push(i-W);if(y<H-1)q.push(i+W)}
+    for(const key in obj){const i=+key;if(!isW(i))continue;const o=obj[i],x=i%W,y=(i-x)/W,o4=[y===0||out[i-W],x===W-1||out[i+1],y===H-1||out[i+W],x===0||out[i-1]];
+      let sides=[0,1,2,3].filter(s=>o4[s]);
+      if(!sides.length||(o4[0]&&o4[2])||(o4[1]&&o4[3])){sides=[];if((x>0&&isW(i-1))||(x<W-1&&isW(i+1)))sides.push(0);if(isW(i-W)||isW(i+W))sides.push(3);if(!sides.length)sides.push(0)}
+      for(const sd of sides){const e=edgeIdx(W,x,y,sd);if(!ed[e])ed[e]={k:o.k,hp:o.hp}}
+      delete obj[i]}
+    S.home.ed=ed;S.v=2},
+};
 export function deserialize(str){
   const S=JSON.parse(str);if(!S||!S.v||!S.p||!S.home)throw new Error('Not a Graywake save');
   while(S.v<SAVE_V){if(!MIGRATE[S.v])throw new Error('Save is too old');MIGRATE[S.v](S)}
-  const dense=o=>{const a=new Array(HOME_W*HOME_H);for(const k in o)a[+k]=o[k];return a};S.home.obj=dense(S.home.obj||{});S.home.fl=dense(S.home.fl||{});
+  const dense=o=>{const a=new Array(HOME_W*HOME_H);for(const k in o)a[+k]=o[k];return a};S.home.obj=dense(S.home.obj||{});S.home.fl=dense(S.home.fl||{});{const a=[],o=S.home.ed||{};for(const k in o)if(o[k])a[+k]=o[k];S.home.ed=a}
   const fresh=blankState(S.seed);for(const k in fresh)if(S[k]===undefined)S[k]=fresh[k];for(const k in fresh.set)if(S.set[k]===undefined)S.set[k]=fresh.set[k];for(const k in fresh.p)if(S.p[k]===undefined)S.p[k]=fresh.p[k];
   S.tide.live=null;S.p.inv=S.p.inv.map(s=>s&&ITEMS[s.id]?s:null);for(const k in S.p.eq)if(S.p.eq[k]&&!ITEMS[S.p.eq[k].id])S.p.eq[k]=null;
   return S;

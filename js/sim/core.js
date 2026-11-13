@@ -6,8 +6,8 @@ import {RECIPES,VEHICLES} from '../data/recipes.js';
 import {PERK,xpFor,MAX_LEVEL} from '../data/progress.js';
 import {clamp,rnd} from './util.js';
 
-export const VERSION='0.7.1';
-export const SAVE_V=1;
+export const VERSION='0.8.0';
+export const SAVE_V=2;
 export const HOME_W=46,HOME_H=46,EXIT_RING=2,NO_BUILD=4;
 export const MIN_PER_SEC=1.5;            // game minutes per real second: a day is 16 real minutes
 export const FIST={id:'fist',n:'Fists',t:'melee',dmg:5,spd:.48,rng:1.05,arc:80,kb:1};
@@ -23,7 +23,7 @@ export const statMax=(k,v)=>{const s=G.S.stats;if(!(s[k]>=v))s[k]=v};
 export function blankState(seed){
   return{v:SAVE_V,seed:seed>>>0,t:7*60,created:Date.now(),
     p:{hp:100,food:80,water:80,tox:0,lvl:1,xp:0,sp:0,perks:{},inv:[],eq:{w1:null,w2:null,head:null,body:null,legs:null,feet:null,hands:null,pack:null},active:'w1',known:{},buffs:[],bed:null},
-    home:{obj:[],fl:[],regrow:[],pile:{},report:null},
+    home:{obj:[],fl:[],ed:[],regrow:[],pile:{},report:null},
     loc:{},sites:[],siteN:0,at:'home',from:'home',
     tide:{n:0,at:0,kind:'shamble',dir:0,weak:0,warned:0,live:null},
     weather:{id:'clear',until:0},
@@ -224,11 +224,25 @@ export function buildUnlocked(S,k){const d=OBJ[k];if(!d.cost)return false;if(d.b
 const afford=(S,cost)=>{for(const i in cost)if(count(S,i,true)<cost[i])return ITEMS[i].n;return null};
 const pay=(S,cost)=>{for(const i in cost)take(S,i,cost[i],true)};
 export function inBuildArea(Z,x,y){return x>=NO_BUILD&&y>=NO_BUILD&&x<Z.w-NO_BUILD&&y<Z.h-NO_BUILD}
-/** Why a piece cannot go on this tile, or null if it can. */
-export function canPlace(S,k,x,y){
+// ---- walls stand on the edges between cells
+// A wall or door you build does not fill a cell: it stands on one side of it, and the cell stays free to walk in and build on.
+// Z.ed holds them: Z.ed[tile*2] is the wall on that tile's north edge, Z.ed[tile*2+1] the one on its west edge (a south edge is the
+// north edge of the tile below, an east edge the west edge of the tile to the right). Where one number has to name either a tile
+// object or a wall (what an enemy is breaking, what a build tool points at), a wall is EREF + its edge index.
+export const EREF=1<<22;
+export const isEdgeKind=k=>{const d=OBJ[k];return!!(d&&d.cost&&(d.wall||d.door))};
+/** The edge on one side of tile (x, y) in a zone W tiles wide. side: 0 north, 1 east, 2 south, 3 west. */
+export const edgeIdx=(W,x,y,side)=>side===0?(y*W+x)*2:side===2?((y+1)*W+x)*2:side===3?(y*W+x)*2+1:(y*W+x+1)*2+1;
+/** What a structure reference points at (tile index, or EREF + edge), and where its middle is. */
+export const structAt=(Z,ref)=>ref>=EREF?Z.ed[ref-EREF]:Z.obj[ref];
+export const structXY=(Z,ref)=>{if(ref>=EREF){const e=ref-EREF,i=e>>1,x=i%Z.w,y=(i-x)/Z.w;return e&1?[x,y+.5]:[x+.5,y]}return[ref%Z.w+.5,Math.floor(ref/Z.w)+.5]};
+const touchRef=(Z,ref)=>{if(ref>=EREF)Z.touchEdge(ref-EREF);else Z.touch(ref)};
+/** Why a piece cannot go on this tile, or null if it can. For a wall or door, `side` says which edge of the tile (0 north, 1 east, 2 south, 3 west). */
+export function canPlace(S,k,x,y,side=0){
   const Z=G.Z,d=OBJ[k];if(!Z||!Z.home)return'Only at home';if(!d||!d.cost)return'Cannot build that';
   if(!buildUnlocked(S,k))return d.bp?'Needs a schematic':'Needs level '+d.lv;
   if(!inBuildArea(Z,x,y))return'Too close to the tree line';
+  if(isEdgeKind(k)){if(Z.g[idx(Z,x,y)]===6)return'Water';if(Z.ed[edgeIdx(Z.w,x,y,side&3)])return'There is already a wall on that side';const miss=afford(S,buildCost(k));return miss?'Missing '+miss:null}
   const i=idx(Z,x,y);if(Z.g[i]===6)return'Water';
   if(d.floor){if(Z.fl[i])return'Already floored'}
   else{if(Z.obj[i])return'Occupied';if(d.solid)for(const a of Z.actors)if(!a.dead&&Math.floor(a.x)===x&&Math.floor(a.y)===y)return'Something is standing there'}
@@ -236,30 +250,44 @@ export function canPlace(S,k,x,y){
   return null;
 }
 export function place(S,k,x,y,rot=0){
-  const why=canPlace(S,k,x,y);if(why){toast(why,'bad');sfx('error');return false}
+  const why=canPlace(S,k,x,y,rot);if(why){toast(why,'bad');sfx('error');return false}
   const Z=G.Z,d=OBJ[k],i=idx(Z,x,y);pay(S,buildCost(k));
+  if(isEdgeKind(k)){const e=edgeIdx(Z.w,x,y,rot&3);Z.ed[e]={k,hp:maxHp(k)};Z.touchEdge(e);const[mx,my]=structXY(Z,EREF+e);stat('built');if(!S.flags['built_'+k]){S.flags['built_'+k]=1;addXp(S,10+d.lv*4)}else addXp(S,2);sfx('build',mx,my);emit('fx','dust',mx,my);return true}
   if(d.floor){Z.fl[i]=k;emit('floor',i)}else{Z.obj[i]={k,hp:maxHp(k),r:rot};if(d.store)Z.obj[i].inv=[];if(d.turret)Z.obj[i].ammo=0;Z.touch(i)}
   stat('built');if(!S.flags['built_'+k]){S.flags['built_'+k]=1;addXp(S,10+d.lv*4)}else addXp(S,2);
   sfx('build',x+.5,y+.5);emit('fx','dust',x+.5,y+.5);return true;
 }
 /** Turn a structure you built a quarter turn where it stands. */
-export function rotateObj(S,i){const Z=G.Z;if(!Z||!Z.home)return false;const o=Z.obj[i];if(!o||!OBJ[o.k].cost){toast('Nothing of yours to turn here','bad');sfx('error');return false}o.r=((o.r||0)+1)%4;Z.touch(i);sfx('ui_tap');return true}
+export function rotateObj(S,i,x,y){const Z=G.Z;if(!Z||!Z.home)return false;if(i>=EREF)return turnEdge(S,i-EREF,x,y);const o=Z.obj[i];if(!o||!OBJ[o.k].cost){toast('Nothing of yours to turn here','bad');sfx('error');return false}o.r=((o.r||0)+1)%4;Z.touch(i);sfx('ui_tap');return true}
+/** Swing a wall or door to the next free side, clockwise, of the cell it is being pointed at from (either of the two cells it stands between). */
+function turnEdge(S,e,x,y){
+  const Z=G.Z,w=Z.ed[e];if(!w){toast('Nothing of yours to turn here','bad');sfx('error');return false}
+  let from=-1;if(x!==undefined)for(let s=0;s<4;s++)if(edgeIdx(Z.w,x,y,s)===e)from=s;
+  if(from<0){const t=e>>1;x=t%Z.w;y=(t-x)/Z.w;from=e&1?3:0}
+  for(let k=1;k<4;k++){const s=(from+k)&3,j=edgeIdx(Z.w,x,y,s);if(Z.ed[j])continue;Z.ed[j]=w;Z.ed[e]=null;Z.touchEdge(e);Z.touchEdge(j);sfx('ui_tap');return true}
+  toast('Every side of this cell already has a wall','bad');sfx('error');return false;
+}
 /** Why the structure on tile i cannot be moved to (x, y), or null. Moving is free and keeps everything about it (health, contents, crops, jobs). */
-export function canMove(S,i,x,y){
-  const Z=G.Z;if(!Z||!Z.home)return'Only at home';const o=Z.obj[i];if(!o||!OBJ[o.k]||!OBJ[o.k].cost)return'Nothing of yours to move';
+export function canMove(S,i,x,y,side=0){
+  const Z=G.Z;if(!Z||!Z.home)return'Only at home';
+  // a wall or door goes from its edge to side `side` of tile (x, y)
+  if(i>=EREF){if(!Z.ed[i-EREF])return'Nothing of yours to move';if(x<0||y<0||x>=Z.w||y>=Z.h||!inBuildArea(Z,x,y))return'Too close to the tree line';if(Z.g[idx(Z,x,y)]===6)return'Water';
+    const j=edgeIdx(Z.w,x,y,side&3);return j!==i-EREF&&Z.ed[j]?'There is already a wall on that side':null}
+  const o=Z.obj[i];if(!o||!OBJ[o.k]||!OBJ[o.k].cost)return'Nothing of yours to move';
   if(x<0||y<0||x>=Z.w||y>=Z.h||!inBuildArea(Z,x,y))return'Too close to the tree line';const j=idx(Z,x,y);if(j===i)return null;
   if(Z.g[j]===6)return'Water';if(Z.obj[j])return'Occupied';
   if(OBJ[o.k].solid)for(const a of Z.actors)if(!a.dead&&Math.floor(a.x)===x&&Math.floor(a.y)===y)return'Something is standing there';
   return null;
 }
 export function moveObj(S,i,x,y,rot){
-  const why=canMove(S,i,x,y);if(why){toast(why,'bad');sfx('error');return false}
+  const why=canMove(S,i,x,y,rot);if(why){toast(why,'bad');sfx('error');return false}
+  if(i>=EREF){const Z=G.Z,e=i-EREF,j=edgeIdx(Z.w,x,y,rot&3);if(j!==e){Z.ed[j]=Z.ed[e];Z.ed[e]=null;Z.touchEdge(e)}Z.touchEdge(j);const[mx,my]=structXY(Z,EREF+j);stat('moved');sfx('build',mx,my);emit('fx','dust',mx,my);return true}
   const Z=G.Z,j=idx(Z,x,y),o=Z.obj[i];if(rot!==undefined)o.r=rot;
   if(j!==i){Z.obj[j]=o;Z.obj[i]=null;if(S.p.bed===i)S.p.bed=j;Z.touch(i)}Z.touch(j);
   stat('moved');sfx('build',x+.5,y+.5);emit('fx','dust',x+.5,y+.5);return true;
 }
 export function canUpgrade(S,i,floor){
-  const Z=G.Z;if(!Z||!Z.home)return'Only at home';const k=floor?Z.fl[i]:Z.obj[i]&&Z.obj[i].k;if(!k)return'Nothing here';const d=OBJ[k];if(!d.up)return'Fully upgraded';
+  const Z=G.Z;if(!Z||!Z.home)return'Only at home';const st=floor?null:structAt(Z,i),k=floor?Z.fl[i]:st&&st.k;if(!k)return'Nothing here';const d=OBJ[k];if(!d.up)return'Fully upgraded';
   if(!buildUnlocked(S,d.up))return OBJ[d.up].bp?'Needs a schematic':'Needs level '+OBJ[d.up].lv;
   const miss=afford(S,buildCost(d.up));if(miss)return'Missing '+miss;return null;
 }
@@ -267,18 +295,19 @@ export function upgrade(S,i,floor){
   const why=canUpgrade(S,i,floor);if(why){toast(why,'bad');sfx('error');return false}
   const Z=G.Z;
   if(floor){const up=OBJ[Z.fl[i]].up;pay(S,buildCost(up));Z.fl[i]=up;emit('floor',i)}
-  else{const o=Z.obj[i],up=OBJ[o.k].up;pay(S,buildCost(up));o.k=up;o.hp=maxHp(up);Z.touch(i)}
-  stat('built');addXp(S,6);sfx('build');emit('fx','dust',i%Z.w+.5,Math.floor(i/Z.w)+.5);return true;
+  else{const o=structAt(Z,i),up=OBJ[o.k].up;pay(S,buildCost(up));o.k=up;o.hp=maxHp(up);touchRef(Z,i)}
+  stat('built');addXp(S,6);sfx('build');emit('fx','dust',...structXY(Z,i));return true;
 }
 export function repairCost(o){const d=OBJ[o.k],mh=maxHp(o.k),f=1-o.hp/mh,out={};if(f<=.01)return null;for(const k in d.cost){const n=Math.ceil(d.cost[k]*f*.5);if(n>0)out[k]=n}return out}
 export function repair(S,i){
-  const Z=G.Z,o=Z&&Z.obj[i];if(!o||!Z.home)return false;const cost=repairCost(o);if(!cost){toast('No damage','info');return false}
+  const Z=G.Z,o=Z&&structAt(Z,i);if(!o||!Z.home)return false;const cost=repairCost(o);if(!cost){toast('No damage','info');return false}
   const miss=afford(S,cost);if(miss){toast('Missing '+miss,'bad');sfx('error');return false}
-  pay(S,cost);o.hp=maxHp(o.k);if(OBJ[o.k].trap)o.uses=0;Z.touch(i);sfx('build');return true;
+  pay(S,cost);o.hp=maxHp(o.k);if(OBJ[o.k].trap)o.uses=0;touchRef(Z,i);sfx('build');return true;
 }
 export function demolish(S,i,floor){
   const Z=G.Z;if(!Z||!Z.home)return false;
   if(floor){const k=Z.fl[i];if(!k)return false;const c=OBJ[k].cost;for(const m in c)give(S,m,Math.floor(c[m]*.5),undefined,true);Z.fl[i]=null;emit('floor',i);sfx('break');return true}
+  if(i>=EREF){const e=i-EREF,w=Z.ed[e];if(!w)return false;const c=OBJ[w.k].cost;for(const m in c)give(S,m,Math.floor(c[m]*.5*(w.hp/maxHp(w.k))),undefined,true);Z.ed[e]=null;Z.touchEdge(e);sfx('break');return true}
   const o=Z.obj[i];if(!o)return false;const d=OBJ[o.k];if(!d.cost){toast('Cannot remove that','bad');return false}
   if(o.inv&&o.inv.some(Boolean)){toast('Empty it first','bad');return false}
   if(o.q&&o.q.length||o.out){toast('It is still working','bad');return false}
@@ -292,6 +321,7 @@ export function countBuilt(S,test){
   const f=typeof test==='function'?test:(d=>d.id===test);let n=0;
   for(const o of S.home.obj)if(o&&OBJ[o.k]&&f(OBJ[o.k]))n++;
   for(const k of S.home.fl)if(k&&OBJ[k]&&f(OBJ[k]))n++;
+  for(const o of S.home.ed||[])if(o&&OBJ[o.k]&&f(OBJ[o.k]))n++;
   return n;
 }
 export const hasBuilt=(S,test)=>countBuilt(S,test)>0;

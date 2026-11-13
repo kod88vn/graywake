@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.8.0 — 2026-11-13
+
+Walls stand on the side of a cell, not in it.
+
+- **Walls and doors are thin and stand on the edge between two cells.** A wall no longer takes up a cell: the cell behind it stays free to walk in and to build on, so a box, a bed or a bench can sit right against the wall. All five tiers of wall and door have new thin models with a post at each end, so corners and T-joints close up.
+- **Building them.** With a wall or door selected, point near the side of a cell and the preview snaps to that side; press to place, and drag to run a straight line. Upgrade, Repair and Remove pick the wall when you point near it and the thing in the cell otherwise.
+- **Move and Rotate work on walls.** Move picks a wall up and stands it on any free cell side. Rotate (or R) swings a wall to the next free side of the cell you are pointing at.
+- **Doors open.** A door's leaf swings away from you, your people and your animals as you come up to it and closes behind you, with a creak. Attackers still have to break it.
+- **Nothing reaches across a wall.** You cannot open a box, chop a tree or swing at something on the far side of a wall, and neither can attackers: a wall between you is hit first. Sight, shots, blasts, turrets and guards all respect walls on edges. Doors let you reach and walk through.
+- **Paths know about walls.** Auto mode, and you when you are led by a path, go round by the door; attackers weigh a wall's health against the walk round it, as before.
+- **Older saves are converted on load** (save format 2). A ring of wall cells becomes walls on the outward faces of those cells, so the base keeps its outline and gains the row of ground the walls used to stand on; a loose run of walls becomes one straight line. Health and tier carry over. Checked against a save written by 0.7.1. The save as it was before conversion is kept in the browser beside the live one (`graywake.save.v1.format1`).
+- Auto mode and attackers now path round trees, rocks and walls that stand dead ahead instead of walking into them.
+- Wall health, cost and tiers are unchanged.
+
 ## 0.7.1 — 2026-11-12
 
 - **Fixed: auto mode switched off when a tide landed.** The character then stood still and was killed. Auto mode now stays on through a tide: it stops gathering, holds the middle of the homestead, goes out to meet whatever comes within reach, and hunts down the stragglers once the last wave is in.

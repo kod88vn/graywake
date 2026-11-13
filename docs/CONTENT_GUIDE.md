@@ -40,7 +40,7 @@ A second recipe for the same item needs `{id:'unique_name'}`. `{bp:1}` makes it 
 smokehouse:{n:'Smokehouse',solid:1,station:'tannery',sl:2,cat:'craft',lv:18,cost:{plank:20,brick:10},hp:400},
 ```
 
-Give the previous tier `up:'smokehouse'` to make it an upgrade. Add a model with the same key to `PROPS` in `js/view/props.js` and look at it with `node tests/gallery.mjs props smokehouse`. Behaviour comes from fields: `wall`, `door`, `low`, `floor`, `store`, `bed`, `station`+`sl`, `trap{}`, `turret{}`, `light`, `prod{}`, `special`.
+Give the previous tier `up:'smokehouse'` to make it an upgrade. Add a model with the same key to `PROPS` in `js/view/props.js` and look at it with `node tests/gallery.mjs props smokehouse`. A buildable with `wall` or `door` stands on a tile edge, not in a tile (see Walls on edges in `ARCHITECTURE.md`): its model runs along X from -0.5 to 0.5, about a fifth of a tile deep, with a post at each end, and a door model takes a part number (0 whole, 1 frame, 2 leaf, the leaf spanning x ±0.34). Behaviour comes from fields: `wall`, `door`, `low`, `floor`, `store`, `bed`, `station`+`sl`, `trap{}`, `turret{}`, `light`, `prod{}`, `special`.
 
 ## A creature (`enemies.js`)
 

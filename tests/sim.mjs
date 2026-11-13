@@ -9,9 +9,9 @@ import {ENEMIES} from '../js/data/enemies.js';
 import {LOCATIONS,SITES} from '../js/data/world.js';
 import {EVENTS} from '../js/data/events.js';
 import {STORY} from '../js/data/progress.js';
-import {G,dropAt,give,count,craft,place,upgrade,demolish,repair,moveObj,rotateObj,canMove,equip,useItem,quickUse,learnPerk,derive,canPlace,slotCount,freeSlots,sortInv,HOME_W} from '../js/sim/core.js';
-import {genZone,field,siteDef,blockAt} from '../js/sim/zone.js';
-import {spawnActor,enemiesAlive,populate,interact,findInteract,lootAll,openLoot,plant} from '../js/sim/actors.js';
+import {G,EREF,edgeIdx,structAt,dropAt,give,count,craft,place,upgrade,demolish,repair,moveObj,rotateObj,canMove,equip,useItem,quickUse,learnPerk,derive,canPlace,slotCount,freeSlots,sortInv,HOME_W} from '../js/sim/core.js';
+import {genZone,field,siteDef,blockAt,collide,los,edgeCross} from '../js/sim/zone.js';
+import {spawnActor,enemiesAlive,populate,interact,findInteract,lootAll,openLoot,plant,damageObj} from '../js/sim/actors.js';
 import * as World from '../js/sim/world.js';
 import {goalProgress,story,genContract,contractText,turnIn} from '../js/sim/quests.js';
 import {dayOf,hourOf} from '../js/sim/util.js';
@@ -111,16 +111,29 @@ safe('build',()=>{
   Z.pl.x=cx+.5;Z.pl.y=cy+.5;Z.actors=Z.actors.filter(a=>a.pl); // wandering deer may not stand where we build
   T.ok(place(S,'campfire',cx+2,cy),'place campfire');T.ok(place(S,'workbench',cx+2,cy+1),'place workbench');T.ok(place(S,'box_small',cx+2,cy-1),'place box');T.ok(place(S,'bed_roll',cx-2,cy),'place bedroll');
   T.ok(canPlace(S,'furnace',cx,cy)!==null,'level-gated building is refused at level '+S.p.lvl);
-  let walls=0;for(let x=cx-4;x<=cx+4;x++)for(const y of[cy-4,cy+4])if(place(S,'wall_stick',x,y))walls++;for(let y=cy-3;y<=cy+3;y++)for(const x of[cx-4,cx+4])if(place(S,(y===cy&&x===cx+4)?'door_stick':'wall_stick',x,y))walls++;
-  T.ok(walls>=30,'ring of walls placed ('+walls+')');T.ok(place(S,'floor_wood',cx,cy),'place floor');
+  // walls stand on cell edges: a ring round the 9×9 block of cells from (cx-4, cy-4) to (cx+4, cy+4), with a door in the east side
+  let walls=0;for(let x=cx-4;x<=cx+4;x++){if(place(S,'wall_stick',x,cy-4,0))walls++;if(place(S,'wall_stick',x,cy+4,2))walls++}for(let y=cy-4;y<=cy+4;y++){if(place(S,'wall_stick',cx-4,y,3))walls++;if(place(S,y===cy?'door_stick':'wall_stick',cx+4,y,1))walls++}
+  T.ok(walls===36,'ring of walls placed on the cell edges ('+walls+')');T.ok(place(S,'floor_wood',cx,cy),'place floor');
+  const eN=EREF+edgeIdx(Z.w,cx,cy-4,0),eD=EREF+edgeIdx(Z.w,cx+4,cy,1);
+  T.ok(!Z.obj[(cy-4)*Z.w+cx]&&canPlace(S,'box_small',cx,cy-4)===null,'the cell behind a wall is still free to build on');
+  T.ok(canPlace(S,'wall_stick',cx,cy-4,0)!==null&&canPlace(S,'wall_stick',cx,cy-5,2)!==null,'one wall to an edge, whichever cell it is named from');
+  {const[ax,ay]=collide(Z,cx+.5,cy-4+.2,.3,true),[bx,by]=collide(Z,cx+.5,cy-4-.2,.3,true);T.ok(ay>=cy-4+.38&&by<=cy-4-.38,'a body is pushed off the wall line to its own side ('+ay.toFixed(2)+', '+by.toFixed(2)+')')}
+  T.ok(!los(Z,cx+.5,cy-3.5,cx+.5,cy-5.5)&&los(Z,cx+.5,cy-3.5,cx+2.5,cy-3.5),'a wall blocks sight across it and not along it');
+  T.ok(edgeCross(Z,cx+4.5,cy+.5,cx+5.5,cy+.5,false)>=0&&edgeCross(Z,cx+4.5,cy+.5,cx+5.5,cy+.5,true)<0,'a door stops strangers and lets you through');
+  {const f=field(Z,cx,cy,true,200),g=field(Z,cx,cy,false,400),outN=(cy-5)*Z.w+cx,outE=cy*Z.w+cx+5;T.ok(f[outE]<8&&f[outN]>12,'your own path leaves by the door, not through the wall ('+f[outE].toFixed(1)+' by the door, '+f[outN].toFixed(1)+' round to the north)');T.ok(g[outN]<Infinity&&g[outN]>5,'an attacker can come through a wall, at a price ('+g[outN].toFixed(1)+')')}
+  // nothing is reached across a wall: a box just inside the north wall opens from inside the yard and not from outside it
+  {const bi=(cy-4)*Z.w+cx-3,p=Z.pl,px=p.x,py=p.y;T.ok(place(S,'box_small',cx-3,cy-4),'a box goes in the cell right behind the wall');
+    p.x=cx-2.5;p.y=cy-2.6;p.a=-Math.PI/2;const inH=findInteract(Z);p.y=cy-4.4;p.a=Math.PI/2;const outH=findInteract(Z);p.x=px;p.y=py;
+    T.ok(inH&&inH.i===bi&&!(outH&&outH.i===bi),'it opens from inside the wall and not from outside');demolish(S,bi)}
   const camp=(cy)*Z.w+cx+2;T.ok(craft(S,'cooked_meat',2,camp),'queue cooking at the campfire');
   T.ok(Z.obj[camp].q&&Z.obj[camp].q.length===1,'station has a job queue');
   run(30);T.ok(Z.obj[camp].out&&Z.obj[camp].out.cooked_meat>=2||count(S,'cooked_meat')>=2,'cooking finishes over time');
   S.p.lvl=30;S.p.sp=10;G.ds=derive(S);
   T.ok(place(S,'furnace',cx-2,cy+2),'furnace at level 30');T.ok(craft(S,'iron_bar',2,(cy+2)*Z.w+cx-2),'queue smelting');
-  T.ok(upgrade(S,(cy-4)*Z.w+cx),'upgrade a wall to planks');T.ok(Z.obj[(cy-4)*Z.w+cx].k==='wall_plank','wall is now plank');
-  Z.obj[(cy-4)*Z.w+cx].hp=50;give(S,'plank',20);T.ok(repair(S,(cy-4)*Z.w+cx),'repair a damaged wall');
-  T.ok(demolish(S,(cy-4)*Z.w+cx+1),'demolish a wall');place(S,'wall_stick',cx+1,cy-4);
+  T.ok(upgrade(S,eN),'upgrade a wall to planks');T.ok(structAt(Z,eN).k==='wall_plank','wall is now plank');
+  structAt(Z,eN).hp=50;give(S,'plank',20);T.ok(repair(S,eN)&&structAt(Z,eN).hp===320,'repair a damaged wall');
+  T.ok(damageObj(Z,eN,100)===false&&structAt(Z,eN).hp===220&&damageObj(Z,eN,500)===true&&!structAt(Z,eN),'a wall takes damage and falls');place(S,'wall_plank',cx,cy-4,0);
+  const eX=EREF+edgeIdx(Z.w,cx+1,cy-4,0);T.ok(demolish(S,eX)&&!structAt(Z,eX),'demolish a wall');place(S,'wall_stick',cx+1,cy-4,0);
   T.ok(learnPerk(S,'thick')&&derive(S).maxHp===112,'perk raises max health');
   give(S,'seed_carrot',3);place(S,'garden',cx-1,cy-2);T.ok(plant(Z,(cy-2)*Z.w+cx-1,'seed_carrot'),'plant a seed');
   place(S,'collector',cx-2,cy-2);place(S,'spikes',cx,cy+6);place(S,'spikes',cx+1,cy+6);
@@ -134,6 +147,11 @@ safe('move rotate',()=>{
   const r0=o.r;T.ok(rotateObj(S,ty*Z.w+tx)&&o.r===(r0+1)%4,'a structure turns a quarter turn in place');
   const tree=Z.obj.findIndex(q=>q&&!OBJ[q.k].cost);T.ok(!rotateObj(S,tree)&&canMove(S,tree,tx+1,ty)!==null,'things you did not build cannot be turned or moved');o.inv[0]=null;
   T.ok(moveObj(S,ty*Z.w+tx,from%Z.w,Math.floor(from/Z.w),0)&&Z.obj[from]===o,'and it moves back');
+  // walls move from edge to edge and turn round the cell they are pointed at from
+  const a=EREF+edgeIdx(Z.w,cx+2,cy-4,0),w=structAt(Z,a),b=EREF+edgeIdx(Z.w,cx+2,cy-8,2),c=EREF+edgeIdx(Z.w,cx+2,cy-8,3);
+  T.ok(!!w&&canMove(S,a,cx+3,cy-4,0)==='There is already a wall on that side'&&moveObj(S,a,cx+2,cy-8,2)&&!structAt(Z,a)&&structAt(Z,b)===w,'a wall moves to a free edge, and not onto a taken one');
+  T.ok(rotateObj(S,b,cx+2,cy-8)&&!structAt(Z,b)&&structAt(Z,c)===w,'a wall turns to the next side of its cell');
+  T.ok(moveObj(S,c,cx+2,cy-4,0)&&structAt(Z,a)===w,'and it goes back where it was');
 });
 // ---- combat
 safe('combat',()=>{
@@ -197,7 +215,7 @@ safe('tide',()=>{
   const n0=S.tide.n,t0=S.stats.tides||0;S.tide.at=S.t+1;run(2,god);T.ok(!!S.tide.live,'tide starts when its hour comes ('+S.tide.live.total+' in the queue)');
   T.ok(World.leaveZone()===false,'cannot leave during a tide');
   let secs=0;while(S.tide.live&&secs<400){G.inp.attack=true;if(S.p.eq.w1)S.p.eq.w1.d=300;run(5,chase);secs+=5}G.inp.mx=G.inp.my=0;G.inp.attack=false;
-  if(S.tide.live){const pf=field(G.Z,Math.floor(G.Z.pl.x),Math.floor(G.Z.pl.y),false);for(const a of G.Z.actors)if(a.team===1&&!a.dead)T.info(`stuck: ${a.kind} at ${a.x.toFixed(1)},${a.y.toFixed(1)} st=${a.st} alert=${a.alert} tide=${a.tide} field=${pf[Math.floor(a.y)*G.Z.w+Math.floor(a.x)]} player ${G.Z.pl.x.toFixed(1)},${G.Z.pl.y.toFixed(1)} w=${S.p.eq.w1&&S.p.eq.w1.id}`);T.info('queue left '+S.tide.live.q.length)}
+  if(S.tide.live){const pf=field(G.Z,Math.floor(G.Z.pl.x),Math.floor(G.Z.pl.y),false);for(const a of G.Z.actors)if(a.team===1&&!a.dead)T.info(`stuck: ${a.kind} at ${a.x.toFixed(1)},${a.y.toFixed(1)} st=${a.st} alert=${a.alert} tide=${a.tide} field=${pf[Math.floor(a.y)*G.Z.w+Math.floor(a.x)]} player ${G.Z.pl.x.toFixed(1)},${G.Z.pl.y.toFixed(1)} w=${S.p.eq.w1&&S.p.eq.w1.id}`);T.info('queue left '+S.tide.live.q.length+'; auto '+G.auto+' fight '+!!G.Z.pl.fight+' dead '+G.Z.pl.dead+' act '+(G.Z.pl.act&&G.Z.pl.act.type)+' weapon '+(S.p.eq[S.p.active]?S.p.eq[S.p.active].id:'fists')+' mv '+G.Z.pl.mv.toFixed(2)+' fieldHere '+(G.Z.pl.fight&&G.Z.pl.fight.f?G.Z.pl.fight.f[Math.floor(G.Z.pl.y)*G.Z.w+Math.floor(G.Z.pl.x)]:'-')+' objHere '+(G.Z.obj[Math.floor(G.Z.pl.y)*G.Z.w+Math.floor(G.Z.pl.x)]||{}).k)}
   T.ok(!S.tide.live&&S.tide.n===n0+1,'a tide ends ('+secs+' s), next one scheduled for day '+dayOf(S.tide.at));
   T.ok((S.stats.tides||0)===t0+1,'tide is counted');
   // a big one with turrets, guards and traps
@@ -205,8 +223,9 @@ safe('tide',()=>{
   S.p.lvl=60;place(S,'turret_gun',cx-5,cy+6);place(S,'turret_gun',cx+5,cy+6);World.loadTurret(S,(cy+6)*Z.w+cx-5);World.loadTurret(S,(cy+6)*Z.w+cx+5);place(S,'guard_post',cx,cy+7);
   T.info('bed: '+canPlace(S,'bed',cx-1,cy+1)+' / '+canPlace(S,'bed',cx-1,cy+2)+' cap '+World.survCap(S));place(S,'bed',cx-1,cy+1);place(S,'bed',cx-1,cy+2);T.info('cap now '+World.survCap(S)+' surv '+S.surv.length);const sv=World.addSurvivor(S);T.ok(!!sv,'a survivor joins when there is a bed');if(sv)T.ok(World.setJob(S,sv.id,'guard'),'assign guard duty');
   G.Z=null;World.arrive('home');S.tide.at=S.t+1;run(2,god);const total=S.tide.live?S.tide.live.total:0;secs=0;
-  while(S.tide.live&&secs<900){G.inp.attack=true;if(S.p.eq.w1)S.p.eq.w1.d=300;run(5,chase);secs+=5}G.inp.mx=G.inp.my=0;G.inp.attack=false;
-  if(S.tide.live){const pf=field(Z2(),Math.floor(G.Z.pl.x),Math.floor(G.Z.pl.y),false);for(const a of G.Z.actors)if(a.team===1&&!a.dead)T.info(`stuck: ${a.kind} at ${a.x.toFixed(1)},${a.y.toFixed(1)} st=${a.st} alert=${a.alert} cd=${a.cd.toFixed(1)} field=${pf[Math.floor(a.y)*G.Z.w+Math.floor(a.x)]} player ${G.Z.pl.x.toFixed(1)},${G.Z.pl.y.toFixed(1)}`);T.info('queue left '+S.tide.live.q.length)}
+  // fought the way auto mode fights it (it finds its way round trees and through its own doors, which a bot walking in straight lines does not)
+  while(S.tide.live&&secs<900){if(S.p.eq.w1)S.p.eq.w1.d=300;G.auto=true;run(5,god);secs+=5;}G.auto=false;G.inp.mx=G.inp.my=0;G.inp.attack=false;
+  if(S.tide.live){const pf=field(Z2(),Math.floor(G.Z.pl.x),Math.floor(G.Z.pl.y),false);for(const a of G.Z.actors)if(a.team===1&&!a.dead)T.info(`stuck: ${a.kind} at ${a.x.toFixed(1)},${a.y.toFixed(1)} st=${a.st} alert=${a.alert} cd=${a.cd.toFixed(1)} field=${pf[Math.floor(a.y)*G.Z.w+Math.floor(a.x)]} player ${G.Z.pl.x.toFixed(1)},${G.Z.pl.y.toFixed(1)}`);T.info('queue left '+S.tide.live.q.length);T.info('auto '+G.auto+' fight '+!!G.Z.pl.fight+' dead '+G.Z.pl.dead+' act '+(G.Z.pl.act&&G.Z.pl.act.type)+' weapon '+(S.p.eq[S.p.active]?S.p.eq[S.p.active].id:'fists')+' mv '+G.Z.pl.mv.toFixed(2)+' fieldHere '+(G.Z.pl.fight&&G.Z.pl.fight.f?G.Z.pl.fight.f[Math.floor(G.Z.pl.y)*G.Z.w+Math.floor(G.Z.pl.x)]:'-')+' objHere '+(G.Z.obj[Math.floor(G.Z.pl.y)*G.Z.w+Math.floor(G.Z.pl.x)]||{}).k+' hp '+Math.round(S.p.hp)+' stun '+G.Z.pl.slowT);}
   T.ok(!S.tide.live,'tide 15 ('+total+' attackers) resolves in '+secs+' s; walls lost '+(S.stats.lostWalls||0));
 });
 // ---- community: recruits, stores, neighbours, trade routes, war
@@ -277,6 +296,13 @@ safe('sleep death save',()=>{
   T.ok(G.Z.obj.some(o=>o&&o.k==='deathbag'),'dropped pack can be recovered');
   const str=World.serialize();T.ok(str.length>500,'save serialises ('+Math.round(str.length/1024)+' KB)');
   const S2=World.deserialize(str);T.ok(S2.p.lvl===S.p.lvl&&S2.home.obj.filter(Boolean).length===S.home.obj.filter(Boolean).length,'save round-trips level and base');
+  // a save from before walls moved to the cell edges: a closed 5×5 ring of wall cells with a door in its south side, and a loose run of three
+  {const old=JSON.parse(str),W=HOME_W,o=old.home.obj;old.v=1;delete old.home.ed;for(let y=5;y<=11;y++)for(let x=5;x<=13;x++)delete o[y*W+x];
+    const put=(k,x,y)=>{o[y*W+x]={k,hp:77,r:0}};for(let k=6;k<=10;k++){put('wall_stick',k,6);put(k===8?'door_stick':'wall_stick',k,10);put('wall_stick',6,k);put('wall_stick',10,k)}for(let y=6;y<=8;y++)put('wall_plank',12,y);
+    const S3=World.deserialize(JSON.stringify(old)),ed=S3.home.ed,n=ed.filter(Boolean).length,at=(x,y,sd)=>ed[edgeIdx(W,x,y,sd)];let cells=0;for(let y=6;y<=10;y++)for(let x=6;x<=12;x++)if(S3.home.obj[y*W+x])cells++;
+    T.ok(S3.v===2&&cells===0&&n===23,'an older save loads: its wall cells become walls on cell edges ('+n+' walls, '+cells+' wall cells left)');
+    T.ok(at(6,6,0)&&at(6,6,3)&&at(10,10,1)&&at(10,10,2)&&at(8,10,2).k==='door_stick'&&at(8,10,2).hp===77&&!at(8,10,0),'the ring keeps its outline on the outward faces, the door and its health with it');
+    T.ok(at(12,6,3)&&at(12,7,3)&&at(12,8,3)&&at(12,7,3).k==='wall_plank','a loose run becomes one straight line')}
   World.resume(S2);run(2,god);T.ok(G.Z&&G.Z.home,'resumed game runs');
 });
 // ---- contracts, trade, story bookkeeping

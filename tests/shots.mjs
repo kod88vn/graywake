@@ -9,9 +9,11 @@ const snap=async n=>{if(only&&!n.includes(only))return;await page.sleep(350);out
 const BASE=`(()=>{const{G,World}=GW,S=G.S,Z=G.Z,cx=Math.floor(Z.w/2),cy=Math.floor(Z.h/2);S.p.lvl=40;
   const put=(k,x,y,e)=>{Z.obj[y*Z.w+x]=Object.assign({k,hp:500,r:0},e);};const fl=(k,x,y)=>{Z.fl[y*Z.w+x]=k};
   for(let y=cy-5;y<=cy+5;y++)for(let x=cx-6;x<=cx+6;x++){Z.obj[y*Z.w+x]=null}
-  for(let y=cy-3;y<=cy+3;y++)for(let x=cx-4;x<=cx+4;x++)fl(x<cx?'floor_wood':'floor_stone',x,y);
-  for(let x=cx-5;x<=cx+5;x++){put(x<cx?'wall_plank':'wall_stone',x,cy-4);put(x===cx?'door_plank':x<cx-2?'wall_stick':'wall_plank',x,cy+4)}
-  for(let y=cy-3;y<=cy+3;y++){put('wall_plank',cx-5,y);put(y===cy?'door_stone':'wall_stone',cx+5,y)}
+  for(let y=cy-4;y<=cy+4;y++)for(let x=cx-5;x<=cx+5;x++)fl(x<cx?'floor_wood':'floor_stone',x,y);
+  // walls stand on the edges of the cells: side 0 north, 1 east, 2 south, 3 west
+  const wall=(k,x,y,sd)=>{const W=Z.w;Z.ed[sd===0?(y*W+x)*2:sd===2?((y+1)*W+x)*2:sd===3?(y*W+x)*2+1:(y*W+x+1)*2+1]={k,hp:500}};for(let e=0;e<Z.ed.length;e++)Z.ed[e]=null;
+  for(let x=cx-5;x<=cx+5;x++){wall(x<cx?'wall_plank':'wall_stone',x,cy-4,0);wall(x===cx?'door_plank':x<cx-2?'wall_stick':'wall_plank',x,cy+4,2)}
+  for(let y=cy-4;y<=cy+4;y++){wall('wall_plank',cx-5,y,3);wall(y===cy?'door_stone':'wall_stone',cx+5,y,1)}
   put('campfire',cx-1,cy+1);put('workbench',cx-4,cy-3);put('furnace',cx-3,cy-3);put('sawbench',cx-2,cy-3);put('chest',cx+4,cy-3,{inv:[]});put('box_small',cx+3,cy-3,{inv:[]});put('bed',cx+4,cy+3);put('loom',cx+1,cy-3);put('forge',cx+2,cy-3);put('tannery',cx-4,cy+3);put('radio',cx-4,cy+1);
   put('garden',cx-8,cy-1,{seed:'seed_carrot',ripe:0});put('garden',cx-8,cy,{seed:'seed_corn',ripe:S.t+9999});put('garden',cx-8,cy+1);put('collector',cx-8,cy-3);put('scarecrow',cx-9,cy);
   put('turret_xbow',cx-2,cy+6,{ammo:50});put('turret_gun',cx+2,cy+6,{ammo:200});put('spikes',cx-1,cy+7);put('spikes',cx,cy+7);put('spikes',cx+1,cy+7);put('barricade',cx-3,cy+7);put('barricade',cx+3,cy+7);put('torch_stand',cx-1,cy+5);put('torch_stand',cx+1,cy+5);put('guard_post',cx+4,cy+6);

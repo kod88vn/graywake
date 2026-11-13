@@ -26,7 +26,7 @@ Needs Node 22 or newer. There is nothing to install.
 
 ## What is in it
 
-- **A homestead that persists.** 86 buildable pieces: five tiers of walls and doors, floors, 13 kinds of crafting station with upgrades, storage, beds, gardens, rain catchers, wells, coops, hives, traps, five turrets, guard posts, lights, a generator, a radio, a kennel.
+- **A homestead that persists.** 86 buildable pieces: five tiers of walls and doors that stand on the sides of cells and leave the cells free, floors, 13 kinds of crafting station with upgrades, storage, beds, gardens, rain catchers, wells, coops, hives, traps, five turrets, guard posts, lights, a generator, a radio, a kennel.
 - **A map of five regions** and 33 places to scavenge, each generated fresh on every visit: forest, dry plains, a ruined city, snow passes and the toxic Gray. Regions open as you build vehicles, from a hand cart to a sealed truck.
 - **Tides.** Assaults on your base that grow every time, in seven flavours, down one of four trails. They are fought live if you are home and resolved against your defences if you are not.
 - **263 items and 195 recipes**: tools, 14 melee weapons, 13 ranged, throwables, food, medicine, schematics, and ten armour sets, gloves and packs that are each drawn on your character in their own design. With nothing on, the character is bare; the Pack sheet shows you in 3D.

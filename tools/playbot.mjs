@@ -9,7 +9,7 @@ import path from 'node:path';
 import {OUT} from './lib.mjs';
 import {ITEMS} from '../js/data/items.js';
 import {OBJ} from '../js/data/objects.js';
-import {G,give,count,craft,canCraft,place,canPlace,upgrade,canUpgrade,equip,quickUse,derive,slotCount,freeSlots,addTo,homeStores,findTool,buildUnlocked,learnPerk} from '../js/sim/core.js';
+import {G,EREF,edgeIdx,isEdgeKind,give,count,craft,canCraft,place,canPlace,upgrade,canUpgrade,equip,quickUse,derive,slotCount,freeSlots,addTo,homeStores,findTool,buildUnlocked,learnPerk} from '../js/sim/core.js';
 import {RECIPES} from '../js/data/recipes.js';
 import {PERKS} from '../js/data/progress.js';
 import {plant,openLoot,lootAll} from '../js/sim/actors.js';
@@ -55,7 +55,8 @@ function stow(){const boxes=homeStores(S);if(!boxes.length||freeSlots(S)>5)retur
 const PLAN=[['box_small',-3,2],['bed_roll',-3,-2],['campfire',1,-1],['collector',-8,-3],['workbench',-1,-3],['box_small',-2,2]];
 const X0=-5,X1=5,Y0=-4,Y1=4,ring=[];for(let x=X0;x<=X1;x++){ring.push([x,Y0],[x,Y1])}for(let y=Y0+1;y<Y1;y++){ring.push([X0,y],[X1,y])}
 ring.sort((a,b)=>(a[1]===Y1?0:1)-(b[1]===Y1?0:1));   // the south wall, where the first trail comes in, goes up first
-for(const[x,y]of ring)PLAN.push([x===0&&y===Y1?'door_stick':x===0&&y===Y0?'door_stick':'wall_stick',x,y]);
+// walls stand on the outward edge of the yard's outermost cells: [kind, dx, dy, side] with side 0 north, 1 east, 2 south, 3 west
+for(const[x,y]of ring){const sides=[];if(y===Y1)sides.push(2);if(y===Y0)sides.push(0);if(x===X0)sides.push(3);if(x===X1)sides.push(1);for(const sd of sides)PLAN.push([x===0&&(sd===0||sd===2)?'door_stick':'wall_stick',x,y,sd])}
 PLAN.push(['sawbench',1,-3],['garden',-8,-1],['garden',-8,0],['garden',-8,1],['garden',-7,-1],['garden',-7,0],['garden',-7,1],['tannery',2,-3],['spikes',-1,6],['spikes',0,6],['spikes',1,6],['spikes',-1,7],['spikes',1,7],['collector',-7,-3],['box_small',-1,2],['compost_bin',-9,-3],['scarecrow',-9,0],['spikes',-2,6],['spikes',2,6],['garden',-8,2],['garden',-7,2]);
 for(let x=X0+1;x<X1;x++)for(let y=Y0+1;y<Y1;y++)PLAN.push(['floor_wood',x,y]);
 const placed=new Set();
@@ -63,17 +64,18 @@ function ropeFor(k){const need=(OBJ[k].cost.rope||0)-count(S,'rope',true);for(le
 let blocked={},tideSaid=false,stallSaid=false;
 function build(){let n=0;blocked={};
   for(let pi=0;pi<PLAN.length;pi++){if(placed.has(pi))continue;const[k,dx,dy,r]=PLAN[pi],x=cx+dx,y=cy+dy,i=I(x,y),d=OBJ[k];
-    if(d.floor?Z.fl[i]:Z.obj[i]&&OBJ[Z.obj[i].k].cost){placed.add(pi);continue}
-    if(!buildUnlocked(S,k))continue;ropeFor(k);const why=canPlace(S,k,x,y);
+    if(isEdgeKind(k)){if(Z.ed[edgeIdx(Z.w,x,y,r)]){placed.add(pi);continue}}
+    else if(d.floor?Z.fl[i]:Z.obj[i]&&OBJ[Z.obj[i].k].cost){placed.add(pi);continue}
+    if(!buildUnlocked(S,k))continue;ropeFor(k);const why=canPlace(S,k,x,y,r||0);
     if(why===null&&place(S,k,x,y,r||0)){placed.add(pi);n++;if(!d.wall&&!d.floor)say('built '+d.n.toLowerCase())}
     else if(why&&!blocked[k])blocked[k]=why;
   }
-  if(n)say('placed '+n+' piece'+(n===1?'':'s')+' ('+[...placed].filter(pi=>OBJ[PLAN[pi][0]].wall||OBJ[PLAN[pi][0]].door).length+'/'+ring.length+' of the wall)');
+  if(n)say('placed '+n+' piece'+(n===1?'':'s')+' ('+[...placed].filter(pi=>OBJ[PLAN[pi][0]].wall||OBJ[PLAN[pi][0]].door).length+'/'+PLAN.filter(q=>isEdgeKind(q[0])).length+' of the wall)');
   // planks for floors and upgrades: keep the sawhorse working
   const saw=findWhere(d=>d.station==='sawbench');if(saw>=0&&!(Z.obj[saw].q&&Z.obj[saw].q.length)&&count(S,'log',true)>=14&&count(S,'plank',true)<24)make('plank',4,saw);
   const wb=findWhere(d=>d.station==='workbench');if(wb>=0&&count(S,'scrap',true)>0&&count(S,'nails',true)<16)make('nails',Math.min(3,count(S,'scrap',true)),wb);
   // better walls once the level and the materials are there
-  if(buildUnlocked(S,'wall_plank'))for(const[x,y]of ring){const i=I(cx+x,cy+y),o=Z.obj[i];if(o&&(o.k==='wall_stick'||o.k==='door_stick')&&canUpgrade(S,i,false)===null){upgrade(S,i,false)}}
+  if(buildUnlocked(S,'wall_plank'))for(let e=0;e<Z.ed.length;e++){const w=Z.ed[e];if(w&&(w.k==='wall_stick'||w.k==='door_stick')&&canUpgrade(S,EREF+e,false)===null)upgrade(S,EREF+e,false)}
   G.ev.length=0;
 }
 function farm(){for(let i=0;i<Z.obj.length;i++){const o=Z.obj[i];if(!o||OBJ[o.k].special!=='garden')continue;
@@ -82,7 +84,7 @@ function farm(){for(let i=0;i<Z.obj.length;i++){const o=Z.obj[i];if(!o||OBJ[o.k]
   for(let i=0;i<Z.obj.length;i++){const o=Z.obj[i];if(o&&OBJ[o.k].prod&&Math.floor(o.stock||0)>0&&freeSlots(S)>1){const d=OBJ[o.k].prod,n=Math.floor(o.stock),left=addTo(S.p.inv,slotCount(S),d.item,n);o.stock-=n-left}}
   G.ev.length=0}
 function snapshot(){const day=dayOf(S.t);if(!SNAP.has(day)||snapped.has(day))return;snapped.add(day);const dir=path.join(OUT,'playbot');fs.mkdirSync(dir,{recursive:true});fs.writeFileSync(path.join(dir,`day-${day}.json`),World.serialize());
-  const built={};for(const o of Z.obj)if(o&&OBJ[o.k].cost)built[OBJ[o.k].n]=(built[OBJ[o.k].n]||0)+1;const floors=Z.fl.filter(Boolean).length;
+  const built={};for(const o of[...Z.obj,...Z.ed])if(o&&OBJ[o.k].cost)built[OBJ[o.k].n]=(built[OBJ[o.k].n]||0)+1;const floors=Z.fl.filter(Boolean).length;
   say(`SNAPSHOT day ${day}: level ${S.p.lvl}, ${Object.entries(built).map(([k,n])=>n+' '+k).join(', ')}${floors?', '+floors+' floor tiles':''}; deaths ${stats.deaths}, tides faced ${S.tide.n}`)}
 
 // ---- play

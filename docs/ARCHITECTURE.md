@@ -52,7 +52,7 @@ js/audio.js, js/input.js, js/main.js
 
 - `S.t` game minutes since the start. A day is 1440; one real second is 1.5 game minutes (`MIN_PER_SEC`), so a day is 16 real minutes of play.
 - `S.p` the player: vitals, level, perks, `inv` (array of `{id, n, d?}` or `null`), `eq` (seven slots), `known` recipes, buffs.
-- `S.home` the homestead: `obj` and `fl` are arrays of `HOME_W × HOME_H` tiles (saved sparse), `regrow` timers, `pile` (what survivors brought in), `report` (what a tide did while you were away).
+- `S.home` the homestead: `obj` and `fl` are arrays of `HOME_W × HOME_H` tiles and `ed` an array of twice that many tile edges (all saved sparse), `regrow` timers, `pile` (what survivors brought in), `report` (what a tide did while you were away).
 - `S.loc[id]` per location: visits, cooldown, a dropped pack.
 - `S.sites` temporary map sites. `S.tide` the next tide. `S.surv` survivors. `S.q` story index and contracts. `S.flags`, `S.stats`, `S.codex`, `S.ach`.
 
@@ -60,7 +60,7 @@ A save made away from home resumes at home: zones other than the homestead are r
 
 ## Zones (`js/sim/zone.js`)
 
-A zone is `{w, h, g (ground ids), fl (floors), obj (one object per tile), actors, projs, drops, areas, spawns}`. The home zone's `obj` and `fl` are the same arrays as `S.home`. Locations are generated from a seed by one of three layouts:
+A zone is `{w, h, g (ground ids), fl (floors), obj (one object per tile), ed (walls on tile edges), actors, projs, drops, areas, spawns}`. The home zone's `obj`, `fl` and `ed` are the same arrays as `S.home`. Locations are generated from a seed by one of three layouts:
 
 - `wild`: noise-clumped scatter, optional lake, a few buildings.
 - `town`: a road, buildings facing it, cars and street furniture along it.
@@ -69,6 +69,18 @@ A zone is `{w, h, g (ground ids), fl (floors), obj (one object per tile), actors
 Indoor placement goes through `putIn`, which refuses anything that would wall off part of a room. `tests/sim.mjs` checks reachability of every container, node and spawn in every location for three seeds.
 
 Movement is circles against tiles (`collide`). Objects are `solid: 1` (whole tile), `2` (round, radius `r`), or `0`. Doors block enemies only. `low` objects block movement but not shots or sight.
+
+### Walls on edges
+
+Walls and doors the player builds stand on the edge between two tiles, not in a tile. `Z.ed[tile*2]` is the wall on a tile's north edge and `Z.ed[tile*2+1]` the one on its west edge (a south edge is the north edge of the tile below, an east edge the west edge of the tile to the right); each entry is `{k, hp}`. `edgeIdx(W, x, y, side)` in `core.js` turns a tile and a side (0 north, 1 east, 2 south, 3 west) into an edge index. Where a single number has to name either a tile object or a wall (what an attacker is breaking, what a build tool points at) a wall is `EREF + edge`; `structAt` and `structXY` resolve either. `Z.touchEdge(e)` is the edge's `Z.touch`: it dirties the path fields and emits `edge` for the renderer.
+
+- `collide` treats each wall as a box `2 × WT` thick along its grid line; allies pass doors.
+- `edgeCross(Z, x0, y0, x1, y1, ally)` returns the first wall a segment crosses. `los` calls it; projectiles, melee (both sides), interaction reach, auto-gather and blasts (`blastEdges`) call it directly.
+- `field` refuses allies a step across a wall that is not a door, charges attackers `3 + hp/25` to cross one, and lets nobody cut a corner a wall ends on; `stepOn(…, ally)` applies the same rule to the step taken.
+- Attackers that find a wall on their next step or across their line to the target attack it (`approach`, `stepEnemy`).
+- Scenery walls in locations (`w_brick` …) are ordinary `solid: 1` tile objects and are untouched by any of this.
+
+The renderer draws walls as instanced meshes keyed `E:<kind>` at the edge midpoint, turned a quarter turn on west edges. A door's frame is instanced the same way (model part 1) and its leaf (part 2) is a mesh on a hinge that `stepDoors` swings toward open while anyone on the player's side is within a step of it.
 
 Enemies share one Dijkstra field toward the player (`playerField`), recomputed when the player changes tile or the base changes. Player-built structures are passable at a cost that grows with their health, so a horde prefers gaps and weak walls and chews through when there is no other way. Diagonal steps may pass between two round obstacles but never cut a wall corner.
 

@@ -55,15 +55,24 @@ try{
   T.ok(await placeAt('storage','box_small',c[0]+2,c[1]-1),'click places a storage box');
   T.ok(await placeAt('storage','bed_roll',c[0]-2,c[1]),'click places a bedroll');
   await click('[data-b="cat:base"]');await click('[data-b="kind:wall_stick"]');
-  {const[x0,y0]=await tileXY(c[0]-2,c[1]+2),[x1,y1]=await tileXY(c[0]+2,c[1]+2);await page.send('Input.dispatchMouseEvent',{type:'mouseMoved',x:x0,y:y0});await page.send('Input.dispatchMouseEvent',{type:'mousePressed',x:x0,y:y0,button:'left',buttons:1,clickCount:1});
+  // walls stand on the side of a cell: press near the north side of one cell, drag along the row, and a straight line of wall follows
+  {const[x0,y0]=await tileXY(c[0]-2,c[1]+2-.35),[x1,y1]=await tileXY(c[0]+2,c[1]+2-.3);await page.send('Input.dispatchMouseEvent',{type:'mouseMoved',x:x0,y:y0});await page.send('Input.dispatchMouseEvent',{type:'mousePressed',x:x0,y:y0,button:'left',buttons:1,clickCount:1});
     for(let i=1;i<=20;i++){await page.send('Input.dispatchMouseEvent',{type:'mouseMoved',x:x0+(x1-x0)*i/20,y:y0+(y1-y0)*i/20,button:'left',buttons:1});await page.sleep(30)}await page.send('Input.dispatchMouseEvent',{type:'mouseReleased',x:x1,y:y1,button:'left',clickCount:1})}
-  const walls=await ev(`GW.G.Z.obj.filter(o=>o&&o.k==='wall_stick').length`);T.ok(walls>=4,'dragging paints a row of walls ('+walls+')');
-  await click('[data-b="tool:remove"]');{const[x,y]=await tileXY(c[0]-2,c[1]+2);await page.click(x,y);await page.sleep(200)}T.ok(await ev(`GW.G.Z.obj.filter(o=>o&&o.k==='wall_stick').length`)===walls-1,'Remove takes a wall down');
+  const WALLS=`GW.G.Z.ed.filter(o=>o&&o.k==='wall_stick').length`,walls=await ev(WALLS);T.ok(walls>=4,'dragging runs a line of walls along the cell edges ('+walls+')');
+  T.ok(await ev(`(()=>{const Z=GW.G.Z,W=Z.w,y=${c[1]+2};let n=0;for(let x=${c[0]-2};x<=${c[0]+2};x++)if(Z.ed[(y*W+x)*2]&&!Z.obj[y*W+x])n++;return n})()`)>=4,'they stand on the north side of the row and leave its cells empty');
+  await click('[data-b="tool:remove"]');{const[x,y]=await tileXY(c[0]-2,c[1]+2-.42);await page.click(x,y);await page.sleep(200)}T.ok(await ev(WALLS)===walls-1,'Remove takes a wall down');
   // move and rotate with the tools
   {const bi=(c[1]-1)*await ev(`GW.G.Z.w`)+c[0]+2,[bx,by]=await tileXY(c[0]+2,c[1]-1),[nx,ny]=await tileXY(c[0]+4,c[1]-2),ni=(c[1]-2)*await ev(`GW.G.Z.w`)+c[0]+4;
     await ev(`GW.G.Z.obj[${ni}]=null`);await click('[data-b="tool:move"]');await page.click(bx,by);await page.sleep(200);await page.key('r');await page.sleep(100);await page.click(nx,ny);await page.sleep(250);
     T.ok(await ev(`!GW.G.Z.obj[${bi}]&&!!GW.G.Z.obj[${ni}]&&GW.G.Z.obj[${ni}].k==='box_small'`),'Move: click a box, click a free tile, and it is there');T.ok(await ev(`GW.G.Z.obj[${ni}]&&GW.G.Z.obj[${ni}].r`)===1,'R while carrying turns it');
     await click('[data-b="tool:turn"]');await page.click(nx,ny);await page.sleep(200);T.ok(await ev(`GW.G.Z.obj[${ni}]&&GW.G.Z.obj[${ni}].r`)===2,'Rotate: clicking a structure turns it');}
+  // the same two tools on a wall: pick it up by its side, stand it on another cell's side, swing it round that cell, carry it back
+  {const W=await ev(`GW.G.Z.w`),N=(x,y)=>`GW.G.Z.ed[(${y}*${W}+${x})*2]`,E=(x,y)=>`GW.G.Z.ed[(${y}*${W}+${x}+1)*2+1]`,ax=c[0],ay=c[1]+2,bx=c[0]+1,by=c[1]-2;   // both spots are clear of the build bar
+    const[x0,y0]=await tileXY(ax,ay-.42),[x1,y1]=await tileXY(bx,by-.42),[x2,y2]=await tileXY(bx+.42,by);
+    await click('[data-b="tool:move"]');await page.click(x0,y0);await page.sleep(200);await page.click(x1,y1);await page.sleep(250);
+    T.ok(await ev(`!${N(ax,ay)}&&!!${N(bx,by)}&&${N(bx,by)}.k==='wall_stick'`),'Move: click a wall, click the side of another cell, and it stands there');
+    await click('[data-b="tool:turn"]');await page.click(x1,y1);await page.sleep(200);T.ok(await ev(`!${N(bx,by)}&&!!${E(bx,by)}`),'Rotate: clicking a wall swings it to the next side of its cell');
+    await click('[data-b="tool:move"]');await page.click(x2,y2);await page.sleep(200);await page.click(x0,y0);await page.sleep(250);T.ok(await ev(`!${E(bx,by)}&&!!${N(ax,ay)}`),'and Move carries it back');}
   await click('[data-b="tool:done"]');T.ok(await ev(`document.getElementById('build').hidden`),'Done leaves build mode');
   // ---- storage box: put, take, stow
   await use(['box_small']);T.ok(await until(`GW.UI.panel==='store'`,4000),'E on the box opens storage');
