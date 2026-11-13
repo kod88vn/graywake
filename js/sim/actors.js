@@ -386,6 +386,13 @@ function autoWeapon(S){
     if(v>bs){bs=v;best=slot}}
   return best;
 }
+/** The nearest storage box at home that would take at least one stack of what auto mode carries as materials, or null. */
+function stowTarget(Z,p){
+  const mats=G.S.p.inv.filter(it=>it&&['mat','seed','ammo'].includes(ITEMS[it.id].t));if(!mats.length)return null;let best=null,bd=1e9;
+  for(let i=0;i<Z.obj.length;i++){const o=Z.obj[i];if(!o||!OBJ[o.k]||!OBJ[o.k].store)continue;const cap=OBJ[o.k].store,inv=o.inv||[];let free=0;for(let k=0;k<cap;k++)if(!inv[k])free++;
+    if(!free&&!mats.some(m=>inv.some(s=>s&&s.id===m.id&&s.n<(ITEMS[m.id].st||1))))continue;const d=dist(i%Z.w+.5,Math.floor(i/Z.w)+.5,p.x,p.y);if(d<bd){bd=d;best={i}}}
+  return best;
+}
 /** How far from its post auto mode goes to meet something during a tide: a doorway's width or two, not the far side of the clearing. */
 const POST_REACH=5.5;
 /** Auto mode defends itself: draw the best weapon, close in (or hold and shoot), patch itself up from the pack, and go back to gathering when the place is clear. */
@@ -437,7 +444,16 @@ function autoStep(Z,p,dt){
   // during a tide auto mode stops gathering and holds the middle of the homestead, going out only to meet what comes within reach
   if(tide){p.act=null;p.auto=null;const hx=p.post.x,hy=p.post.y;if(dist(p.x,p.y,hx,hy)<.6)return[0,0];
     if(!p.homeF||Z.time-p.homeT>1){p.homeT=Z.time;p.homeF=field(Z,Math.floor(hx),Math.floor(hy),true,120)}return pathDir(Z,p,p.homeF)||[0,0]}
-  if(freeSlots(S)===0&&!p.act){G.auto=false;p.auto=null;toast('Auto stopped: pack full','info');return[0,0]}
+  // a full pack at home: carry the materials to the nearest storage box that has room, put them in, and go back to work. Away from home, or with
+  // no box that will take them, auto mode stops and says why.
+  if(freeSlots(S)===0&&!p.act){
+    if(Z.home){let s=p.stow;if(!s||!Z.obj[s.i]||Z.time-s.t>25){s=p.stow=stowTarget(Z,p);if(s){s.t=Z.time;s.f=field(Z,s.i%Z.w,Math.floor(s.i/Z.w),true,160)}}
+      if(s){const tx=s.i%Z.w+.5,ty=Math.floor(s.i/Z.w)+.5;p.auto=null;
+        if(dist(p.x,p.y,tx,ty)<1.45&&!walled(Z,p.x,p.y,tx,ty)){const o=Z.obj[s.i],cap=OBJ[o.k].store;let n=0;o.inv=o.inv||[];
+          for(let k=0;k<S.p.inv.length;k++){const it=S.p.inv[k];if(!it||!['mat','seed','ammo'].includes(ITEMS[it.id].t))continue;const left=addTo(o.inv,cap,it.id,it.n,it.d);if(left<it.n)n++;if(left>0)it.n=left;else S.p.inv[k]=null}
+          p.stow=null;if(n){toast('Auto: put '+n+' stack'+(n>1?'s':'')+' of materials in the '+OBJ[o.k].n,'info');sfx('pickup');return[0,0]}}
+        else{const dir=pathDir(Z,p,s.f);if(dir)return dir;const l=Math.hypot(tx-p.x,ty-p.y)||1;return[(tx-p.x)/l,(ty-p.y)/l]}}}
+    if(freeSlots(S)===0){G.auto=false;p.auto=null;p.stow=null;toast(Z.home?'Auto stopped: pack full, and no storage box has room for the materials (build another)':'Auto stopped: pack full','info');return[0,0]}}
   if(p.act)return[0,0];
   let a=p.auto;
   if(a&&(a.drop?!Z.drops.includes(a.drop):(!Z.obj[a.i]||Z.obj[a.i].empty)))a=p.auto=null;

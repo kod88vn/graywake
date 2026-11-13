@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- **Auto mode empties a full pack at home.** When gathering fills the pack at the homestead, Auto carries the materials to the nearest storage box with room, puts them in ("Auto: put 6 stacks of materials in the Small Box") and goes back to work. It only stops when no box will take them, and says to build another.
+- In a shared world every change of hold is announced ("Your hold on Pinewatch: 76 → 86"), and a deed is reported within a second.
+
 ## 0.10.2 — 2026-11-13
 
 - **Fixed: in a tide, Auto mode walked out of your yard.** It held "the middle of the homestead", which was the middle of the map: a yard built anywhere else was abandoned for the open ground, and the bot died there. Auto now holds the spot you were standing on when the tide (or Auto) began, fights what comes within a few steps of it, and only leaves to find stragglers once the last wave is in. Measured against the last version, standing eight tiles off the middle: the same survival and tide length at tides 1, 3 and 5, a third less walking.

@@ -379,6 +379,14 @@ safe('road',()=>{
   lootAll(G.Z,bi);G.Z.exit=true;World.leaveZone();T.ok(count(S,'log')===7&&!S.sites.some(x=>x.site==='fell'),'and once it is picked up the place is gone from the map');
   G.Z=null;World.arrive('home');
 });
+safe('stow',()=>{
+  // auto mode with a full pack at home carries its materials to a storage box and carries on
+  const S=World.newGame(31337);const Z=G.Z,p=Z.pl,bx=Math.floor(p.x)+3,by=Math.floor(p.y);for(let y=by-1;y<=by+1;y++)for(let x=bx-3;x<=bx+1;x++)Z.obj[y*Z.w+x]=null;
+  Z.obj[by*Z.w+bx]={k:'box_small',hp:100,r:0,inv:[]};Z.touch(by*Z.w+bx);S.p.inv=[];const cap=slotCount(S);for(let k=0;k<cap;k++)S.p.inv[k]=k<cap-3?{id:'log',n:ITEMS.log.st}:{id:'bandage',n:1};
+  G.auto=true;run(8);const inBox=(Z.obj[by*Z.w+bx].inv||[]).filter(Boolean).reduce((n,s)=>n+(s.id==='log'?s.n:0),0);
+  T.ok(inBox>0&&freeSlots(S)>0&&G.auto&&count(S,'bandage')===3,'with a full pack at home auto mode stows materials in a storage box ('+inBox+' logs put away) and keeps going');
+  G.auto=false;G.Z=null;
+});
 safe('world',()=>{
   // a shared world's news: leads go on and off the map, a lead from before joining is not doubled, the stage weighs on tides, and exile starts over
   const S=World.newGame(999);G.auto=false;S.p.lvl=6;give(S,'spear',1);G.ds=derive(S);const own=World.addLead(S,'lead_police');
