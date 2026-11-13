@@ -85,7 +85,7 @@ async function keepShot(){try{const b=await shot();const name=String(S.n).padSta
 
 // ---------------------------------------------------------------- input: real events, the same ones a keyboard and mouse make
 const gate=async()=>{if(WINDOW)await ev('__bot.gate(350)')};
-const KEYS={esc:['Escape','Escape',27],escape:['Escape','Escape',27],tab:['Tab','Tab',9],space:[' ','Space',32],enter:['Enter','Enter',13],shift:['Shift','ShiftLeft',16]};
+const KEYS={down:['ArrowDown','ArrowDown',40],up:['ArrowUp','ArrowUp',38],esc:['Escape','Escape',27],escape:['Escape','Escape',27],tab:['Tab','Tab',9],space:[' ','Space',32],enter:['Enter','Enter',13],shift:['Shift','ShiftLeft',16]};
 const keyDef=k=>{k=String(k).toLowerCase();if(KEYS[k])return KEYS[k];if(/^[a-z]$/.test(k))return[k,'Key'+k.toUpperCase(),k.toUpperCase().charCodeAt(0)];if(/^[0-9]$/.test(k))return[k,'Digit'+k,48+ +k];return null};
 const held=new Set();let mouseDown=false,mouse={x:W/2,y:H/2},sneak=false;
 async function keyDown(k){const d=keyDef(k);if(!d||held.has(d[1]))return;held.add(d[1]);await gate();await send('Input.dispatchKeyEvent',{type:'rawKeyDown',key:d[0],code:d[1],windowsVirtualKeyCode:d[2]})}
@@ -181,6 +181,11 @@ C.key=async a=>{if(!keyDef(a[0]))return{msg:'unknown key "'+a[0]+'". Keys: i c b
 C.tap=async a=>{let n=parseInt(a[0]);
   if(!(n>0)){const q=a.join(' ');n=await ev(`(__bot.observe(),__bot.byText(${JSON.stringify(q)}))`);if(n===0)return{msg:`nothing clickable is labelled "${q}" right now: look again`};if(n<0)return{msg:`several clickable things contain "${q}": be more exact (include the row name, e.g. "MAKE — Stone Pickaxe"), or use its number`}}
   let t=await ev(`__bot.target(${n})`);if(!t)return{msg:`there is no clickable thing numbered ${a[0]} any more: look again`};
+  // a choice in a drop-down: give the list the keyboard (Tab from the element before it, as a person would) and step to the choice with the arrow keys
+  if(t.opt){const before=await ev(`(()=>{const el=__bot.els[${n}-1];return el.sel.value})()`);await ev(`(()=>{const el=__bot.els[${n}-1];el.sel.focus();return true})()`);
+    // type the start of the choice's name (a closed list jumps to what is typed), then Tab away so the choice is taken
+    const word=t.label.replace(/^choose /,'').toLowerCase().replace(/[^a-z]/g,'');for(const ch of word.slice(0,4)){await press(ch,30);await sleep(30)}await press('tab');await sleep(250);
+    const after=await ev(`(()=>{const el=__bot.els[${n}-1];return document.contains(el.sel)?el.sel.value:'(redrawn)'})()`);return{msg:`${t.label}: ${after!==before?'chosen':'the choice did not take: look again'}`}}
   // a place on the map that sits under the info card or off the edge: drag the map, as a person would, until the pin is in the open
   for(let k=0;k<3&&t.spot&&(t.covered||t.x<40||t.x>W-40||t.y<70||t.y>H-40);k++){const dx=clamp(W/2-t.x,-360,360),dy=clamp(H*.36-t.y,-260,260);await mouseTo(W/2,H*.4);await mousePress();for(let i=1;i<=8;i++){await mouseTo(W/2+dx*i/8,H*.4+dy*i/8);await sleep(30)}await mouseRelease();await sleep(200);t=await ev(`__bot.target(${n})`)||t}
   await sleep(120);const t2=await ev(`__bot.target(${n})`)||t;
@@ -334,6 +339,8 @@ const server=http.createServer(async(req,res)=>{
       if(b.op==='pause'){S.paused=true;if(!S.busy)await ev('GW.G.hold=true').catch(()=>{})}
       else if(b.op==='resume'){S.paused=false;if(PACE==='live')await ev('GW.G.hold=false').catch(()=>{})}
       else if(b.op==='stop')S.stopping=true;
+      // for the harness's own tests only (never reachable by the model, whose tools go through /api/cmd): set up a situation to test a tool on
+      else if(b.op==='eval'&&process.env.GW_BOT_TEST==='1'){return json(res,{v:await ev(String(b.js)).catch(e=>String(e))})}
       else if(b.op==='shutdown'){json(res,{ok:true});return shutdown()}
       else if(b.op==='hint'&&b.text){S.hints.push({at:new Date().toISOString(),text:String(b.text).slice(0,600)});jl('hints.jsonl',S.hints[S.hints.length-1])}
       else if(b.op==='shift'){S.shift={left:+b.n||60,total:+b.n||60,n:S.shift.n+1,model:b.model||null,started:new Date().toISOString()}}

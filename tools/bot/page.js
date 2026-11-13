@@ -38,7 +38,7 @@ function label(el){
   const costs=root=>[...root.querySelectorAll('.ing span[title]')].map(c=>{const[nm,rest]=c.getAttribute('title').split(': '),have=(rest||'').split(' · ')[0].replace(/\s*\(.*$/,'');return c.textContent.trim()+' '+nm+(have?' ('+have+')':'')}).join(', ');
   if(el.classList.contains('bp')){const nm=el.querySelector('b'),c=costs(el),lock=el.querySelector('.ing .no');t=(nm?nm.textContent:t)+(c?' — needs '+c:lock?' — '+lock.textContent:'');return t.slice(0,140)}
   // a button in a row of a list ("MAKE", "×5", "Recruit") says nothing without the row's name
-  const row=!el.classList.contains('sl')&&el.closest('.rec,.perk,.goal,.card');if(row&&row!==el){const h=row.querySelector('b,h3');const ht=h&&h.textContent.replace(/\s+/g,' ').trim();if(ht&&!t.includes(ht)&&t.length<40){t+=' — '+ht.slice(0,40);const c=!/^×\d+/.test((el.innerText||'').trim())&&row.querySelector('.ing span[title]')?costs(row):'';if(c)t+=' (needs '+c+')'}}
+  const row=!el.classList.contains('sl')&&el.closest('.rec,.perk,.goal,.card');if(row&&row!==el){const h=row.querySelector('b,h3');const ht=h&&h.textContent.replace(/\s+/g,' ').trim();if(ht&&!t.includes(ht)&&(t.length<40||el.dataset.a==='job')){t+=' — '+ht.slice(0,40);const c=!/^×\d+/.test((el.innerText||'').trim())&&row.querySelector('.ing span[title]')?costs(row):'';if(c)t+=' (needs '+c+')'}}
   return t.slice(0,150)}
 function layer(){
   if(vis($('title')))return['title',[$('title')]];
@@ -53,13 +53,18 @@ function elements(full){
       const lab=label(el);if(!lab&&!el.classList.contains('sl'))continue;
       const flags=[];if(el.disabled)flags.push('disabled');if(el.classList.contains('on')||el.classList.contains('sel'))flags.push('selected');if(el.classList.contains('off')||el.classList.contains('lock'))flags.push('locked');
       if(r.bottom<0||r.top>innerHeight)flags.push('scrolled out of view');
-      B.els.push(el);out.push({n:B.els.length,label:lab||'empty slot',flags});if(!full&&out.length>=70)break}}
+      B.els.push(el);out.push({n:B.els.length,label:lab||'empty slot',flags});
+      // a drop-down: its choices as lines of their own (a native list cannot be clicked into in this browser; choosing one moves through it with the arrow keys)
+      if(el.tagName==='SELECT'){const who=(el.getAttribute('title')||label(el)).split(':')[0];const row=el.closest('.rec');const rn=row&&row.querySelector('b')?row.querySelector('b').textContent.trim():'';
+        [...el.options].forEach((o,i)=>{if(i===el.selectedIndex||o.disabled)return;B.els.push({opt:true,sel:el,i});out.push({n:B.els.length,label:'choose '+o.textContent.trim()+(rn?' — for '+rn:' — '+who),flags:[]})})}
+      if(!full&&out.length>=90)break}}
   if(name==='map')for(const s of MapScreen.spots()){B.els.push({spot:s});out.push({n:B.els.length,label:'place on the map: '+s.name+(s.lead?' (RADIO LEAD)':''),flags:[s.here?'you are here':'',s.sel?'selected':''].filter(Boolean)})}
   return[name,out]}
 /** The number of the one clickable thing whose label contains this text (case does not matter), 0 if none, -1 if several do. */
-B.byText=q=>{q=String(q).toLowerCase().trim();const hit=[];q=q.replace(/^place on the map:\s*/,'').replace(/\s*\(radio lead\)\s*$/,'');B.els.forEach((el,i)=>{const l=(el.spot?el.spot.name:label(el)).toLowerCase();if(l.includes(q))hit.push([i+1,l])});const exact=hit.filter(h=>h[1]===q||h[1].startsWith(q+' '));return hit.length===1?hit[0][0]:exact.length===1?exact[0][0]:hit.length?-1:0};
+B.byText=q=>{q=String(q).toLowerCase().trim();const hit=[];q=q.replace(/^place on the map:\s*/,'').replace(/\s*\(radio lead\)\s*$/,'');B.els.forEach((el,i)=>{const l=(el.spot?el.spot.name:el.opt?'choose '+el.sel.options[el.i].textContent.trim()+' — for '+((el.sel.closest('.rec')||{}).querySelector?((el.sel.closest('.rec').querySelector('b')||{}).textContent||''):''):label(el)).toLowerCase();if(l.includes(q))hit.push([i+1,l])});const exact=hit.filter(h=>h[1]===q||h[1].startsWith(q+' '));return hit.length===1?hit[0][0]:exact.length===1?exact[0][0]:hit.length?-1:0};
 /** Where to click for numbered element n (scrolling it into view first), or null. */
-B.target=n=>{const el=B.els[n-1];if(!el)return null;if(el.spot){const s=MapScreen.spots().find(q=>q.id===el.spot.id)||el.spot,top=document.elementFromPoint(s.x,s.y);return{x:s.x,y:s.y,label:s.name,spot:true,covered:!top||top.id!=='mapc'}}
+B.target=n=>{const el=B.els[n-1];if(!el)return null;
+  if(el.opt){if(!document.contains(el.sel))return null;el.sel.scrollIntoView({block:'center'});const r=el.sel.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2,label:'choose '+el.sel.options[el.i].textContent.trim(),opt:true,steps:el.i-el.sel.selectedIndex}}if(el.spot){const s=MapScreen.spots().find(q=>q.id===el.spot.id)||el.spot,top=document.elementFromPoint(s.x,s.y);return{x:s.x,y:s.y,label:s.name,spot:true,covered:!top||top.id!=='mapc'}}
   if(!document.contains(el))return null;el.scrollIntoView({block:'center',inline:'center'});const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2,label:label(el),disabled:!!el.disabled}};
 
 // ---- the world around the player
