@@ -40,6 +40,17 @@ The bot is a floor, not a person: melee only, no walls, no healing, no turrets, 
 
 Reading: the first three tides can be won by someone who has done little more than follow the opening quests. From the fifth on, standing in the open with a blade is not enough, which is the intent: walls with a door, traps on the announced trail, a bolt thrower and a guard are all available by then. Whether that step is fair to a real player has not been tested by a real player.
 
+## Community
+
+Numbers are in `COMM` and `FACTIONS` (`js/data/community.js`). None of this has been played by a person; the simulation test only shows the rules work.
+
+- People: one meal and one drink a day each from storage (a glutton eats two). Level from days worked: II at 4, III at 16, IV at 36, V at 64 days; +15% output a level.
+- Standing −100..100. Gifts: 0.2 standing per scrip of value, doubled for prized goods, at most 12 a day per community. Bands: at war ≤ −50, hostile < −15, wary < 25, friendly < 60, allied.
+- Trade route: 40 scrip to open. Each dawn: ambush chance 6% + 5% per war − 1.5% per guard (never under 2%, halved for a lucky runner); otherwise goods × (0.8 + standing/200) × (1 + 8% per vehicle tier) × the runner's level, and scrip likewise. Millrace at standing 40 with a level I runner on foot brings about 7 planks, 12 nails, 2 rope and 7 scrip a day.
+- Raids: from day 8, a community at war has a 20% chance each dawn to send a party that arrives 2 to 10 hours later. Party size is its table × (0.4 + strength/150 + day/40), capped at 14: the Red Ledger at strength 60 sends about 5 on day 10 and about 9 on day 40. Away from home: attack = party × 14 × (1 + 4% a day) against the same defence score tides use.
+- War party: each fighter is worth 2 + 0.5 per level above I (+1 for Dead shot or Hard to kill); their side is strength/9; both sides are multiplied by a random 0.8 to 1.3. A win takes 14 + party power off their strength; a forward camp cleared in person takes 35; every raid they send costs them 6. On a win 15% of fighters come back hurt; on a loss 45% hurt and 8% dead.
+- Open: whether raids are survivable when they first appear (the Red Ledger is heard of on reaching the Dustline or building a radio), whether routes make scrip too easy, and whether a pact's two fighters matter at high tides.
+
 ## Length
 
 The claim of a hundred hours is a design target, not a measurement. The reasoning:

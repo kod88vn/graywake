@@ -9,6 +9,8 @@ import {OBJ} from '../data/objects.js';
 import {RECIPE_LIST,RECIPES,STATION_NAMES,VEHICLES} from '../data/recipes.js';
 import {EVENTS,TIDE_KINDS} from '../data/events.js';
 import {STORY,PERKS,PERK_TREES,ACHIEVEMENTS,SURV_TRAITS,JOBS} from '../data/progress.js';
+import {FACTIONS,COMM} from '../data/community.js';
+import {REGIONS} from '../data/world.js';
 import {dayOf} from '../sim/util.js';
 import {$,esc,img,gimg,slot,chips,tags,bus,fmtMin,TYPE_NAMES} from './dom.js';
 
@@ -135,17 +137,74 @@ PANELS.journal={title:'Journal',live:true,tab:a=>a||'story',
 PANELS.radio={can(){setTimeout(()=>UI().open('journal','contracts'),0);return false}};
 
 // ---------------------------------------------------------------- camp
-PANELS.camp={title:'Camp ledger',live:true,
-  render(){
-    const s=S(),T=s.tide,k=TIDE_KINDS.find(k=>k.id===T.kind),cap=World.survCap(s),pile=Object.entries(s.home.pile);
+const CM=()=>World.Community,ROMAN=['','I','II','III','IV','V'],campSel={gift:null,runner:{},party:{},seed:null};
+const daysLeft=x=>x===Infinity?'nobody to feed':x>=10?'10+ days':Math.floor(x)+(Math.floor(x)===1?' day':' days');
+const lowCol=x=>x<2?'var(--red)':x<4?'var(--amber2)':'var(--green)';
+PANELS.camp={title:'Camp ledger',live:true,tab:a=>a||'camp',
+  tabs(){const s=S();return[['camp','Camp'],['people','People '+s.surv.length,s.wait.length>0],['farm','Farm',CM().farm(s).ripe>0],['others','Neighbours',CM().known(s).some(id=>CM().fac(s,id).raidAt>0&&hasBuilt(s,o=>o.special==='radio'))]]},
+  render(a,tab){
+    const s=S(),C=CM();
+    if(tab==='people'){
+      const cap=World.survCap(s);let h='';
+      if(s.wait.length)h+=sec('Asking to join','They wait a few days, then move on')+`<div class="list">${s.wait.map(c=>`<div class="rec">${gimg('people','#e0a84a')}<div><b>${esc(c.n)}</b> <small>${esc(c.how)} · waits ${fmtMin(Math.max(0,c.until-s.t))}</small><br><small>${esc(SURV_TRAITS[c.trait].n)}: ${esc(SURV_TRAITS[c.trait].d)}</small></div><div class="row">${btn('Recruit','recruit',`data-id="${c.id}"`,'go')}${btn('Turn away','away',`data-id="${c.id}"`)}</div></div>`).join('')}</div><div style="height:12px"></div>`;
+      h+=sec('Survivors '+s.surv.length+' / '+cap,'Morale '+s.morale)+`<div class="prog" style="margin-bottom:8px"><i style="width:${s.morale}%;background:${s.morale<30?'var(--red)':s.morale<60?'var(--amber)':'var(--green)'}"></i></div>`;
+      h+=s.surv.length?`<div class="list">${s.surv.map(v=>{const rt=C.routeOf(s,v.id),st=v.hurt>0?`<span style="color:var(--red)">Hurt: back in ${v.hurt} day${v.hurt===1?'':'s'}</span>`:v.away?'<span style="color:var(--amber2)">Out with the war party until dawn</span>':rt?`<span style="color:var(--amber2)">Walks the trade run to ${esc(FACTIONS[rt].n)} every day</span>`:esc(JOBS[v.job].d);
+        return`<div class="rec">${gimg('people','#8a9a78')}<div><b>${esc(v.n)}</b> <small>${v.job!=='idle'||rt?esc(rt?'Runner':JOBS[v.job].n)+' '+ROMAN[C.svLevel(v)]+' · ':''}day ${v.days}</small><br><small>${esc(SURV_TRAITS[v.trait].n)}: ${esc(SURV_TRAITS[v.trait].d)}</small><br><small style="color:var(--ink)">${st}</small></div><div class="row">${rt?'':`<select class="sel2" data-c="job" data-id="${v.id}" id="job${v.id}">${Object.entries(JOBS).map(([j,J])=>`<option value="${j}" ${v.job===j?'selected':''}>${J.n}</option>`).join('')}</select>`}${btn('Ask to leave','dismiss',`data-id="${v.id}"`)}</div></div>`}).join('')}</div>`
+        :`<div class="card"><p>Nobody yet. People you free from cages, meet on the road or draw in with a signal fire will ask to join; you decide here. Every bed beyond your own houses one more. Each person needs one meal and one drink a day from your storage boxes, and gets better at a job the longer they do it.</p></div>`;
+      return h;
+    }
+    if(tab==='farm'){
+      const f=C.farm(s),seeds=[...new Set(s.p.inv.filter(x=>x&&ITEMS[x.id].t==='seed').map(x=>x.id))],home=G.Z&&G.Z.home,farmers=s.surv.filter(v=>v.job==='farm').length;
+      if(!seeds.includes(campSel.seed))campSel.seed=seeds[0]||null;
+      if(!f.beds)return'<div class="card"><h3>No garden beds yet</h3><p>Build garden beds (Build, Farm) and plant seeds from tall grass, kitchen cabinets and caravans. Rain catchers and wells give water, a compost heap gives compost, hens and bees give eggs and honey. A survivor set to Farmer harvests and replants for you.</p></div>';
+      let h=`<div class="card"><small class="h" style="color:var(--amber2)">Garden beds</small><h3>${f.beds} bed${f.beds===1?'':'s'}: ${f.ripe} ripe, ${f.growing} growing, ${f.empty} empty</h3><div class="tags">${f.next<Infinity?`<span>next harvest in ${fmtMin(f.next)}</span>`:''}<span>${farmers?farmers+' farmer'+(farmers===1?'':'s')+' tending':'no farmer assigned'}</span><span>water ×${count(s,'water')+count(s,'dirty_water')}</span><span>compost ×${count(s,'compost')}</span></div>
+        <div class="row" style="margin-top:8px">${btn('Harvest ripe'+(f.ripe?' ('+f.ripe+')':''),'harvest',f.ripe&&home?'':'disabled','go')}${btn('Water growing beds'+(f.dry?' ('+f.dry+')':''),'water',f.dry&&home?'':'disabled')}${btn('Compost growing beds'+(f.unfed?' ('+f.unfed+')':''),'compost',f.unfed&&home?'':'disabled')}</div>
+        <div class="row" style="margin-top:8px">${seeds.length?`<select class="sel2" data-c="seed" id="farmseed">${seeds.map(id=>`<option value="${id}" ${campSel.seed===id?'selected':''}>${esc(ITEMS[id].n)} ×${count(s,id)}</option>`).join('')}</select>${btn('Plant empty beds'+(f.empty?' ('+f.empty+')':''),'plantall',f.empty&&home?'':'disabled','go')}`:'<small>No seeds in your pack.</small>'}${btn('Replant after harvest: '+(s.set.replant?'on':'off'),'replant')}</div>
+        ${home?'':'<p style="color:var(--dim)">You have to be home to work the beds.</p>'}</div>`;
+      const rows=Object.entries(f.crops);if(rows.length)h+=`<div style="height:12px"></div>${sec('In the ground')}<div class="list">${rows.map(([id,c])=>`<div class="rec">${img(ITEMS[id].crop)}<div><b>${esc(ITEMS[ITEMS[id].crop].n)}</b> <small>${c.n} bed${c.n===1?'':'s'}${c.ripe?' · '+c.ripe+' ripe':''}</small><br><small>${ITEMS[id].yield[0]}–${ITEMS[id].yield[1]} a bed every ${fmtMin(ITEMS[id].grow)}</small></div></div>`).join('')}</div>`;
+      h+=`<p style="color:var(--dim);font-size:12px">Watering a growing bed takes a quarter off the time left (one water each). Compost gives half again the harvest (one compost each). Rain, a scarecrow nearby and farmers all speed growth.</p>`;
+      return h;
+    }
+    if(tab==='others'){
+      const ids=C.known(s);if(!ids.length)return'<div class="card"><p>You have not heard of anyone else yet.</p></div>';
+      const free=s.surv.filter(v=>C.available(v)&&!C.routeOf(s,v.id));
+      return`<p style="color:var(--dim);font-size:12px;margin:0 0 8px">Other communities, run by the game, not by other players. Scrip: ${s.scrip}. Gifts raise standing; trade routes need ${COMM.routeAt}, a pact ${COMM.pactAt}. Below ${COMM.routeAt} you can send a war party or hunt down their forward camp; at −50 or below they raid you.</p><div class="list">`+ids.map(id=>{const F=FACTIONS[id],fs=C.fac(s,id),rel=C.relOf(fs.st),sv=fs.route&&s.surv.find(v=>v.id===fs.route.sv),tags=[];
+        if(fs.dead)return`<div class="card" style="opacity:.6"><small class="h">${esc(REGIONS[F.reg].n)}</small><h3>${esc(F.n)} · broken</h3><p>Nobody answers there any more.</p></div>`;
+        if(fs.route)tags.push(`<span>route: ${esc(sv?sv.n:'nobody')} · ${fs.route.n} runs</span>`);if(fs.pact)tags.push('<span>pact: sends fighters when a tide lands</span>');if(fs.raidAt>0&&hasBuilt(s,o=>o.special==='radio'))tags.push(`<span style="color:var(--red)">raid on the road: ${fmtMin(Math.max(0,fs.raidAt-s.t))}</span>`);
+        if(s.sites.some(x=>x.fac===id))tags.push('<span>forward camp marked on the map</span>');
+        const A=[];
+        A.push(btn('Gift 25 scrip','gift',`data-id="${id}"`+(s.scrip<25?' disabled':'')),btn(campSel.gift===id?'Close gifts':'Gift from pack','giftopen',`data-id="${id}"`));
+        if(fs.st>=-15&&F.stock.length)A.push(btn('Call their caravan','caravan',`data-id="${id}"`));
+        if(F.route.length){if(fs.route)A.push(btn('Close trade route','routeoff',`data-id="${id}"`));else if(fs.st>=COMM.routeAt){if(!free.find(v=>v.id===campSel.runner[id]))campSel.runner[id]=free[0]?free[0].id:null;A.push(free.length?`<select class="sel2" data-c="runner" data-id="${id}" id="run${id}">${free.map(v=>`<option value="${v.id}" ${campSel.runner[id]===v.id?'selected':''}>${esc(v.n)}</option>`).join('')}</select>`+btn('Open trade route · '+COMM.routeCost+' scrip','route',`data-id="${id}"`+(s.scrip<COMM.routeCost?' disabled':''),'go'):'<small>Trade route: nobody free to walk it</small>')}}
+        if(!fs.pact&&fs.st>=COMM.pactAt)A.push(btn('Stand together (pact)','pact',`data-id="${id}"`,'go'));
+        if(fs.pact)A.push(btn('Ask for a volunteer · '+COMM.volunteerCost+' scrip','vol',`data-id="${id}"`+(s.scrip<COMM.volunteerCost||s.t<fs.volAt?' disabled':'')));
+        if(fs.st<-15)A.push(btn('Pay them off · '+C.tributeCost(s,id)+' scrip','tribute',`data-id="${id}"`+(s.scrip<C.tributeCost(s,id)?' disabled':'')));
+        const B=[];if(fs.st>=COMM.routeAt){}else if(free.length){const n=Math.min(free.length,Math.max(1,campSel.party[id]||free.length));campSel.party[id]=n;B.push(`<select class="sel2" data-c="party" data-id="${id}" id="par${id}">${free.map((v,i)=>`<option value="${i+1}" ${n===i+1?'selected':''}>${i+1} fighter${i?'s':''}</option>`).join('')}</select>`+btn('Send a war party','war',`data-id="${id}"`,'bad'))}
+        if(fs.st<COMM.routeAt)B.push(btn('Find their forward camp','camp',`data-id="${id}"`+(s.sites.some(x=>x.fac===id)?' disabled':''),'bad'));
+        let gifts='';if(campSel.gift===id){const st=s.p.inv.map((x,i)=>[x,i]).filter(([x])=>x&&ITEMS[x.id].v>0);gifts=`<div style="margin-top:8px">${sec('Give a stack from your pack',F.likes.length?'They prize '+F.likes.map(k=>ITEMS[k].n.toLowerCase()).join(', '):'')}${st.length?`<div class="list">${st.map(([x,i])=>`<div class="rec">${img(x.id)}<div><b>${esc(ITEMS[x.id].n)}</b> <small>× ${x.n}</small><br><small>standing +${Math.round(Math.min(COMM.giftDayCap,C.giftWorth(id,x.id,x.n))*10)/10}${F.likes.includes(x.id)?' · prized':''}</small></div>${btn('Give','giftit',`data-id="${id}" data-i="${i}"`,'go')}</div>`).join('')}</div>`:'<p>Your pack is empty.</p>'}</div>`}
+        return`<div class="card"><small class="h" style="color:${F.c}">${esc(REGIONS[F.reg].n)}</small><h3>${esc(F.n)} · <span style="color:${rel[2]}">${rel[1]}</span></h3><p>${esc(F.d)}</p>
+          <div class="prog" title="standing ${Math.round(fs.st)}"><i style="width:${(fs.st+100)/2}%;background:${rel[2]}"></i></div><div class="tags"><span>standing ${Math.round(fs.st)}</span><span>strength ${Math.round(fs.str)}</span>${tags.join('')}</div>
+          <div class="row" style="margin-top:8px;flex-wrap:wrap">${A.join('')}</div><div class="row" style="margin-top:6px;flex-wrap:wrap">${B.join('')}</div>${gifts}</div>`}).join('')+'</div>';
+    }
+    const T=s.tide,k=TIDE_KINDS.find(k=>k.id===T.kind),pile=Object.entries(s.home.pile),nd=C.needs(s);
     let h=`<div class="cols"><div class="card"><small class="h" style="color:var(--amber2)">Next tide · number ${T.n+1}</small><h3>${esc(k.n)}</h3><p>${esc(k.d)}</p><div class="tags"><span>in ${fmtMin(Math.max(0,T.at-s.t))}</span><span>from the ${DIRS[T.dir]} trail</span><span>about ${Math.round(World.tideBudget(s,T.n+1)/1.5)} of them</span><span>level ${World.tideLevel(s,T.n+1)}</span>${T.weak?`<span>thinned ${Math.round(T.weak*100)}%</span>`:''}</div><p>If you are away when it lands, your walls, traps, turrets and guards fight it without you.</p></div>
-      <div class="card"><small class="h" style="color:var(--amber2)">Brought in by your people</small>${pile.length?`<div class="grid" style="margin:6px 0">${pile.map(([id,n])=>slot({id,n})).join('')}</div>${btn('Collect','pile','','go')}`:'<p>Nothing waiting. Foragers, hunters and scavengers report at dawn.</p>'}</div></div>`;
-    h+=`<div style="height:12px"></div>${sec('Survivors '+s.surv.length+' / '+cap,'Morale '+s.morale)}<div class="prog" style="margin-bottom:8px"><i style="width:${s.morale}%;background:${s.morale<30?'var(--red)':s.morale<60?'var(--amber)':'var(--green)'}"></i></div>`;
-    h+=s.surv.length?`<div class="list">${s.surv.map(v=>`<div class="rec">${gimg('people','#8a9a78')}<div><b>${esc(v.n)}</b> <small>day ${v.days}</small><br><small>${esc(SURV_TRAITS[v.trait].n)}: ${esc(SURV_TRAITS[v.trait].d)}</small><br><small style="color:var(--ink)">${esc(JOBS[v.job].d)}</small></div><select class="sel2" data-c="job" data-id="${v.id}" id="job${v.id}">${Object.entries(JOBS).map(([j,J])=>`<option value="${j}" ${v.job===j?'selected':''}>${J.n}</option>`).join('')}</select></div>`).join('')}</div>`
-      :`<div class="card"><p>Nobody yet. Every bed beyond your own is room for one more: people turn up on the road, at your fence, in cages in the places you clear. A signal fire brings them in by themselves. Each needs one meal and one drink a day from your storage boxes.</p></div>`;
+      <div class="card"><small class="h" style="color:var(--amber2)">Brought in by your people</small>${pile.length?`<div class="grid" style="margin:6px 0">${pile.map(([id,n])=>slot({id,n})).join('')}</div>${btn('Collect','pile','','go')}`:'<p>Nothing waiting. Foragers, hunters, scavengers, farmers and trade runners report at dawn.</p>'}</div></div><div style="height:12px"></div>`;
+    h+=`<div class="card"><small class="h" style="color:var(--amber2)">Stores</small><h3>${nd.people?nd.people+(nd.people===1?' person':' people')+' to feed':'Only yourself to feed'}</h3>${nd.people?`<p>They take ${nd.meals} meal${nd.meals===1?'':'s'} and ${nd.drinks} drink${nd.drinks===1?'':'s'} a day from your storage boxes. Going without costs morale, and people leave when morale runs out.</p><div class="tags"><span style="color:${lowCol(nd.foodDays)}">food ×${nd.food}: ${daysLeft(nd.foodDays)}</span><span style="color:${lowCol(nd.waterDays)}">water ×${nd.water}: ${daysLeft(nd.waterDays)}</span><span>morale ${s.morale}</span><span>scrip ${s.scrip}</span></div>`:'<p>Everyone who joins needs one meal and one drink a day from your storage boxes.</p>'}</div>`;
+    if(s.clog.length)h+=`<div style="height:12px"></div>${sec('Community log')}<div class="card">${s.clog.slice(0,8).map(l=>`<p style="margin:3px 0"><small style="color:var(--dim)">day ${l.d}</small> <span style="color:${l.k==='bad'?'var(--red)':l.k==='good'?'var(--green)':'var(--ink)'}">${esc(l.x)}</span></p>`).join('')}</div>`;
     return h;
   },
-  act(a){if(a==='pile'){World.collectPile(S());UI().dirty()}},change(c,v,d){if(c==='job')World.setJob(S(),+d.id,v)}};
+  act(a,d){const s=S(),C=CM(),id=d.id;
+    if(a==='pile'){World.collectPile(s);UI().dirty()}
+    else if(a==='recruit')C.recruit(s,+id);else if(a==='away')C.turnAway(s,+id);else if(a==='dismiss')C.dismiss(s,+id);
+    else if(a==='harvest')C.harvestAll(s);else if(a==='water')C.tendAll(s,'water');else if(a==='compost')C.tendAll(s,'compost');else if(a==='plantall'){if(campSel.seed)C.plantAll(s,campSel.seed)}
+    else if(a==='replant'){s.set.replant=!s.set.replant}
+    else if(a==='gift')C.gift(s,id,25);else if(a==='giftopen')campSel.gift=campSel.gift===id?null:id;else if(a==='giftit')C.gift(s,id,{i:+d.i});
+    else if(a==='caravan'){if(C.callCaravan(s,id)){UI().open('trade');return false}}
+    else if(a==='route')C.openRoute(s,id,campSel.runner[id]);else if(a==='routeoff')C.closeRoute(s,id);
+    else if(a==='pact')C.pact(s,id);else if(a==='vol')C.askVolunteer(s,id);else if(a==='tribute')C.tribute(s,id);
+    else if(a==='war')C.warParty(s,id,campSel.party[id]||1);else if(a==='camp')C.markCamp(s,id);
+    UI().dirty()},
+  change(c,v,d){if(c==='job')World.setJob(S(),+d.id,v);else if(c==='seed')campSel.seed=v;else if(c==='runner')campSel.runner[d.id]=+v;else if(c==='party')campSel.party[d.id]=+v}};
 
 // ---------------------------------------------------------------- trade
 PANELS.trade={title:'Caravan',live:true,

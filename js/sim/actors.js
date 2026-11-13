@@ -288,12 +288,14 @@ function nodeHit(Z,i,tool){
   if(Z.home&&nd.regrow)S.home.regrow.push({k:o.k,i,at:S.t+nd.regrow*(.8+rnd()*.4)});
   Z.obj[i]=null;Z.touch(i);emit('fx','dust',x,y);
 }
-function harvest(Z,i){
-  const S=G.S,o=Z.obj[i],seed=ITEMS[o.seed],x=i%Z.w+.5,y=Math.floor(i/Z.w)+.5;let n=seed.yield[0]+Math.floor(rnd()*(seed.yield[1]-seed.yield[0]+1));n=Math.floor(n*(1+perk('plant'))+rnd());
-  give(S,seed.crop,n);if(rnd()<.6)give(S,o.seed,1);stat('harvest',n);addXp(S,6);o.seed=null;o.ripe=0;Z.touch(i);sfx('rustle',x,y);emit('fx','leaf',x,y);
+/** Bring in a ripe bed. Composted beds give half again as much. With the replant setting on, the same seed goes straight back in if you carry one. */
+export function harvest(Z,i){
+  const S=G.S,o=Z.obj[i],sid=o.seed,seed=ITEMS[sid],x=i%Z.w+.5,y=Math.floor(i/Z.w)+.5;let n=seed.yield[0]+Math.floor(rnd()*(seed.yield[1]-seed.yield[0]+1));n=Math.floor(n*(1+perk('plant'))*(o.fert?1.5:1)+rnd());
+  give(S,seed.crop,n);if(rnd()<.6)give(S,sid,1);stat('harvest',n);addXp(S,6);o.seed=null;o.ripe=0;o.wet=0;o.fert=0;Z.touch(i);sfx('rustle',x,y);emit('fx','leaf',x,y);
+  if(S.set.replant&&count(S,sid)>0)plant(Z,i,sid);
 }
 export function plant(Z,i,seedId){
-  const S=G.S,o=Z.obj[i];if(!o||o.seed||!ITEMS[seedId]||!take(S,seedId,1))return false;o.seed=seedId;o.t0=S.t;o.ripe=S.t+ITEMS[seedId].grow;stat('planted');Z.touch(i);sfx('rustle');return true;
+  const S=G.S,o=Z.obj[i];if(!o||o.seed||!ITEMS[seedId]||!take(S,seedId,1))return false;o.seed=seedId;o.t0=S.t;o.ripe=S.t+ITEMS[seedId].grow;o.wet=0;o.fert=0;stat('planted');Z.touch(i);sfx('rustle');return true;
 }
 function collectProd(Z,i){
   const S=G.S,o=Z.obj[i],d=OBJ[o.k].prod;const n=Math.floor(o.stock);if(n<=0)return;const got=give(S,d.item,n);o.stock-=got;

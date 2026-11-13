@@ -76,6 +76,17 @@ Enemies share one Dijkstra field toward the player (`playerField`), recomputed w
 
 `step(dt)`: player, creatures, body separation, projectiles, ground effects, turrets, interaction hint. Creature behaviour comes from `def.ai` in `enemies.js` (`melee`, `ranged`, `exploder`, `screamer`, `charger`, `flee`, `boss`, and allies `guard`, `pet`, `follow`). Bosses run a list of abilities with cooldowns (`slam`, `charge`, `pounce`, `summon`, `spray`, `throw`, `shards`, `pulse`, `howl`); every damaging one puts a telegraph on the ground first.
 
+## Community (`js/sim/community.js`, data in `js/data/community.js`)
+
+State: `S.wait` (people asking to join: `{id, n, trait, until, how}`), `S.fac[id]` (one record per community heard of: standing `st`, strength `str`, `route {sv, since, n}`, `pact`, `raidAt`, `dead`, cooldowns), `S.clog` (the community log, newest first). Survivors gained `xp` (days worked, gives the level), `hurt` (days left) and `away` (out until dawn).
+
+- `candidate()` puts someone at the fence; the rescue hook and the signal fire call it. `recruit()` hands them to `World.addSurvivor(S, who)`.
+- `needs()` is the group's daily meals and drinks against the edible stacks in storage; it mirrors what `feedOne()` in `world.js` will actually take.
+- `dawn()` runs from `World.dawn`: waiting people give up, the hurt mend, every trade route rolls for ambush or brings goods to the camp pile, communities at war may put a raid on the road (`raidAt`). `tick()` runs from `World.advance` and lands raids: live at home through `startAmbush`, otherwise against `defenceScore`.
+- Standing only changes through `shift()`, which announces crossing into and out of war and ends pacts and routes that standing no longer supports. `reaction()` is how the others take an attack.
+- A forward camp is a map site (`war_camp`, `choir_camp`, flagged `manual` so the random site roll skips them) with `fac` set; clearing it calls `campCleared()` from the zone-cleared branch in `World.tick`.
+- The Farm tab calls `farm()`, `harvestAll()`, `plantAll()`, `tendAll()`; beds carry `wet` and `fert` until harvested.
+
 ## Rendering (`js/view/render.js`)
 
 - Cel shading: every lit material is a `MeshToonMaterial` with vertex colours made by `toon()` in `geo.js`. The sun lights through a three-band ramp; point lights (fires, lamps) are patched to light smoothly. Models are baked by `Geo`: round primitives keep smooth normals, boxes keep hard edges, and prop colours get a small saturation and lightness lift (`lift`).

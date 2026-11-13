@@ -180,6 +180,7 @@ snare:{n:'Snare',solid:0,special:'prod',prod:{item:'raw_meat',every:420,cap:2,ex
 coop:{n:'Hen Coop',solid:1,special:'prod',prod:{item:'egg',every:260,cap:6,extra:['feather',.5]},cat:'farm',lv:17,cost:{plank:14,nails:16,fiber:10,corn:6},hp:250},
 hive:{n:'Bee Box',solid:1,special:'prod',prod:{item:'honey',every:700,cap:3},cat:'farm',lv:20,cost:{plank:10,nails:10,herb:8},hp:150},
 fish_trap:{n:'Fish Weir',solid:1,special:'prod',prod:{item:'raw_fish',every:330,cap:4},cat:'farm',lv:12,cost:{stick:14,rope:5,fiber:8},hp:120},
+compost_bin:{n:'Compost Heap',solid:1,special:'prod',prod:{item:'compost',every:420,cap:4},cat:'farm',lv:5,cost:{plank:6,fiber:10,stick:6},hp:120,d:'Turns scraps into compost over time. Compost makes a bed yield half again as much.'},
 scarecrow:{n:'Scarecrow',solid:2,r:.2,special:'scarecrow',cat:'farm',lv:7,cost:{stick:6,rags:4,fiber:8},hp:80,d:'Gardens nearby grow 25% faster. Crows and worse stay off.'},
 // ================= defence =================
 spikes:{n:'Stake Trap',solid:0,trap:{dmg:28,uses:14},cat:'defense',lv:4,cost:{stick:8,log:2},hp:60,up:'spikes2'},

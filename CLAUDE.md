@@ -20,13 +20,14 @@ node tests/audio.mjs # level table for every sound and music scene
 ## Map
 
 - `js/data/` content tables, pure data, importable in Node. Adding content is usually a row here.
-  - `items.js` `objects.js` (everything that stands on a tile: nature, containers, scenery, buildables) `recipes.js` `enemies.js` `world.js` (regions, locations, sites, buildings, loot) `events.js` (text events, weather, tides) `progress.js` (story, contracts, perks, achievements, survivors, trade).
+  - `items.js` `objects.js` (everything that stands on a tile: nature, containers, scenery, buildables) `recipes.js` `enemies.js` `world.js` (regions, locations, sites, buildings, loot) `events.js` (text events, weather, tides) `progress.js` (story, contracts, perks, achievements, survivors, trade) `community.js` (the other communities and the numbers for dealing with them).
 - `js/sim/` the game, pure logic: no DOM, no three.js. Runs headless in Node.
   - `core.js` shared context `G`, save shape, inventory, derived stats, crafting, building.
   - `zone.js` zone generation, collision, line of sight, path fields, loot rolls.
   - `actors.js` player, creature AI, projectiles, traps, turrets, interaction, auto-gather. `step(dt)`.
   - `world.js` clock, survival, weather, tides, travel, events, survivors, trade, sleep, death, save format. `tick(dt)`.
   - `quests.js` story, contracts, achievements.
+  - `community.js` recruits, the group's food and water, standing with other communities, gifts, caravans, trade routes, pacts, tribute, war parties, raids, farm orders. It does not import `world.js`; `world.js` hands it what it needs with `Community.bind()`.
 - `js/view/` three.js: `geo.js` (model builder, cel-shaded materials), `props.js` (world and hand models), `rigs.js` (characters), `scenery.js` (procedural textures, ground clutter, wind materials), `post.js` (ink outlines and colour grade), `render.js` (scene, instancing, lights, particles, decals, weather).
 - `js/ui/` DOM interface: `ui.js` (HUD, build mode, title), `panels.js` (every sheet), `map.js`, `icons.js`, `dom.js`.
 - `js/audio.js` procedural sound and music (`Snd`). `js/input.js`. `js/main.js` boot and loop.

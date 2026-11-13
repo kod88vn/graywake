@@ -62,6 +62,10 @@ Outcome chances per option must sum to 1. The effect list is documented at the t
 - Perks are `{fx:{key: perRank}}`; the sim reads them through `perk('key')`. A new key needs a line of code where it should apply.
 - Achievements watch a counter in `S.stats`.
 
+## A community (`community.js`)
+
+Add a row to `FACTIONS`: name, region, map position (same space as locations; keep 50 units clear of any location), colour, starting standing, the best standing it allows (`cap`), strength, a description, `likes` (gifts worth double), `stock` (its caravan), `route` (daily goods of a trade route) and `scrip`, `raid` (creature table of one raiding party) and `spoils`. `hostile:1` marks a crew the others are glad to see hit. A community whose `cap` is under 25 can never be traded with; under 60, never allied. The tunable numbers for the whole layer are in `COMM`. `npm run check` validates every id.
+
 ## A sound, a model, an icon
 
 - Sound: add a recipe to `SFX` in `js/audio.js`; `node tests/audio.mjs` checks its level against its group.

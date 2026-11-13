@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.5.0 — 2026-11-12
+
+The homestead becomes a community among other communities. All of them are run by the game: there are no other players.
+
+- **Recruiting.** Someone you free from a cage, or who walks in to a signal fire, no longer moves in by themselves. They wait at your fence for three days and you decide in the Camp ledger (People): recruit them if there is a spare bed, or turn them away. You can also ask a survivor to leave.
+- **People get better and get hurt.** A survivor gains a level in the job they do (up to V, +15% output a level). Hurt survivors rest for a few days (a medic halves it); they do not work, run routes or fight.
+- **Stores.** The Camp tab shows how many meals and drinks the group takes a day, what the storage boxes hold, and how many days that lasts. You are warned at dawn when either is under two days.
+- **Farm tab.** One place for all garden beds: harvest everything ripe, plant every empty bed with a chosen seed, water growing beds (one water each, a quarter off the time left) and compost them (one compost each, half again the harvest). New setting: replant the same seed after a harvest. New building: the Compost Heap.
+- **Neighbours.** Six communities, each with a standing toward you and a strength: Millrace, Dustline Co-op, Harrow Wardens, Tarn Hold, The Red Ledger and The Pale Choir. You hear of them as you reach their regions (one region early with a radio). They show on the map as banners.
+  - Gifts of scrip or goods raise standing (they prize certain things). Their caravan comes to your gate once a day, cheaper the better they like you.
+  - **Trade routes** (standing 25, 40 scrip, one survivor as runner): goods and scrip every dawn, with a daily risk of ambush that rises with every war you are in and falls with guards.
+  - **Pacts** (standing 60): two of their fighters join you when a tide lands, and they will send a volunteer for scrip.
+  - **War.** At standing −50 or below a community sends raiding parties: fought live if you are home, resolved against your defences if you are not (a radio warns you). You can pay them off, send a war party of your own people (who can be hurt or killed), or find their forward camp on the map and clear it yourself. A community at no strength is broken for good. Hitting a neighbour alarms the others; hitting raiders pleases them.
+- The Camp ledger has four tabs (Camp, People, Farm, Neighbours) and a community log.
+
+Not yet measured by play: every number in this layer (see `docs/BALANCE.md`).
+
 ## 0.4.1 — 2026-11-12
 
 - **Auto mode defends itself.** Hostiles closing in, or a hit, no longer switch auto mode off. It draws the better of your two weapons (a gun while it has ammunition, otherwise whatever hits hardest; it never throws anything), fights whatever has noticed you, backs away from melee attackers when shooting, bandages itself from the pack under 45% health, and goes back to gathering with your own weapon choice back in hand. After a hit it looks further out, to reach whoever is shooting. It still stops when you move or attack yourself, when the pack is full or when nothing is left to gather. It does not retreat: badly hurt with no medicine it warns you and keeps fighting.

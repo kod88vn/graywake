@@ -30,6 +30,7 @@ Needs Node 22 or newer. There is nothing to install.
 - **Tides.** Assaults on your base that grow every time, in seven flavours, down one of four trails. They are fought live if you are home and resolved against your defences if you are not.
 - **243 items and 176 recipes**: tools, 14 melee weapons, 13 ranged, throwables, eight armour sets that show on your character, food, medicine, schematics.
 - **36 creatures**, six bosses with telegraphed attacks, raiders who shoot back, animals to hunt.
+- **A community.** People you rescue ask to join; you recruit them, house them and keep them fed and watered. Six other communities (run by the game, not by other players) can be gifted, traded with over standing routes, allied with, paid off or fought, and the hostile ones raid you.
 - **Survivors** who move in, take jobs (forager, farmer, guard, cook, mechanic, medic, hunter, scavenger) and need feeding.
 - **Events.** 48 text events on the road and at home with choices and consequences, ten kinds of temporary site on the map (supply drops, distress calls, raider camps, meteor strikes), weather, caravans, radio contracts.
 - **A story** in 33 steps, a perk tree, 38 achievements, and an endless descent with rising mutation tiers after the ending.

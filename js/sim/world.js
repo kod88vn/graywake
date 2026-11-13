@@ -7,11 +7,13 @@ import {LOC,LOCATIONS,SITES,REGIONS} from '../data/world.js';
 import {EVENTS,WEATHER,WEATHER_BY_REG,TIDE_KINDS,TIDE_COST} from '../data/events.js';
 import {SURV_NAMES,SURV_TRAITS,JOBS,TRADE,TRADE_BP} from '../data/progress.js';
 import {ENEMIES} from '../data/enemies.js';
+import {FACTIONS} from '../data/community.js';
 import {G,emit,toast,sfx,stat,statMax,blankState,derive,perk,count,take,give,addTo,removeFrom,slotCount,homeStores,addXp,addBuff,produce,maxHp,hasBuilt,countBuilt,compact,dropAt,SAVE_V,MIN_PER_SEC,HOME_W,HOME_H} from './core.js';
 import {genHome,homeZone,genZone,siteDef,freeNear,rollLoot,playerField} from './zone.js';
-import {spawnActor,spawnPlayer,populate,enemiesAlive,step,alertActor} from './actors.js';
+import {spawnActor,spawnPlayer,populate,enemiesAlive,step,alertActor,harvest,plant} from './actors.js';
 import {startQuest,checkStory,checkAch,fillContracts,noteClear,maxRegion} from './quests.js';
 import {clamp,rnd,dist,dayOf,hourOf,hash,TAU} from './util.js';
+import * as Community from './community.js';
 
 G.hooks={};
 export const isNight=t=>{const h=hourOf(t);return h>=20.5||h<5.5};
@@ -187,15 +189,17 @@ function addSite(S,kind,reg){
 
 // ---------------------------------------------------------------- survivors
 export function survCap(S){let beds=0;for(const o of S.home.obj)if(o&&OBJ[o.k].bed)beds+=OBJ[o.k].bed>=3?2:1;return Math.min(14,Math.max(0,beds-1)+(homeHas(S,'beacon')?2:0)+perk('surv'))}
-export function addSurvivor(S){
+/** Add someone to the homestead. `who` ({n, trait}) is a person who was waiting to be recruited; without it a stranger is made up. */
+export function addSurvivor(S,who){
   if(S.surv.length>=survCap(S)){toast('No bed for another survivor: they move on','bad');return null}
   const used=new Set(S.surv.map(s=>s.n)),names=SURV_NAMES.filter(n=>!used.has(n)),traits=Object.keys(SURV_TRAITS);
-  const sv={id:++S.survN,n:names[Math.floor(rnd()*names.length)]||'Stranger',trait:traits[Math.floor(rnd()*traits.length)],job:'idle',days:0};
+  const sv={id:++S.survN,n:who?who.n:names[Math.floor(rnd()*names.length)]||'Stranger',trait:who?who.trait:traits[Math.floor(rnd()*traits.length)],job:'idle',days:0,xp:0,hurt:0};
   S.surv.push(sv);statMax('survMax',S.surv.length);sfx('quest');
   if(G.Z&&G.Z.home){const[x,y]=freeNear(G.Z,G.Z.w/2,G.Z.h/2,5);const a=spawnActor(G.Z,'captive',x,y,1);a.stay=true;a.sv=sv.id}
   return sv;
 }
-G.hooks.rescue=()=>{const sv=addSurvivor(G.S);if(sv)toast(sv.n+' will make their own way to your fire','good');addXp(G.S,120)};
+// someone you free does not move in by themselves: they wait at your fence and you decide (Camp ledger, People)
+G.hooks.rescue=()=>{Community.candidate(G.S,'was freed by you');addXp(G.S,120)};
 export function setJob(S,id,job){
   const sv=S.surv.find(s=>s.id===id),J=JOBS[job];if(!sv||!J)return false;
   if(J.needs&&!hasBuilt(S,o=>o.id===J.needs||o.special===J.needs||o.station===J.needs)){toast('Build '+(OBJ[J.needs]?OBJ[J.needs].n.toLowerCase():'the station')+' first','bad');return false}
@@ -215,7 +219,9 @@ function dawn(S){
     for(const sv of S.surv){sv.days++;const meals=(sv.trait==='glutton'?2:1);for(let m=0;m<meals;m++){if(cooks&&rnd()<.25*cooks){fed++;continue}if(feedOne(S,'food'))fed++;else hungry++}if(!feedOne(S,'water'))hungry++}
     for(let c=0;c<cooks*JOBS.cook.cook;c++){for(const[raw,done]of[['raw_meat','cooked_meat'],['raw_fish','cooked_fish'],['potato','baked_potato'],['dirty_water','water']]){let ok=false;for(const b of homeStores(S)){if(removeFrom(b.inv,raw,1)===0){ok=true;break}}if(ok){pile(S,done,1);break}}}
     for(const sv of S.surv){const J=JOBS[sv.job],tm=t=>sv.trait===t?1.5:1;
-      if(J.out){const k=sv.job==='forage'?tm('strong'):sv.job==='medic'?tm('nurse')*1.3:1;for(const[id,a,b]of J.out){const n=Math.round((a+rnd()*(b-a))*mult*k*(sv.job==='forage'||sv.job==='hunt'||sv.job==='scav'?.6+rnd()*.8:1));if(n>0&&rnd()<.85)pile(S,id,n)}
+      if(sv.hurt>0||sv.away||Community.routeOf(S,sv.id)){if(sv.trait==='cheer')S.morale+=2;continue}
+      if(sv.job!=='idle')sv.xp=(sv.xp||0)+1;
+      if(J.out){const k=(sv.job==='forage'?tm('strong'):sv.job==='medic'?tm('nurse')*1.3:1)*Community.svMult(sv);for(const[id,a,b]of J.out){const n=Math.round((a+rnd()*(b-a))*mult*k*(sv.job==='forage'||sv.job==='hunt'||sv.job==='scav'?.6+rnd()*.8:1));if(n>0&&rnd()<.85)pile(S,id,n)}
         if(J.rare&&rnd()<(sv.trait==='lucky'?.8:.45)){const[id,a,b]=J.rare[Math.floor(rnd()*J.rare.length)];pile(S,id,Math.round(a+rnd()*(b-a)))}}
       if(J.repair){let f=J.repair*(sv.trait==='tinker'?2:1)*mult;for(const o of S.home.obj)if(o&&o.hp>0&&OBJ[o.k].cost){const mh=maxHp(o.k);if(o.hp<mh)o.hp=Math.min(mh,o.hp+mh*f)}}
       if(sv.trait==='cheer')S.morale+=2;if(J.morale)S.morale+=J.morale}
@@ -227,7 +233,8 @@ function dawn(S){
     if(G.Z&&G.Z.home)emit('zoneDirty');
   }
   // beacon draws wanderers
-  if(homeHas(S,'beacon')&&S.surv.length<survCap(S)&&rnd()<.16){const sv=addSurvivor(S);if(sv)toast(sv.n+' saw your fire and walked in','good')}
+  if(homeHas(S,'beacon')&&S.surv.length+S.wait.length<survCap(S)&&rnd()<.16)Community.candidate(S,'saw your signal fire and walked in');
+  Community.dawn(S);
   if(homeHas(S,'kennel')&&!S.flags.dog&&(S.flags.dog_met||rnd()<.3)){S.flags.dog=1;toast('A dog has moved into the kennel','good')}
   fillContracts(S);
   if(homeHas(S,'trade')&&day%2===0&&(!S.trader||S.trader.until<S.t)){openTrader(S,true);toast('A caravan is waiting at your trading post','info')}
@@ -256,8 +263,9 @@ export function advance(S,m,mode='live'){
   if(S.t>=S.weather.until)rollWeather(S);
   // map sites come and go
   if(S.sites.length&&S.sites.some(s=>s.until<S.t))S.sites=S.sites.filter(s=>s.until>=S.t||(Z&&Z.site===s.id));
-  S._site=(S._site||0)+m;if(S._site>=240){S._site=0;const day=dayOf(S.t),cap=homeHas(S,'radio')?4:2;if(S.sites.length<cap&&rnd()<.45){const kinds=Object.keys(SITES).filter(k=>(SITES[k].minDay||0)<=day);const k=kinds[Math.floor(rnd()*kinds.length)];if(addSite(S,k)&&homeHas(S,'radio'))toast('Radio: '+SITES[k].n+' reported','info')}}
+  S._site=(S._site||0)+m;if(S._site>=240){S._site=0;const day=dayOf(S.t),cap=homeHas(S,'radio')?4:2;if(S.sites.length<cap&&rnd()<.45){const kinds=Object.keys(SITES).filter(k=>!SITES[k].manual&&(SITES[k].minDay||0)<=day);const k=kinds[Math.floor(rnd()*kinds.length)];if(addSite(S,k)&&homeHas(S,'radio'))toast('Radio: '+SITES[k].n+' reported','info')}}
   for(let d=dayOf(t0)+1;d<=dayOf(S.t);d++)dawn(S);
+  Community.tick(S);
   // the tide
   const T=S.tide,lead=(12+(homeHas(S,'tower')?6:0))*60;
   if(!T.warned&&S.t>=T.at-lead&&!T.live){T.warned=1;emit('ui','tideWarn');sfx('warning')}
@@ -286,7 +294,7 @@ function processHome(S,m){
       let mult=(Wd.crop||1)+farmers*.3;if(scare.some(j=>Math.abs(j%HOME_W-i%HOME_W)<=3&&Math.abs(Math.floor(j/HOME_W)-Math.floor(i/HOME_W))<=3))mult+=.25;
       if(mult!==1)o.ripe-=m*(mult-1);
       if(S.t>=o.ripe){if(!o.rdy){o.rdy=1;if(atHome)emit('obj',i)}
-        if(farmers>0){const seed=ITEMS[o.seed],n=seed.yield[0]+Math.floor(rnd()*(seed.yield[1]-seed.yield[0]+1));pile(S,seed.crop,n);stat('harvest',n);o.ripe=S.t+seed.grow;o.rdy=0;if(atHome)emit('obj',i)}}
+        if(farmers>0){const seed=ITEMS[o.seed],n=Math.round((seed.yield[0]+Math.floor(rnd()*(seed.yield[1]-seed.yield[0]+1)))*(o.fert?1.5:1));pile(S,seed.crop,n);stat('harvest',n);o.ripe=S.t+seed.grow;o.rdy=0;o.wet=0;o.fert=0;if(atHome)emit('obj',i)}}
       else if(o.rdy){o.rdy=0}
       const half=o.ripe-S.t<(ITEMS[o.seed].grow*.5);if(half&&!o.half){o.half=1;if(atHome)emit('obj',i)}else if(!half&&o.half){o.half=0}
     }
@@ -320,6 +328,8 @@ function tideQueue(S){
 }
 function startTide(S,Z){
   const{q,lvl}=tideQueue(S);S.tide.live={q,lvl,t:0,total:q.length,killed:0};Z.tideLost=0;Z.lvl=lvl;
+  // allies keep their word: two fighters from every community you have a pact with
+  for(const[id,n]of Community.allies(S)){for(let i=0;i<n;i++){const[x,y]=freeNear(Z,Z.w/2+(rnd()-.5)*6,Z.h/2+(rnd()-.5)*6,4);spawnActor(Z,'guard',x,y,lvl,{from:id})}toast(FACTIONS[id].n+' sends two fighters to stand with you','good')}
   for(const a of Z.actors)if(a.team===1&&!a.dead)a.tide=true;
   emit('ui','tideStart');sfx('horde_horn');G.auto=false;
 }
@@ -333,6 +343,7 @@ function tickTide(S,Z,dt){
 }
 function endTide(S,Z,won){
   const n=S.tide.n+1,kind=TIDE_KINDS.find(k=>k.id===S.tide.kind)||TIDE_KINDS[0];S.tide.n=n;S.tide.live=null;stat('tides');
+  if(G.Z&&G.Z.home)for(let i=G.Z.actors.length-1;i>=0;i--)if(G.Z.actors[i].from)G.Z.actors.splice(i,1);   // allied fighters go home
   const res={n,name:kind.n,won,lost:Z?Z.tideLost||0:0,xp:0,scrip:0,items:[]};
   if(won){res.xp=60+45*n;res.scrip=12+8*n;addXp(S,res.xp);S.scrip+=res.scrip;stat('earned',res.scrip);
     const loot=rollLoot('stash',maxRegion(S),rnd,1);if(n%5===0)loot.push(...rollLoot('mil',Math.max(2,maxRegion(S)),rnd));for(const it of loot){give(S,it.id,it.n,it.d,true);res.items.push(it)}
@@ -382,7 +393,8 @@ export function tick(dt){
   if(!Z.nightUp&&(G.night||Z.dark)){Z.nightUp=true;populate(Z,true)}if(Z.nightUp&&!G.night&&!Z.dark)Z.nightUp=false;
   if(!Z.cleared&&Z.hadEnemies&&!Z.home&&enemiesAlive(Z)===0&&Z.spawns.every(s=>s.done||s.night)){Z.cleared=true;addXp(S,40+Z.lvl*12);toast(Z.name+' is clear','good');sfx('quest');noteClear(Z.id);stat('cleared');
     if(Z.def&&Z.def.endless){S.depth++;statMax('depth',S.depth);toast('Depth '+S.depth+' reached','good')}
-    if(Z.def&&Z.def.fx){const fx=[];for(const k in Z.def.fx)fx.push([k,Z.def.fx[k]]);applyFx(fx,true)}}
+    if(Z.def&&Z.def.fx){const fx=[];for(const k in Z.def.fx)fx.push([k,Z.def.fx[k]]);applyFx(fx,true)}
+    if(Z.site){const st=S.sites.find(x=>x.id===Z.site);if(st&&st.fac){Community.campCleared(S,st.fac);st.fac=null}}}
   if(Z.site&&SITES[Z.siteKind]&&SITES[Z.siteKind].wave){const w=SITES[Z.siteKind].wave;Z.waveT=(Z.waveT||w.every)-1;if(Z.waveT<=0&&(Z.waves||0)<3){Z.waveT=w.every;Z.waves=(Z.waves||0)+1;for(let i=0;i<w.n;i++){const[x,y]=edgePoint(Z,Math.floor(rnd()*4),12);spawnActor(Z,w.kind,x,y,Z.lvl,{alert:true,st:'chase'})}toast('More of them, drawn by the flare','bad');sfx('warning')}}
   if(Z.home&&!S.tide.live){wanderT-=1;if(wanderT<=0){wanderT=35+rnd()*45;let hostile=0,calm=0;for(const a of Z.actors){if(a.dead||a.team!==1)continue;if(a.def.ai==='flee')calm++;else hostile++}
       const side=Math.floor(rnd()*4),[x,y]=edgePoint(Z,side,16);
@@ -478,6 +490,8 @@ export function autoRepair(S,ref){
   return false;
 }
 G.hooks.repair=autoRepair;
+Community.bind({addSurvivor,survCap,pile,ambush:startAmbush,addSite,defence:defenceScore,raidBase,maxRegion,homeHas,harvest,plant});
+export {Community};
 export function raiseMutation(S){if(!S.flags.core_dead)return false;S.mut++;statMax('mutation',S.mut);for(const id in S.loc)S.loc[id].cool=0;toast('Mutation tier '+S.mut+': everything out there is stronger, and carries more','bad');sfx('horde_horn');emit('save');return true}
 
 // ---------------------------------------------------------------- save format

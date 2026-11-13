@@ -170,6 +170,53 @@ safe('tide',()=>{
   if(S.tide.live){const pf=field(Z2(),Math.floor(G.Z.pl.x),Math.floor(G.Z.pl.y),false);for(const a of G.Z.actors)if(a.team===1&&!a.dead)T.info(`stuck: ${a.kind} at ${a.x.toFixed(1)},${a.y.toFixed(1)} st=${a.st} alert=${a.alert} cd=${a.cd.toFixed(1)} field=${pf[Math.floor(a.y)*G.Z.w+Math.floor(a.x)]} player ${G.Z.pl.x.toFixed(1)},${G.Z.pl.y.toFixed(1)}`);T.info('queue left '+S.tide.live.q.length)}
   T.ok(!S.tide.live,'tide 15 ('+total+' attackers) resolves in '+secs+' s; walls lost '+(S.stats.lostWalls||0));
 });
+// ---- community: recruits, stores, neighbours, trade routes, war
+safe('community',()=>{
+  const S=G.S,Z=G.Z,C=World.Community;S.surv.length=0;S.wait.length=0;S.morale=60;S.scrip=500;S.veh=0;for(const a of Z.actors)if(a.team===1)a.dead=true;
+  S.p.inv=S.p.inv.map(()=>null);for(const[id,n]of[['plank',120],['cloth',40],['nails',120],['rope',40],['log',80],['fiber',80],['stick',40],['rags',40],['hide',20],['stone',40]])give(S,id,n);
+  const put=k=>{for(let r=3;r<16;r++)for(let dy=-r;dy<=r;dy++)for(let dx=-r;dx<=r;dx++){const x=cx+dx,y=cy+dy;if(Math.max(Math.abs(dx),Math.abs(dy))===r&&canPlace(S,k,x,y)===null&&place(S,k,x,y))return y*Z.w+x}return-1};
+  for(let k=0;k<4;k++)put('bed');if(!Z.obj.some(o=>o&&o.inv&&OBJ[o.k].store))put('box_small');
+  const cap=World.survCap(S);T.ok(cap>=2,'beds give room for people (cap '+cap+')');
+  G.hooks.rescue();T.ok(S.wait.length===1&&S.surv.length===0,'someone you free waits to be recruited instead of moving in by themselves');
+  const c=S.wait[0];T.ok(!!C.recruit(S,c.id)&&S.surv.length===1&&S.surv[0].n===c.n&&S.surv[0].trait===c.trait,'recruiting them adds that person ('+c.n+', '+c.trait+')');
+  C.candidate(S);T.ok(C.turnAway(S,S.wait[0].id)&&S.wait.length===0,'a candidate can be turned away');
+  C.candidate(S);C.recruit(S,S.wait[0].id);T.ok(S.surv.length===2,'a second recruit moves in');
+  const n0=C.needs(S);T.ok(n0.people===2&&n0.meals>=2&&n0.drinks===2,'needs counts '+n0.meals+' meals and '+n0.drinks+' drinks a day');
+  const box=Z.obj.find(o=>o&&o.inv&&OBJ[o.k].store);T.ok(!!box,'a storage box exists at home');
+  if(box){box.inv.fill(null);box.inv[0]={id:'cooked_meat',n:6};box.inv[1]={id:'water',n:4}}
+  const n1=C.needs(S);T.ok(n1.food===6&&n1.water===4&&Math.floor(n1.waterDays)===2,'stores are counted: food for '+n1.foodDays.toFixed(1)+' days, water for '+n1.waterDays.toFixed(1));
+  // neighbours
+  const ids=C.known(S);T.ok(ids.includes('mill')&&!ids.includes('choir'),'you know of the communities in reach ('+ids.join(', ')+')');
+  const fm=C.fac(S,'mill'),st0=fm.st;C.gift(S,'mill',25);T.ok(fm.st>st0&&S.scrip===475,'a gift of scrip raises standing ('+st0+' → '+fm.st+')');
+  for(let k=0;k<6;k++)C.gift(S,'mill',25);T.ok(fm.st<=st0+12.01,'a community takes only so much in one day (standing '+fm.st+')');
+  fm.st=10;T.ok(!C.openRoute(S,'mill',S.surv[0].id),'no trade route below the standing it needs');
+  fm.st=40;const sc0=S.scrip;T.ok(C.openRoute(S,'mill',S.surv[0].id)&&S.scrip===sc0-40&&C.routeOf(S,S.surv[0].id)==='mill','a trade route opens with a runner and costs scrip');
+  let runs=0,lost=0;S.home.pile={};for(let d=0;d<12;d++){const r0=S.stats.routeRuns||0,l0=S.stats.routeLost||0;S.surv[0].hurt=0;C.dawn(S);runs+=(S.stats.routeRuns||0)-r0;lost+=(S.stats.routeLost||0)-l0}
+  T.ok(runs>=7&&(S.home.pile.plank||0)>0&&S.scrip>sc0-40,'the route brings goods and scrip most days ('+runs+' runs, '+lost+' lost, '+(S.home.pile.plank||0)+' planks)');
+  fm.st=70;T.ok(C.pact(S,'mill')&&C.allies(S).length===1,'a pact at high standing brings allies to a tide');
+  const w0=S.wait.length;T.ok(C.askVolunteer(S,'mill')&&S.wait.length===w0+1,'an ally sends a volunteer for scrip');S.wait.length=0;
+  // war
+  S.veh=2;const fl=C.fac(S,'ledger');T.ok(C.atWar(fl),'the raider crew starts at war with you');
+  const str0=fl.str;let wins=0;for(let k=0;k<8&&!fl.dead;k++){for(const v of S.surv){v.away=0;v.hurt=0}while(S.surv.length<2)World.addSurvivor(S);const r=C.warParty(S,'ledger',2);if(r&&r.won)wins++}
+  T.ok(fl.str<str0,'war parties wear an enemy down (strength '+str0+' → '+fl.str+', '+wins+' wins)');
+  fl.str=3;fl.dead=false;for(const v of S.surv){v.away=0;v.hurt=0}while(S.surv.length<2)World.addSurvivor(S);for(let k=0;k<12&&!fl.dead;k++){for(const v of S.surv){v.away=0;v.hurt=0}while(S.surv.length<1)World.addSurvivor(S);C.warParty(S,'ledger',2)}
+  T.ok(fl.dead&&fl.str===0,'an enemy at no strength is broken for good');
+  // their raids
+  const fw=C.fac(S,'ward');fw.st=-70;fw.raidAt=S.t-1;for(const a of Z.actors)if(a.team===1)a.dead=true;const e0=Z.actors.filter(a=>a.team===1&&!a.dead).length;C.tick(S);
+  T.ok(Z.actors.filter(a=>a.team===1&&!a.dead).length>e0,'a community at war sends raiders to your fence when you are home');for(const a of Z.actors)if(a.team===1)a.dead=true;
+  const sc1=S.scrip=400;T.ok(C.tribute(S,'ward')&&fw.st>-70&&S.scrip<sc1,'tribute buys standing back ('+fw.st+')');
+  // farm orders
+  for(let i=0;i<Z.obj.length;i++)if(Z.obj[i]&&OBJ[Z.obj[i].k].special==='garden'){Z.obj[i]=null}S.p.inv=S.p.inv.map(()=>null);give(S,'log',40);give(S,'fiber',40);const beds=[];for(let k=0;k<3;k++){const i=put('garden');if(i>=0)beds.push(i)}
+  T.ok(beds.length===3,'three garden beds are built');S.p.inv=S.p.inv.map(()=>null);give(S,'seed_carrot',5);give(S,'water',3);give(S,'compost',2);
+  T.ok(C.plantAll(S,'seed_carrot')===3&&count(S,'seed_carrot')===2,'Plant empty beds sows them all');
+  const ripe0=Z.obj[beds[0]].ripe;T.ok(C.tendAll(S,'water')===3&&Z.obj[beds[0]].ripe<ripe0&&count(S,'water')===0,'watering takes time off and uses water');
+  T.ok(C.tendAll(S,'compost')===2&&Z.obj[beds[0]].fert===1,'compost is dug in while it lasts');
+  for(const i of beds)Z.obj[i].ripe=S.t-1;const f=C.farm(S);T.ok(f.ripe===3&&f.beds>=3,'the farm summary sees three ripe beds');
+  S.set.replant=true;const got=C.harvestAll(S);T.ok(got===3&&count(S,'carrot')>=6,'Harvest ripe brings them in ('+count(S,'carrot')+' carrots)');
+  T.ok(beds.filter(i=>Z.obj[i].seed==='seed_carrot').length>=2,'and replants while seed lasts');
+  S.surv.length=0;S.wait.length=0;for(const id in S.fac){S.fac[id].route=null;S.fac[id].raidAt=0}S.home.pile={};S.p.inv=S.p.inv.map(()=>null);
+});
+
 // ---- days pass: dawn, weather, away tide, sites, production
 safe('days',()=>{
   const S=G.S;S.p.hp=100;World.leaveZone();G.Z=null;G.mode='map';const d0=dayOf(S.t),n0=S.tide.n;

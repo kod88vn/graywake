@@ -129,6 +129,8 @@ export const SITES={
   distress:{n:'Distress Call',dur:12,lay:'town',d:'A voice on the radio, whispering an address. Somebody is still alive in there.',props:{car_wreck:3,trashcan:2,crate:2},bld:[['house',2]],en:{shambler:6,runner:4},inn:{shambler:5},rescue:1,ic:'people',minDay:3},
   bloom_patch:{n:'Bloom Outbreak',dur:16,lay:'wild',d:'A patch of the Gray, far from where it should be. Burn it out and the next tide thins.',tox:.6,nodes:{bloom:10,mushrooms:6},props:{spore_pod:6,spore_growth:8},en:{bloater:4,spitter:4,shambler:6},ic:'tox',minDay:10,fx:{hordeWeak:.25}},
   cache:{n:'Smuggler Cache',dur:14,lay:'wild',d:'A map scratched on a tin lid turned out to be real.',props:{stash:3,footlocker:2,safe:1,crate:3},en:{shambler:4,wolf:3},ic:'lock',minDay:7},
+  war_camp:{n:'Forward Camp',dur:40,lay:'wild',manual:1,d:'Where their raiding parties sleep before they come for you. Burn it out and they are weaker for it.',props:{tent:5,barrel_fire:2,crate:4,crate_mil:2,footlocker:2,pallet:3},en:{raider:7,raider_gun:4,raider_heavy:1},ic:'skull'},
+  choir_camp:{n:'Choir Pasture',dur:40,lay:'wild',manual:1,tox:.4,d:'A pen of the bloomed, and the people who herd them. This is where their drives start.',nodes:{bloom:8},props:{spore_pod:5,spore_growth:8,tent:3,crate:3},en:{bloomed:6,sporeling:7,spitter:3},ic:'tox'},
   horde_nest:{n:'Tide Nest',dur:20,lay:'wild',d:'This is where they gather before they come for you. Thin them here and the next tide is smaller.',props:{corpse:6,bones:10,spore_growth:5,crate:2},en:{shambler:14,runner:6,brute:1,screamer:1},ic:'skull',minDay:9,fx:{hordeWeak:.35}},
 };
 

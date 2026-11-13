@@ -11,6 +11,7 @@ import {ENEMIES} from '../js/data/enemies.js';
 import {LOCATIONS,SITES,BLD,LOOT,ROLLS,BIOMES} from '../js/data/world.js';
 import {EVENTS,TIDE_KINDS,TIDE_COST} from '../js/data/events.js';
 import {STORY,BUILD_TAGS,CONTRACTS,PERKS,ACHIEVEMENTS,JOBS,TRADE,TRADE_BP} from '../js/data/progress.js';
+import {FACTIONS} from '../js/data/community.js';
 
 const errs=[],warns=[];const E=m=>errs.push(m),W=m=>warns.push(m);
 const item=(id,where)=>{if(!ITEMS[id])E(`${where}: unknown item "${id}"`)},obj=(id,where)=>{if(!OBJ[id])E(`${where}: unknown object "${id}"`)},foe=(id,where)=>{if(!ENEMIES[id])E(`${where}: unknown creature "${id}"`)};
@@ -62,6 +63,10 @@ for(const a of ACHIEVEMENTS)fx(a.rw,'achievement '+a.id);
 for(const r of TRADE){item(r[0],'trade');got.add(r[0])}for(const t in TRADE_BP)for(const id of TRADE_BP[t]){item(id,'trade schematics');got.add(id)}
 for(const j in JOBS)for(const r of[...(JOBS[j].out||[]),...(JOBS[j].rare||[])]){item(r[0],'job '+j);got.add(r[0])}
 for(const id of['water','canned_beans','rags','scrap','rope','bandage','berries','stick','flint'])got.add(id);
+// neighbouring communities
+for(const id in FACTIONS){const F=FACTIONS[id],w='community '+id;for(const x of F.likes)item(x,w+' likes');for(const x of F.stock){item(x,w+' stock');got.add(x)}for(const r of F.route){item(r[0],w+' route');got.add(r[0])}for(const r of F.spoils){item(r[0],w+' spoils');got.add(r[0])}for(const k in F.raid)foe(k,w+' raid');
+  if(!(F.reg>=1&&F.reg<=5))E(w+': bad region');if(F.start>F.cap)E(w+': start standing above its cap')}
+used.add('compost');
 // obtainable / used
 for(const id in ITEMS){if(!got.has(id))E(`item ${id}: cannot be obtained anywhere`);if(ITEMS[id].t==='mat'&&!used.has(id)&&!STORY.some(q=>q.goals.some(g=>g.item===id)))W(`material ${id}: never used in a recipe or building`)}
 // art, icons, sounds

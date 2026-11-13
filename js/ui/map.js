@@ -5,6 +5,7 @@ import {LOCATIONS,LOC,REGIONS,SITES} from '../data/world.js';
 import {VEHICLES} from '../data/recipes.js';
 import {ENEMIES} from '../data/enemies.js';
 import {TIDE_KINDS} from '../data/events.js';
+import {FACTIONS} from '../data/community.js';
 import {dayOf,fmtTime} from '../sim/util.js';
 import {$,esc,gimg,bus,fmtMin} from './dom.js';
 import {drawIcon} from './icons.js';
@@ -61,6 +62,13 @@ function draw(){
   // route to the selection
   const[px,py]=World.posXY(S,S.pos);
   if(sel!=null&&sel!==S.pos){const[sx,sy]=World.posXY(S,sel);x.setLineDash([6,6]);x.lineDashOffset=-pulse*8;x.strokeStyle='#e3a432';x.lineWidth=2;x.beginPath();x.moveTo(px,py);x.lineTo(sx,sy);x.stroke();x.setLineDash([])}
+  // the other communities: a banner each, coloured by how they stand with you, and a line for every trade route you run
+  {const C=World.Community,[hx,hy]=World.posXY(S,'home');for(const id of C.known(S)){const F=FACTIONS[id],fs=C.fac(S,id),rel=C.relOf(fs.st);
+    if(fs.route){x.setLineDash([2,5]);x.strokeStyle=F.c;x.globalAlpha=.8;x.lineWidth=2;x.beginPath();x.moveTo(hx,hy);x.lineTo(F.x,F.y);x.stroke();x.setLineDash([]);x.globalAlpha=1}
+    x.globalAlpha=fs.dead?.35:1;x.strokeStyle='#e9e3d1';x.lineWidth=1.5;x.beginPath();x.moveTo(F.x-7,F.y+9);x.lineTo(F.x-7,F.y-11);x.stroke();
+    x.fillStyle=F.c;x.beginPath();x.moveTo(F.x-7,F.y-11);x.lineTo(F.x+9,F.y-7);x.lineTo(F.x-7,F.y-2);x.closePath();x.fill();
+    x.font='700 11px "Barlow Condensed",sans-serif';x.textAlign='center';x.fillStyle='#e9e3d1';x.fillText(F.n.toUpperCase(),F.x,F.y+22);
+    x.font='600 10px "Barlow Condensed",sans-serif';x.fillStyle=fs.dead?'#8a8a80':fs.st<-15?'#ff9a8a':fs.st>=25?'#a8d878':'#b8b4a4';x.fillText(fs.dead?'BROKEN':rel[1].toUpperCase(),F.x,F.y+33);x.globalAlpha=1}}
   // places
   for(const n of nodes()){const l=n.loc,site=n.site,why=World.canVisit(S,n.id),isSel=n.id===sel,r=l&&l.id==='home'?17:14;
     x.save();x.translate(n.x,n.y);

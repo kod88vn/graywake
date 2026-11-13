@@ -6,7 +6,7 @@ import {RECIPES,VEHICLES} from '../data/recipes.js';
 import {PERK,xpFor,MAX_LEVEL} from '../data/progress.js';
 import {clamp,rnd} from './util.js';
 
-export const VERSION='0.4.1';
+export const VERSION='0.5.0';
 export const SAVE_V=1;
 export const HOME_W=46,HOME_H=46,EXIT_RING=2,NO_BUILD=4;
 export const MIN_PER_SEC=1.5;            // game minutes per real second: a day is 16 real minutes
@@ -27,10 +27,10 @@ export function blankState(seed){
     loc:{},sites:[],siteN:0,at:'home',from:'home',
     tide:{n:0,at:0,kind:'shamble',dir:0,weak:0,warned:0,live:null},
     weather:{id:'clear',until:0},
-    surv:[],survN:0,morale:60,
+    surv:[],survN:0,morale:60,wait:[],fac:{},clog:[],
     q:{i:0,base:{},contracts:[],refresh:0,done:[]},
     flags:{},seen:{},ach:{},stats:{},codex:{it:{},en:{}},scrip:0,veh:0,mut:0,depth:0,trader:null,nextEv:0,
-    set:{music:true,sfx:true,vol:.8,quality:'auto',shake:true,autoPick:true,autoRepair:true,hints:true,tides:'standard'},
+    set:{music:true,sfx:true,vol:.8,quality:'auto',shake:true,autoPick:true,autoRepair:true,replant:true,hints:true,tides:'standard'},
   };
 }
 
