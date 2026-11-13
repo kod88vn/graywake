@@ -51,7 +51,7 @@ for(const b in BLD){obj(BLD[b].wall,'building '+b);if(GT[BLD[b].floor]===undefin
 for(const b in BIOMES){for(const k of BIOMES[b].border)obj(k,'biome '+b);for(const k in BIOMES[b].deco)obj(k,'biome '+b);for(const g of['g','g2','g3'])if(GT[BIOMES[b][g]]===undefined)E(`biome ${b}: unknown ground ${BIOMES[b][g]}`)}
 // effects
 const fx=(list,where)=>{for(const f of list||[]){const[k,a]=f;if(k==='item'){item(a,where);got.add(a)}else if(k==='take')item(a,where);else if(k==='loot'){if(!LOOT[a])E(`${where}: unknown loot family ${a}`)}else if(k==='fight'){for(const e in a)foe(e,where)}else if(k==='site'){if(!SITES[a])E(`${where}: unknown site ${a}`)}
-  else if(!['hp','food','water','tox','time','xp','sp','scrip','surv','survleave','buff','horde','hordeWeak','morale','weather','raid','bp','trade','lose','losefood','crop','flag'].includes(k))E(`${where}: unknown effect "${k}"`)}};
+  else if(!['hp','food','water','tox','time','xp','sp','scrip','surv','survleave','buff','horde','hordeWeak','morale','weather','raid','bp','trade','lose','losefood','crop','flag','turnback'].includes(k))E(`${where}: unknown effect "${k}"`)}};
 const ids=new Set();
 for(const e of EVENTS){if(ids.has(e.id))E('duplicate event '+e.id);ids.add(e.id);if(!['travel','home'].includes(e.at))E(`event ${e.id}: bad "at"`);
   for(const o of e.o){for(const k in o.need||{})if(k!=='scrip')item(k,'event '+e.id);let p=0;for(const r of o.r){p+=r[0];fx(r[2],'event '+e.id)}if(Math.abs(p-1)>.001)E(`event ${e.id} option "${o.l}": chances sum to ${p}`)}}

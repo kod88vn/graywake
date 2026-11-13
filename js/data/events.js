@@ -113,7 +113,7 @@ E('ev_fuel','travel',5,'Tanker','A fuel tanker jack-knifed across both lanes. So
 E('ev_tide_sign','travel',6,'Trampled Ground','A swathe of flattened grass thirty yards wide, heading the same way you live.',[
   {l:'Follow it back to where they came from',r:[[1,'You find where they gather.',[['site','horde_nest'],['time',45]]]]},
   {l:'Lay false trails',r:[[.6,'It will not stop them, but it will slow them.',[['horde',5],['time',60]]],[.4,'They find you laying the trail.',[['fight',{shambler:5,runner:2}]]]]},
-  {l:'Hurry home',r:[[1,'You know what it means.',[]]]}],{min:{day:4}}),
+  {l:'Hurry home',r:[[1,'You know what it means.',[['turnback',1]]]]}],{min:{day:4}}),
 E('ev_hunter','travel',4,'The Trapper','An old man skinning a hare by a smokeless fire. He looks at your boots, then at you.',[
   {l:'Share the fire',r:[[1,'He talks about snares for an hour. You learn things.',[['xp',80],['time',60],['food',10]]]]},
   {l:'Trade hides for jerky',need:{hide:3},r:[[1,'A fair swap by his reckoning.',[['take','hide',3],['item','jerky',5],['item','leather',1]]]]},

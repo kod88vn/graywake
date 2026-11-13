@@ -135,6 +135,8 @@ export function applyFx(list,announce){
     else if(k==='scrip'){S.scrip=Math.max(0,S.scrip+a);if(a>0)stat('earned',a);out.push((a>0?'+':'')+a+' scrip')}
     else if(k==='loot'){for(const it of rollLoot(a,maxRegion(S),rnd,(b||1)-1)){give(S,it.id,it.n,it.d);out.push('+'+it.n+' '+ITEMS[it.id].n)}}
     else if(k==='fight'){G.pending=G.pending||{};G.pending.fight={table:a,home:b==='home'};out.push('Fight!')}
+    // a choice that says "go home" goes home: the trip under way is abandoned
+    else if(k==='turnback'){if(G.pending&&G.pending.dest&&G.pending.dest!=='home'){G.pending.dest='home';out.push('You turn back for the homestead')}}
     else if(k==='surv'){const sv=addSurvivor(S);out.push(sv?sv.n+' joins you':'No room for another survivor')}
     else if(k==='survleave'){if(S.surv.length){const sv=S.surv.splice(Math.floor(rnd()*S.surv.length),1)[0];out.push(sv.n+' leaves')}}
     else if(k==='buff'){addBuff(S,a,b,c);out.push(a==='weak'?'Weakened':'Feeling '+({resist:'steady',regen:'restored',speed:'quick',haste:'sharp',vigor:'strong'}[a]||'better'))}
