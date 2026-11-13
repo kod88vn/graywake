@@ -554,7 +554,7 @@ export function recycle(S,i){
 }
 export function mendCost(e){const it=ITEMS[e.id],r=recipeOf(e.id);if(!it.dur||e.d>=it.dur)return null;const f=(1-e.d/it.dur)*.35,out={};if(r)for(const k in r.i){const n=Math.ceil(r.i[k]*f);if(n>0&&ITEMS[k].t==='mat')out[k]=n}if(!Object.keys(out).length)out.scrap=Math.max(1,Math.ceil(it.v*f/6));return out}
 export function mend(S,ref){
-  const cost=mendCost(ref);if(!cost){toast('Not worn','info');return false}for(const k in cost)if(count(S,k,true)<cost[k]){toast('Missing '+ITEMS[k].n,'bad');sfx('error');return false}
+  const cost=mendCost(ref);if(!cost){toast('Not worn','info');return false}for(const k in cost)if(count(S,k,true)<cost[k]){toast('Missing '+ITEMS[k].n+': need '+cost[k]+', have '+count(S,k,true)+' (pack and boxes)','bad');sfx('error');return false}
   for(const k in cost)take(S,k,cost[k],true);ref.d=ITEMS[ref.id].dur;sfx('build');return true;
 }
 /** Auto-repair (the "Auto-repair tools" setting): called when a tool or weapon is nearly worn out. At home with a mending bench standing
