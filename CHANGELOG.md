@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- A survivor running a trade route shows why they have no job buttons, with a button to bring them home to work. The bot made Imre a runner by mistake and then found no way to give him a job.
+
 ## 0.10.6 — 2026-11-13
 
 - **A survivor's job is one tap**: a button per job in the Camp ledger's People tab, the current one lit, in place of a drop-down that was awkward on a phone and could not be used at all by the bot (it took in Imre and could not give him work).
