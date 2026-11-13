@@ -6,7 +6,7 @@ import {RECIPES,VEHICLES} from '../data/recipes.js';
 import {PERK,xpFor,MAX_LEVEL} from '../data/progress.js';
 import {clamp,rnd} from './util.js';
 
-export const VERSION='0.4.0';
+export const VERSION='0.4.1';
 export const SAVE_V=1;
 export const HOME_W=46,HOME_H=46,EXIT_RING=2,NO_BUILD=4;
 export const MIN_PER_SEC=1.5;            // game minutes per real second: a day is 16 real minutes
@@ -30,7 +30,7 @@ export function blankState(seed){
     surv:[],survN:0,morale:60,
     q:{i:0,base:{},contracts:[],refresh:0,done:[]},
     flags:{},seen:{},ach:{},stats:{},codex:{it:{},en:{}},scrip:0,veh:0,mut:0,depth:0,trader:null,nextEv:0,
-    set:{music:true,sfx:true,vol:.8,quality:'auto',shake:true,autoPick:true,hints:true,tides:'standard'},
+    set:{music:true,sfx:true,vol:.8,quality:'auto',shake:true,autoPick:true,autoRepair:true,hints:true,tides:'standard'},
   };
 }
 
@@ -106,10 +106,12 @@ export function dropAt(Z,x,y,items){
   d.t=0;return d;
 }
 /** Wear down the item in an equipment slot. Returns true if it broke. */
+/** With the auto-repair setting on, a tool or weapon that is nearly worn out gets repaired on the spot (see autoRepair in world.js). True if it was. */
+function nearlyWorn(S,ref){const it=ITEMS[ref.id];return!!(S.set.autoRepair&&it&&it.dur&&ref.d<=Math.max(2,it.dur*.12)&&G.hooks.repair&&G.hooks.repair(S,ref)&&ref.d>0)}
 export function wear(S,slot,n=1){
   const e=S.p.eq[slot];if(!e||e.d===undefined)return false;
   if(rnd()<perk('dur'))return false;
-  e.d-=n;if(e.d>0)return false;
+  e.d-=n;if((slot==='w1'||slot==='w2')&&nearlyWorn(S,e))return false;if(e.d>0)return false;
   toast(ITEMS[e.id].n+' broke','bad');sfx('break');S.p.eq[slot]=null;emit('eq');return true;
 }
 /** Best tool of a type in the pack or hands: {slot|inv index, item def, ref}. */
@@ -118,7 +120,7 @@ export function findTool(S,type,minTier=0){
   see(S.p.eq.w1,'w1');see(S.p.eq.w2,'w2');S.p.inv.forEach((s,i)=>see(s,i));return best;
 }
 export function wearTool(S,tool,n=1){
-  if(rnd()<perk('dur'))return;const ref=tool.ref;ref.d-=n;if(ref.d>0)return;
+  if(rnd()<perk('dur'))return;const ref=tool.ref;ref.d-=n;if(nearlyWorn(S,ref))return;if(ref.d>0)return;
   toast(tool.it.n+' broke','bad');sfx('break');
   if(typeof tool.where==='string'){S.p.eq[tool.where]=null;emit('eq')}else S.p.inv[tool.where]=null;
 }

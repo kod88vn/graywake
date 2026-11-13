@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.4.1 — 2026-11-12
+
+- **Auto mode defends itself.** Hostiles closing in, or a hit, no longer switch auto mode off. It draws the better of your two weapons (a gun while it has ammunition, otherwise whatever hits hardest; it never throws anything), fights whatever has noticed you, backs away from melee attackers when shooting, bandages itself from the pack under 45% health, and goes back to gathering with your own weapon choice back in hand. After a hit it looks further out, to reach whoever is shooting. It still stops when you move or attack yourself, when the pack is full or when nothing is left to gather. It does not retreat: badly hurt with no medicine it warns you and keeps fighting.
+- **Auto-repair tools** (Menu, Play; on by default). A tool or weapon that is nearly worn out is repaired on the spot: at home with a mending bench standing it is mended in full from materials in the pack or storage, anywhere else a repair kit is spent. With neither it tells you once, and the tool wears out as before. Armour is not touched.
+
 ## 0.4.0 — 2026-11-12
 
 The look changes from stylised realism to cel-shaded anime in 3D.

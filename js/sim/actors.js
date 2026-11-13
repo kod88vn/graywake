@@ -3,7 +3,7 @@
 import {ITEMS} from '../data/items.js';
 import {OBJ} from '../data/objects.js';
 import {ENEMIES,scale} from '../data/enemies.js';
-import {G,emit,toast,sfx,stat,statMax,derive,perk,weaponDef,weaponItem,count,take,give,addTo,slotCount,freeSlots,roomFor,wear,findTool,wearTool,dropAt,addXp,maxHp,FIST} from './core.js';
+import {G,emit,toast,sfx,stat,statMax,derive,perk,weaponDef,weaponItem,count,take,give,addTo,slotCount,freeSlots,roomFor,wear,findTool,wearTool,dropAt,addXp,maxHp,FIST,quickUse} from './core.js';
 import {collide,los,shotBlock,blockAt,playerField,field,stepOn,rollLoot,freeNear,atExit} from './zone.js';
 import {noteKill} from './quests.js';
 import {clamp,dist,angDiff,rnd,TAU} from './util.js';
@@ -77,7 +77,7 @@ export function hurtPlayer(Z,dmg,o={}){
     if(o.kb&&!ds.steady){p.kx=(o.kx||0)*o.kb;p.ky=(o.ky||0)*o.kb}}
   if(o.tox)S.p.tox=clamp(S.p.tox+o.tox*(1-ds.tox),0,100);
   if(o.slow)p.slowT=Math.max(p.slowT,o.slow);
-  if(G.auto){G.auto=false;p.auto=null}
+  if(G.auto&&!o.dot){p.auto=null;p.alarm=Z.time}
   if(S.p.hp<=0){S.p.hp=0;p.dead=true;p.act=null;p.atk=null;sfx('death');emit('fx','die',p.x,p.y);if(G.hooks.die)G.hooks.die()}
 }
 export function damageObj(Z,i,dmg){
@@ -320,9 +320,48 @@ function autoTarget(Z,p){
   if(best===-2)return{drop:p.autoDrop,f:field(Z,Math.floor(p.autoDrop.x),Math.floor(p.autoDrop.y),true,120)};
   return{i:best,f:field(Z,best%W,Math.floor(best/W),true,120)};
 }
+/** The hostile auto mode should deal with now: the nearest one that has noticed you, within 9 tiles (16 for a few seconds after you are hit, to reach whoever is shooting). */
+function autoFoe(Z,p){
+  const R=p.alarm!==undefined&&Z.time-p.alarm<6?16:9;let best=null,bd=R;
+  for(const a of Z.actors){if(a.team!==1||a.dead||!a.alert||a.def.ai==='flee')continue;const d=dist(a.x,a.y,p.x,p.y)-a.r;if(d<bd){bd=d;best=a}}
+  return best;
+}
+/** The weapon slot auto mode fights with: a loaded gun if there is one, otherwise whichever slot hits hardest. It never throws anything by itself. */
+function autoWeapon(S){
+  let best=S.p.active,bs=-1;
+  for(const slot of['w1','w2']){const e=S.p.eq[slot],w=e?ITEMS[e.id]:FIST;let v;
+    if(w.t==='throw')v=0;else if(w.t==='gun')v=count(S,w.ammo)>0?1000+(w.dmg||1)*(w.pellets||1)/(w.spd||.5):0;else v=1+(w.dmg||1)/(w.spd||.5);
+    if(v>bs){bs=v;best=slot}}
+  return best;
+}
+/** Auto mode defends itself: draw the best weapon, close in (or hold and shoot), patch itself up from the pack, and go back to gathering when the place is clear. */
+function autoFight(Z,p,e,dt){
+  const S=G.S,ds=G.ds;
+  if(!p.fight){p.fight={slot:S.p.active,t:Z.time,heal:0,warn:false,f:null,ft:-9};p.auto=null;p.act=null;toast('Auto: defending against '+e.def.n,'bad')}
+  const F=p.fight;F.t=Z.time;
+  if(S.p.hp<ds.maxHp*.45&&Z.time>=F.heal){F.heal=Z.time+2.5;const med=S.p.inv.some(it=>it&&(ITEMS[it.id].t==='med'?ITEMS[it.id].hp>0:ITEMS[it.id].t==='food'&&ITEMS[it.id].hp>=8));
+    if(med)quickUse(S,'hp');else if(S.p.hp<ds.maxHp*.25&&!F.warn){F.warn=true;toast('Badly hurt and no medicine: auto is still fighting','bad');sfx('error')}}
+  if(!p.atk){const slot=autoWeapon(S);if(slot!==S.p.active){S.p.active=slot;emit('eq')}}
+  const w=weaponDef(S),gun=w.t==='gun'&&count(S,w.ammo)>0,thrown=w.t==='throw',d=dist(p.x,p.y,e.x,e.y),see=los(Z,p.x,p.y,e.x,e.y),ang=Math.atan2(e.y-p.y,e.x-p.x);
+  const reach=gun?Math.min(w.rng*.8,8):(thrown?FIST.rng:w.rng)+e.r-.15;
+  p.tgt=e;
+  if(see&&d<=reach+(gun?0:.2)&&!p.roll){
+    p.a=ang;
+    if(p.cd<=0&&!p.atk){if(thrown)meleeSwing(Z,p,FIST,FIST.spd/ds.haste);else{const keep=G.inp.aim;G.inp.aim={x:e.x,y:e.y};tryAttack(Z,p);G.inp.aim=keep}}
+    // with a gun, back away from anything that gets close; with a blade, stand and swing
+    if(gun&&d<2.4&&!e.def.proj)return[-Math.cos(ang),-Math.sin(ang)];
+    return[0,0];
+  }
+  if(see&&d<8)return[Math.cos(ang),Math.sin(ang)];
+  // out of sight: follow a path to it, refreshed twice a second
+  if(Z.time-F.ft>.5){F.ft=Z.time;F.f=field(Z,Math.floor(e.x),Math.floor(e.y),true,60)}
+  const n=stepOn(Z,F.f,p.x,p.y);if(n<0)return[0,0];
+  const gx=n%Z.w+.5,gy=Math.floor(n/Z.w)+.5,l=Math.hypot(gx-p.x,gy-p.y)||1;return[(gx-p.x)/l,(gy-p.y)/l];
+}
 function autoStep(Z,p,dt){
   const S=G.S;
-  if(threatNear(Z,9)){G.auto=false;p.auto=null;toast('Auto stopped: hostiles close','bad');return[0,0]}
+  const foe=autoFoe(Z,p);if(foe)return autoFight(Z,p,foe,dt);
+  if(p.fight){if(Z.time-p.fight.t<1.5&&S.p.active!==p.fight.slot){S.p.active=p.fight.slot;emit('eq')}p.fight=null;p.auto=null;toast('Auto: clear, back to gathering','info')}
   if(freeSlots(S)===0&&!p.act){G.auto=false;p.auto=null;toast('Auto stopped: pack full','info');return[0,0]}
   if(p.act)return[0,0];
   let a=p.auto;
@@ -344,7 +383,7 @@ function stepPlayer(Z,dt){
   p.cd-=dt;p.rollCd-=dt;p.iframe-=dt;p.slowT-=dt;p.hurtT-=dt;p.noAmmoT-=dt;if(p.recoil>0)p.recoil-=dt;if(p.atkT>0)p.atkT-=dt;
   p.sneak=!!inp.sneak;
   let mx=inp.mx,my=inp.my,ml=Math.hypot(mx,my);if(ml>1){mx/=ml;my/=ml;ml=1}
-  if(G.auto){if(ml>.3||inp.attack){G.auto=false;p.auto=null}else{[mx,my]=autoStep(Z,p,dt);ml=Math.hypot(mx,my)}}
+  if(G.auto){if(ml>.3||inp.attack){G.auto=false;p.auto=null;p.fight=null}else{[mx,my]=autoStep(Z,p,dt);ml=Math.hypot(mx,my)}}
   if(inp.dodge){inp.dodge=false;if(p.rollCd<=0&&!p.roll){const dx=ml>.1?mx/ml:Math.cos(p.a),dy=ml>.1?my/ml:Math.sin(p.a);p.roll={t:.3,dx,dy};p.rollCd=1.5*(1-perk('dodge'));p.iframe=.34;p.act=null;p.atk=null;sfx('swing',p.x,p.y,{pitch:.7})}}
   let speed=ds.spd*(p.sneak?.5:1)*(p.slowT>0?.55:1),vx=mx*speed,vy=my*speed;
   if(p.roll){p.roll.t-=dt;vx=p.roll.dx*10;vy=p.roll.dy*10;if(p.roll.t<=0)p.roll=null}

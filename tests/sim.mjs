@@ -43,6 +43,36 @@ safe('gather',()=>{
   T.ok(count(S,'log')>logs0,'auto-gather with a hatchet fells trees (+'+(count(S,'log')-logs0)+' logs)');
   G.auto=false;T.ok((S.stats.wood||0)>0&&S.p.xp+S.p.lvl>1,'gathering gives stats and xp (level '+S.p.lvl+')');
 });
+// ---- auto mode defends itself instead of stopping
+safe('auto defence',()=>{
+  const S=G.S,Z=G.Z,p=Z.pl;S.p.inv=S.p.inv.map(()=>null);S.p.eq.w1={id:'hatchet_stone',d:60};S.p.eq.w2=null;S.p.active='w1';G.ds=derive(S);S.p.hp=G.ds.maxHp;give(S,'bandage',2);
+  const k0=S.stats.kills||0,logs0=0;G.auto=true;run(2);
+  const e1=spawnActor(Z,'shambler',p.x+3,p.y,1),e2=spawnActor(Z,'shambler',p.x-3,p.y+1,1);e1.alert=e2.alert=true;e1.st=e2.st='chase';
+  let hit=false,stopped=false;run(30,()=>{S.p.food=80;S.p.water=80;if(S.p.hp<G.ds.maxHp)hit=true;if(!G.auto)stopped=true});
+  T.ok(!stopped&&G.auto,'auto mode stays on when hostiles close in');
+  T.ok(e1.dead&&e2.dead&&(S.stats.kills||0)>=k0+2,'auto mode kills what attacks it ('+((S.stats.kills||0)-k0)+' kills'+(hit?', took hits':'')+')');
+  T.ok(S.p.hp>0&&!p.dead,'and survives two shamblers at level 1 (health '+Math.round(S.p.hp)+')');
+  run(60,()=>{S.p.food=80;S.p.water=80});T.ok(!p.fight&&count(S,'log')+count(S,'stick')+count(S,'fiber')+count(S,'stone')>logs0,'then goes back to gathering');
+  // a gun is preferred while it has ammunition, and the slot the player chose comes back afterwards
+  S.p.inv=S.p.inv.map(()=>null);give(S,'bandage',2);S.p.eq.w2={id:'bow',d:80};give(S,'arrow',30);S.p.active='w1';G.ds=derive(S);G.auto=true;const e3=spawnActor(Z,'shambler',p.x+6,p.y,1);e3.alert=true;e3.st='chase';
+  let usedBow=false;run(20,()=>{S.p.food=80;S.p.water=80;if(S.p.active==='w2')usedBow=true});
+  T.ok(e3.dead&&usedBow&&count(S,'arrow')<30,'auto mode draws the bow when it has arrows');T.ok(S.p.active==='w1','and puts the player\'s own choice back in hand afterwards');
+  G.auto=true;S.p.hp=10;const e4=spawnActor(Z,'shambler',p.x+2,p.y,1);e4.alert=true;e4.st='chase';const b0=count(S,'bandage');run(6,()=>{S.p.food=80;S.p.water=80});
+  T.ok(count(S,'bandage')<b0,'auto mode bandages itself when badly hurt');
+  G.auto=false;p.fight=null;for(const a of Z.actors)if(a.team===1)a.dead=true;S.p.eq.w2=null;S.p.hp=G.ds.maxHp;
+});
+// ---- auto-repair setting
+safe('auto repair',()=>{
+  const S=G.S,Z=G.Z;S.p.inv=S.p.inv.map(()=>null);S.p.eq.w1={id:'hatchet_stone',d:5};S.p.active='w1';S.set.autoRepair=true;G.ds=derive(S);
+  G.auto=true;run(40,()=>{S.p.food=80;S.p.water=80});
+  T.ok(!S.p.eq.w1||S.p.eq.w1.id!=='hatchet_stone'||S.p.eq.w1.d<=5,'without a kit a worn hatchet wears out as before');
+  S.p.inv=S.p.inv.map(()=>null);S.p.eq.w1={id:'hatchet_stone',d:5};give(S,'repair_kit',1);G.auto=true;let fixed=false;run(40,()=>{S.p.food=80;S.p.water=80;if(S.p.eq.w1&&S.p.eq.w1.d>40)fixed=true});
+  T.ok(fixed&&S.p.eq.w1&&S.p.eq.w1.id==='hatchet_stone'&&count(S,'repair_kit')===0,'with auto-repair on, a nearly worn hatchet is fixed with a kit and keeps working (durability '+(S.p.eq.w1?S.p.eq.w1.d:'gone')+')');
+  S.p.inv=S.p.inv.map(()=>null);S.p.eq.w1={id:'hatchet_stone',d:5};give(S,'repair_kit',1);S.set.autoRepair=false;G.auto=true;run(40,()=>{S.p.food=80;S.p.water=80});
+  T.ok(count(S,'repair_kit')===1,'with auto-repair off the kit is left alone');
+  S.set.autoRepair=true;G.auto=false;S.p.inv=S.p.inv.map(()=>null);S.p.eq.w1={id:'hatchet_stone',d:60};
+  const back=World.deserialize(JSON.stringify(Object.assign(JSON.parse(World.serialize()),{})).replace('"autoRepair":true,',''));T.ok(back&&back.set.autoRepair===true,'an older save without the setting loads with auto-repair on');
+});
 // ---- building and crafting at stations
 let cx,cy;
 safe('build',()=>{

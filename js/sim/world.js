@@ -466,6 +466,18 @@ export function mend(S,ref){
   const cost=mendCost(ref);if(!cost){toast('Not worn','info');return false}for(const k in cost)if(count(S,k,true)<cost[k]){toast('Missing '+ITEMS[k].n,'bad');sfx('error');return false}
   for(const k in cost)take(S,k,cost[k],true);ref.d=ITEMS[ref.id].dur;sfx('build');return true;
 }
+/** Auto-repair (the "Auto-repair tools" setting): called when a tool or weapon is nearly worn out. At home with a mending bench standing
+ *  and the materials in the pack or in storage it is mended in full; anywhere else a repair kit is spent. Says so once if neither is possible. */
+const warnedWorn=new WeakSet();
+export function autoRepair(S,ref){
+  const it=ITEMS[ref.id];if(!it||!it.dur)return false;
+  if(G.Z&&G.Z.home&&hasBuilt(S,d=>d.special==='repair')){const cost=mendCost(ref);
+    if(cost&&Object.keys(cost).every(k=>count(S,k,true)>=cost[k])){for(const k in cost)take(S,k,cost[k],true);ref.d=it.dur;warnedWorn.delete(ref);toast(it.n+' mended at the bench','good');sfx('build');return true}}
+  if(take(S,'repair_kit',1)){ref.d=Math.min(it.dur,Math.max(0,ref.d)+Math.max(60,it.dur*.6));warnedWorn.delete(ref);const left=count(S,'repair_kit');toast(it.n+' repaired with a kit ('+(left?left+' left':'that was the last one')+')','good');sfx('build');return true}
+  if(!warnedWorn.has(ref)){warnedWorn.add(ref);toast(it.n+' is nearly worn out and there is no repair kit','bad')}
+  return false;
+}
+G.hooks.repair=autoRepair;
 export function raiseMutation(S){if(!S.flags.core_dead)return false;S.mut++;statMax('mutation',S.mut);for(const id in S.loc)S.loc[id].cool=0;toast('Mutation tier '+S.mut+': everything out there is stronger, and carries more','bad');sfx('horde_horn');emit('save');return true}
 
 // ---------------------------------------------------------------- save format

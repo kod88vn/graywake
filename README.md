@@ -17,7 +17,7 @@ Needs Node 22 or newer. There is nothing to install.
 | Move | WASD | left thumb, anywhere on the left half |
 | Attack | left click (aims at the cursor) | big button (aims by itself) |
 | Interact | E or right click | Use |
-| Auto-gather | F | AUTO |
+| Auto-gather (fights back if attacked) | F | AUTO |
 | Dodge / sneak | Space / Shift | Dodge / Sneak |
 | Swap weapon | Q | tap the other weapon slot |
 | Pack, craft, build, journal, camp | I, C, B, J, L | buttons, top right |

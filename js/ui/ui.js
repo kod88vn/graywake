@@ -123,7 +123,7 @@ function hot(k){
   else if(k==='build'){if(G.build)buildClose();else if(Z&&Z.home&&!S.tide.live)buildOpen();else toast(S.tide.live?'Not during a tide':'You can only build at home','info')}
   else if(G.mode!=='play'||!Z)return;
   else if(k==='swap'){S.p.active=S.p.active==='w1'?'w2':'w1';bus.emitEq();sfx('equip');needHud=true}
-  else if(k==='auto'){G.auto=!G.auto;if(Z.pl)Z.pl.auto=null;if(G.auto){const pl=autoPlan(Z);toast('Auto-gather on'+(pl.using.length?': using '+pl.using.join(', ').toLowerCase():': by hand only'),'info');if(pl.skipping.length)toast('Skipping '+pl.skipping.slice(0,3).join(', '),'bad')}else toast('Auto-gather off','info');needHud=true}
+  else if(k==='auto'){G.auto=!G.auto;if(Z.pl){Z.pl.auto=null;Z.pl.fight=null}if(G.auto){const pl=autoPlan(Z);toast('Auto-gather on'+(pl.using.length?': using '+pl.using.join(', ').toLowerCase():': by hand only'),'info');if(pl.skipping.length)toast('Skipping '+pl.skipping.slice(0,3).join(', '),'bad')}else toast('Auto-gather off','info');needHud=true}
   else if(k==='rotate'){B.rot=(B.rot+1)%4}
   else if(k==='leave'){if(Z.exit)World.leaveZone();else toast('Walk to the edge of the area to leave','info')}
   else if(k.startsWith('q_')){quickUse(S,k.slice(2));needHud=true}
