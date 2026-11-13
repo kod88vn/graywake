@@ -6,7 +6,9 @@ import fs from 'node:fs';import path from 'node:path';import {spawn} from 'node:
 import {OUT} from '../lib.mjs';
 const cur=path.join(OUT,'bot','current.json');
 if(!fs.existsSync(cur)){console.error('No bot session is running. Start one with: npm run bot   (or: node tools/bot/session.mjs)');process.exit(1)}
-const M=JSON.parse(fs.readFileSync(cur,'utf8')),base=`http://127.0.0.1:${M.port}`,[cmd,...args]=process.argv.slice(2);
+// with two sessions running, `--port N` says which one; without it, the one that started last
+const argv=process.argv.slice(2),pi=argv.indexOf('--port'),PORT=pi>=0?+argv.splice(pi,2)[1]:0;
+const M=JSON.parse(fs.readFileSync(cur,'utf8')),base=`http://127.0.0.1:${PORT||M.port}`,[cmd,...args]=argv;
 const post=async(p,b)=>(await fetch(base+p,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(b)})).json();
 try{
   if(!cmd||cmd==='status'){const s=await (await fetch(base+'/api/status')).json();
