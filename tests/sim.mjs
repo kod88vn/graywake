@@ -378,6 +378,19 @@ safe('road',()=>{
   lootAll(G.Z,bi);G.Z.exit=true;World.leaveZone();T.ok(count(S,'log')===7&&!S.sites.some(x=>x.site==='fell'),'and once it is picked up the place is gone from the map');
   G.Z=null;World.arrive('home');
 });
+safe('world',()=>{
+  // a shared world's news: leads go on and off the map, a lead from before joining is not doubled, the stage weighs on tides, and exile starts over
+  const S=World.newGame(999);G.auto=false;S.p.lvl=6;give(S,'spear',1);G.ds=derive(S);const own=World.addLead(S,'lead_police');
+  const W=(leads,stage=0)=>({id:'w1',name:'Testwater',day:3,t:S.t,stage,stageName:'Stage '+stage,stageText:'',points:0,next:8,fx:{tide:1+stage*.1},enclaves:[{name:'Me',kind:'human',hold:60,score:0,day:3,level:6,deeds:{held:0,lost:0,deaths:0,leads:0}},{name:'Them',kind:'npc',hold:70,score:5,day:3,level:1,deeds:{held:0,lost:0,deaths:0,leads:0}}],feed:[],gone:[],leads});
+  S.net={url:'x',world:'w1',enclave:'e',token:'t',name:'Me',heard:{}};const b0=World.tideBudget(S,3);
+  World.worldNews(S,W([{id:'w1-l1',kind:'lead_police',ang:1,far:.5,until:S.t+600,by:null}]),{name:'Me',hold:60,rank:2,of:2});
+  const mine=S.sites.filter(s=>s.site==='lead_police');T.ok(mine.length===1&&mine[0].wid==='w1-l1'&&!S.sites.includes(own),"a world's lead goes on the map once, and a lead from before joining is struck off");
+  World.worldNews(S,W([{id:'w1-l1',kind:'lead_police',ang:1,far:.5,until:S.t+600,by:'Them'}]),{name:'Me',hold:60,rank:2,of:2});T.ok(!S.sites.some(s=>s.wid),'a lead a rival has opened is struck off the map');
+  World.worldNews(S,W([{id:'w1-l1',kind:'lead_police',ang:1,far:.5,until:S.t+600,by:null}]),{name:'Me',hold:60,rank:2,of:2});T.ok(!S.sites.some(s=>s.wid),'and is not put back');
+  World.worldNews(S,W([],3),{name:'Me',hold:60,rank:2,of:2});T.ok(Math.abs(World.tideBudget(S,3)/b0-1.3)<1e-9&&S.world.stage===3,'a later stage of the world makes tides heavier (×1.3)');
+  const seed=S.seed;S.tide.n=5;give(S,'log',9);World.exile(S);T.ok(S.seed!==seed&&S.tide.n===0&&G.Z.home&&S.p.lvl===6&&count(S,'log')===9&&S.world===null&&S.sites.length===0,'exile gives a new homestead and keeps the character and what it carries');
+  G.Z=null;
+});
 safe('gear',()=>{
   const S=World.newGame(777);G.auto=false;const p=S.p;
   // what is gained goes on if nothing is there, and stays in the pack if something is

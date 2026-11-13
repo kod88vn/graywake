@@ -279,6 +279,8 @@ export function worldNews(S,W,you){
   S.world={id:W.id,name:W.name,day:W.day,stage:W.stage,stageName:W.stageName,stageText:W.stageText,points:W.points,next:W.next,fx:W.fx||{},enclaves:W.enclaves||[],feed:W.feed||[],gone:W.gone||[],you:you||null};
   if(was&&was.id===W.id&&W.stage>was.stage){toast('The world moves on: '+W.stageName,'bad');sfx('warning')}
   const net=S.net||(S.net={});net.heard=net.heard||{};
+  // leads heard before joining belong to no world: they are struck off, so the same place is never on the map twice (one being stood in, or holding a dropped pack, stays)
+  S.sites=S.sites.filter(s=>!(SITES[s.site]&&SITES[s.site].lead&&!s.wid&&!(G.Z&&G.Z.site===s.id)&&!(s.bag&&s.bag.some(Boolean))));if(S.lead.note&&!S.sites.some(s=>s.id===S.lead.note))S.lead.note=null;
   for(const l of W.leads||[]){const site=S.sites.find(s=>s.wid===l.id);
     if(l.by&&l.by!==me){if(site&&!(G.Z&&G.Z.site===site.id)){S.sites=S.sites.filter(s=>s!==site);if(S.lead.note===site.id)S.lead.note=null;toast('Radio: '+l.by+' reached the '+SITES[l.kind].n+' first','bad');sfx('radio')}net.heard[l.id]=1;continue}
     if(site||l.by||net.heard[l.id]||!SITES[l.kind]||S.tide.live)continue;
@@ -615,7 +617,7 @@ const warnedWorn=new WeakSet();
 export function autoRepair(S,ref){
   const it=ITEMS[ref.id];if(!it||!it.dur)return false;
   if(G.Z&&G.Z.home&&hasBuilt(S,d=>d.special==='repair')){const cost=mendCost(ref);
-    if(cost&&Object.keys(cost).every(k=>count(S,k,true)>=cost[k])){for(const k in cost)take(S,k,cost[k],true);ref.d=it.dur;warnedWorn.delete(ref);toast(it.n+' mended at the bench','good');sfx('build');return true}}
+    if(cost&&Object.keys(cost).every(k=>count(S,k,true)>=cost[k])){for(const k in cost)take(S,k,cost[k],true);ref.d=it.dur;warnedWorn.delete(ref);toast(it.n+' mended: your Mending Bench keeps tools up at home while the materials last','good');sfx('build');return true}}
   if(take(S,'repair_kit',1)){ref.d=Math.min(it.dur,Math.max(0,ref.d)+Math.max(60,it.dur*.6));warnedWorn.delete(ref);const left=count(S,'repair_kit');toast(it.n+' repaired with a kit ('+(left?left+' left':'that was the last one')+')','good');sfx('build');return true}
   if(!warnedWorn.has(ref)){warnedWorn.add(ref);toast(it.n+' is nearly worn out and there is no repair kit','bad')}
   return false;
