@@ -3,6 +3,7 @@
 ## Unreleased
 
 - **Auto mode empties a full pack at home.** When gathering fills the pack at the homestead, Auto carries the materials to the nearest storage box with room, puts them in ("Auto: put 6 stacks of materials in the Small Box") and goes back to work. It only stops when no box will take them, and says to build another.
+- **A lead's rating counts how much killing is left in your weapons.** A fresh flint spear had about 900 points of damage in it and a Hardware Store's garrison about 1,200 health, so a place rated fair could not be finished with the weapon it was rated for. The rating now works through the garrison with the best weapon until it would break (repair kits and ammunition counted), then the spare, then bare hands. The three starting weapons also last longer: club 50 to 80 blows, flint spear 60 to 100, bone knife 70 to 100.
 - In a shared world every change of hold is announced ("Your hold on Pinewatch: 76 → 86"), and a deed is reported within a second.
 
 ## 0.10.2 — 2026-11-13

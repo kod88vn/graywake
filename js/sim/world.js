@@ -205,10 +205,12 @@ const THREAT=['','Easy pickings','A fair fight','Dangerous','Very dangerous','De
  *  (armour and the medicine in their pack included). It weighs their best weapon against the garrison's health and its blows, at the place's
  *  level. About a third is comfortable, one is even, three is hopeless. Level alone says little: a spear does not grow with its owner. */
 export function leadOdds(S,def,lvl){
-  const ds=derive(S),p=S.p;let dps=FIST.dmg/FIST.spd;
-  for(const slot of['w1','w2']){const e=p.eq[slot],w=e&&ITEMS[e.id];if(!w)continue;let v=0;
-    if(w.t==='gun')v=count(S,w.ammo)/(w.ammoPer||1)>=12?w.dmg*(w.pellets||1)*.7/w.spd*(ds.ranged||1):0;else if(w.t!=='throw')v=w.dmg/w.spd*(ds.melee||1)*(w.fx&&w.fx.cleave?1.3:1);
-    if(w.dur&&e.d!==undefined&&e.d<w.dur*.15)v*=.4;if(v>dps)dps=v}
+  const ds=derive(S),p=S.p,fist=FIST.dmg/FIST.spd,arms=[];
+  // each weapon in hand: how fast it kills, and how much killing is left in it before it breaks or runs dry (a repair kit puts three fifths back)
+  for(const slot of['w1','w2']){const e=p.eq[slot],w=e&&ITEMS[e.id];if(!w||w.t==='throw')continue;
+    if(w.t==='gun'){const shots=count(S,w.ammo)/(w.ammoPer||1);if(shots>=12)arms.push({v:w.dmg*(w.pellets||1)*.7/w.spd*(ds.ranged||1),cap:shots*w.dmg*(w.pellets||1)*.7})}
+    else arms.push({v:w.dmg/w.spd*(ds.melee||1)*(w.fx&&w.fx.cleave?1.3:1),cap:w.dur&&e.d!==undefined?(e.d+(arms.some(a=>a.kit)?0:count(S,'repair_kit')*w.dur*.6))*w.dmg*(ds.melee||1):Infinity,kit:1})}
+  arms.sort((a,b)=>b.v-a.v);
   let hp=0,dmg=0,n=0;const add=(k,c)=>{const e=ENEMIES[k];if(!e||e.ai==='flee')return;const sc=scale(k,lvl,S.mut||0);hp+=c*sc.hp/(1-(e.arm||0)*.8);dmg+=c*sc.dmg/e.cd*(e.proj?1.4:1);n+=c;
     if(e.call&&ENEMIES[e.call.kind]&&!ENEMIES[e.call.kind].call)add(e.call.kind,c*e.call.n)};   // one that calls others in gets a call off before it dies
   for(const t of[def.en,def.inn])for(const k in t||{})add(k,t[k]);if(def.boss)add(def.boss,1);if(!n)return 0;
@@ -217,6 +219,9 @@ export function leadOdds(S,def,lvl){
   // in a building they come two or three at a time, and about a third of their blows land on someone who keeps moving;
   // in the open (an ambush on the road) they all come at once, up to as many as can get round one person, and more of their blows land
   // toxic air eats health for as long as the fight lasts, and what lives in it spits more of the same: without a mask the place is that much worse
+  // the garrison's health is worked through with the best weapon until it gives out, then the next, then bare hands: a flint spear has about 900 points
+  // of killing in it and a Hardware Store's garrison 1,200, so a place the spear cannot finish is rated for the fists that finish it (0.10.3)
+  let left=hp,time=0;for(const a of arms){if(left<=0)break;if(a.v<=fist)continue;const use=Math.min(left,a.cap);time+=use/a.v;left-=use}if(left>0)time+=left/fist;const dps=hp/time;
   const open=def.open,air=1+(def.tox||0)*1.6*(1-(ds.tox||0));return hp/dps*(dmg/n*Math.min(open?AMBUSH.round:2.5,n)*(open?AMBUSH.land:.33))/mine*air;
 }
 /** Fights that events start on the road. Everything arrives awake and at once, so the same garrison is far deadlier than in a building:
