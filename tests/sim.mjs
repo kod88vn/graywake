@@ -10,7 +10,7 @@ import {LOCATIONS,SITES} from '../js/data/world.js';
 import {EVENTS} from '../js/data/events.js';
 import {STORY} from '../js/data/progress.js';
 import {G,EREF,edgeIdx,structAt,dropAt,give,count,craft,place,upgrade,demolish,repair,moveObj,rotateObj,canMove,equip,useItem,quickUse,learnPerk,derive,canPlace,slotCount,freeSlots,sortInv,HOME_W} from '../js/sim/core.js';
-import {genZone,field,siteDef,blockAt,collide,los,edgeCross} from '../js/sim/zone.js';
+import {genZone,field,siteDef,blockAt,collide,los,edgeCross,edgeBetween} from '../js/sim/zone.js';
 import {spawnActor,enemiesAlive,populate,interact,interactInfo,guardDown,findInteract,lootAll,openLoot,plant,damageObj} from '../js/sim/actors.js';
 import * as World from '../js/sim/world.js';
 import {goalProgress,story,genContract,contractText,turnIn} from '../js/sim/quests.js';
@@ -169,10 +169,11 @@ safe('worldgen',()=>{
   const S=G.S;let bad=0,total=0;
   const test=(def,name,seed)=>{const Z=genZone(def,seed);total++;
     const f=field(Z,Math.floor(Z.spawn.x),Math.floor(Z.spawn.y),true,9999);let cont=0,reach=0,nodes=0,nreach=0;
-    Z.obj.forEach((o,i)=>{if(!o)return;const d=OBJ[o.k];if(!(d.loot||d.node))return;const x=i%Z.w,y=Math.floor(i/Z.w);let ok=false;for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++)if(f[(y+dy)*Z.w+x+dx]<1e9)ok=true;if(d.loot){cont++;if(ok)reach++}else{nodes++;if(ok)nreach++}});
+    Z.obj.forEach((o,i)=>{if(!o)return;const d=OBJ[o.k];if(!(d.loot||d.node))return;const x=i%Z.w,y=Math.floor(i/Z.w);// reachable means: a cell beside it can be walked to, with no wall between that cell and the thing
+      let ok=false;for(const[dx,dy]of[[1,0],[-1,0],[0,1],[0,-1]])if(f[(y+dy)*Z.w+x+dx]<1e9&&edgeBetween(Z,x,y,x+dx,y+dy)<0)ok=true;if(!ok&&!OBJ[o.k].solid&&f[i]<1e9)ok=true;if(d.loot){cont++;if(ok)reach++}else{nodes++;if(ok)nreach++}});
     let es=0,er=0;for(const s of Z.spawns){es++;if(f[Math.floor(s.y)*Z.w+Math.floor(s.x)]<1e9)er++}
     const boss=Z.spawns.find(s=>s.boss);const bossOk=!boss||f[Math.floor(boss.y)*Z.w+Math.floor(boss.x)]<1e9;
-    const okc=cont===0||reach/cont>=.9,okn=nodes===0||nreach/nodes>=.85,oke=es===0||er/es>=.9;
+    const okc=cont===0||reach/cont>=(def.lead?1:.9),okn=nodes===0||nreach/nodes>=.85,oke=es===0||er/es>=.9;
     if(!(okc&&okn&&oke&&bossOk)){bad++;T.info(`${name} seed ${seed}: containers ${reach}/${cont}, nodes ${nreach}/${nodes}, spawns ${er}/${es}, boss ${bossOk}`)}
     if(def.boss&&!def.bossChance&&!boss){bad++;T.info(name+': boss missing')}
     for(const k in def.lock||{}){const n=Z.obj.filter(o=>o&&o.k===k).length;if(n<def.lock[k]){bad++;T.info(`${name} seed ${seed}: locked container ${k} ${n}/${def.lock[k]}`)}}

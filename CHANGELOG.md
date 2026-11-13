@@ -4,6 +4,7 @@
 
 - **Nothing is spent behind your back.** Quick-heal, the health bar and auto mode now say what they used and how many are left ("Used Bandage · 5 left"). The bot lost six bandages in one fight to auto mode's healing and reported them as vanished.
 - **Mending says how much is short**: "Missing Plant Fibre: need 3, have 2 (pack and boxes)".
+- **Fixed: a container could be boxed in by furniture.** When a building was furnished, a crate or locker placed early could end up with shelves on every open side. About one building in ten had one. Every container now keeps a free cell beside it, and the test that checks reachability no longer counts a cell on the far side of a wall.
 - **Esc on the map** explains the choices (pick a place, or go back in) instead of opening the menu over it; P still opens the menu.
 
 ## 0.9.5 — 2026-11-13

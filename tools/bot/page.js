@@ -34,7 +34,7 @@ function label(el){
   const costs=root=>[...root.querySelectorAll('.ing span[title]')].map(c=>{const[nm,have]=c.getAttribute('title').split(': ');return c.textContent.trim()+' '+nm+(have?' ('+have+')':'')}).join(', ');
   if(el.classList.contains('bp')){const nm=el.querySelector('b'),c=costs(el),lock=el.querySelector('.ing .no');t=(nm?nm.textContent:t)+(c?' — needs '+c:lock?' — '+lock.textContent:'');return t.slice(0,140)}
   // a button in a row of a list ("MAKE", "×5", "Recruit") says nothing without the row's name
-  const row=!el.classList.contains('sl')&&el.closest('.rec,.perk,.goal,.card');if(row&&row!==el){const h=row.querySelector('b,h3');const ht=h&&h.textContent.replace(/\s+/g,' ').trim();if(ht&&!t.includes(ht)&&t.length<40){t+=' — '+ht.slice(0,40);const c=row.classList.contains('rec')&&/^make$/i.test((el.innerText||'').trim())?costs(row):'';if(c)t+=' (needs '+c+')'}}
+  const row=!el.classList.contains('sl')&&el.closest('.rec,.perk,.goal,.card');if(row&&row!==el){const h=row.querySelector('b,h3');const ht=h&&h.textContent.replace(/\s+/g,' ').trim();if(ht&&!t.includes(ht)&&t.length<40){t+=' — '+ht.slice(0,40);const c=!/^×\d+/.test((el.innerText||'').trim())&&row.querySelector('.ing span[title]')?costs(row):'';if(c)t+=' (needs '+c+')'}}
   return t.slice(0,150)}
 function layer(){
   if(vis($('title')))return['title',[$('title')]];

@@ -53,8 +53,12 @@ function roomOk(Z,x0,y0,x1,y1,sx,sy,px,py){
   const st=[[sx,sy]];seen[(sy-y0)*w+sx-x0]=1;let n=0;
   while(st.length){const[x,y]=st.pop();n++;for(const[dx,dy]of[[1,0],[-1,0],[0,1],[0,-1]]){const nx=x+dx,ny=y+dy;if(nx<x0||ny<y0||nx>x1||ny>y1)continue;const k=(ny-y0)*w+nx-x0;if(seen[k]||!open(nx,ny)||edgeBetween(Z,x,y,nx,ny)>=0)continue;seen[k]=1;st.push([nx,ny])}}
   if(n<total)return false;
-  for(const[dx,dy]of[[1,0],[-1,0],[0,1],[0,-1]]){const nx=px+dx,ny=py+dy;if(nx<x0||ny<y0||nx>x1||ny>y1)continue;if(seen[(ny-y0)*w+nx-x0]&&edgeBetween(Z,px,py,nx,ny)<0)return true}
-  return false;
+  // every solid thing worth reaching in here (this one included) must still have a walkable cell beside it with no wall between: a crate
+  // boxed in by later furniture is as lost as one behind a wall
+  const beside=(x,y)=>{for(const[dx,dy]of[[1,0],[-1,0],[0,1],[0,-1]]){const nx=x+dx,ny=y+dy;if(nx<x0||ny<y0||nx>x1||ny>y1)continue;if(seen[(ny-y0)*w+nx-x0]&&edgeBetween(Z,x,y,nx,ny)<0)return true}return false};
+  if(!beside(px,py))return false;
+  for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++){const o=Z.obj[y*W+x];if(!o||(x===px&&y===py))continue;const d=OBJ[o.k];if(d.solid&&(d.loot||d.node)&&!beside(x,y))return false}
+  return true;
 }
 /** Place a solid thing indoors only if it does not wall anything off. */
 function putIn(Z,x,y,k,rng,b,extra){const o=put(Z,x,y,k,rng,extra);if(!OBJ[k].solid)return o;if(roomOk(Z,b[0],b[1],b[2],b[3],b[4],b[5],x,y))return o;Z.obj[y*Z.w+x]=null;return null}
