@@ -24,6 +24,8 @@ export const PANELS={};
 // ---------------------------------------------------------------- pack
 let sel=null;
 const EQ=[['w1','Hand'],['w2','Spare'],['head','Head'],['body','Body'],['hands','Hands'],['legs','Legs'],['feet','Feet'],['pack','Pack']];
+/** The slot of the most worn thing the player has on (weapons and clothes), or null if nothing is worn at all. */
+function mostWorn(p){let best=null,bf=1;for(const k in p.eq){const e=p.eq[k],it=e&&ITEMS[e.id];if(!it||!it.dur||e.d===undefined)continue;const f=e.d/it.dur;if(f<bf-1e-9){bf=f;best=k}}return best}
 function itemCard(s,actions){
   if(!s)return`<div class="card"><p>Select something to see what it does.</p></div>`;const it=ITEMS[s.id];
   return`<div class="card"><div class="row" style="align-items:flex-start;flex-wrap:nowrap"><div style="width:52px;flex:none">${slot({id:s.id})}</div><div style="min-width:0"><h3>${esc(it.n)}${s.n>1?' × '+s.n:''}</h3><small style="color:var(--dim)">${TYPE_NAMES[it.t]||''}</small></div></div>${it.d?`<p>${esc(it.d)}</p>`:''}${tags(it,s)}${sourcesOf(s.id)?`<p style="font-size:12.5px">Where it comes from: ${esc(sourcesOf(s.id))}.</p>`:''}${it.set?`<p>${esc(SETS[it.set].n)} (all four pieces): ${esc(SETS[it.set].d)}</p>`:''}<div class="row">${actions}</div></div>`;
@@ -38,6 +40,7 @@ PANELS.inv={title:'Pack',live:true,open(){sel=null},
       else if(['melee','gun','tool','throw'].includes(it.t)){a+=btn('Equip','equip','data-slot="w1"','go')+btn('Equip as spare','equip','data-slot="w2"')}
       else if(['head','body','legs','feet','hands','pack'].includes(it.t))a+=btn('Wear','use','','go');
       else if(p.inv[sel.i].id==='flare')a+=btn('Fire','flare','','go');
+      else if(p.inv[sel.i].id==='repair_kit'){const w=mostWorn(p);a+=w?btn('Repair '+ITEMS[p.eq[w].id].n+' ('+Math.round(p.eq[w].d/ITEMS[p.eq[w].id].dur*100)+'%)','kitOn',`data-slot="${w}"`,'go'):'<small style="color:var(--dim)">Nothing you have on is worn.</small> '}
       a+=btn(p.inv[sel.i].n>1?'Drop one':'Drop','drop')+(p.inv[sel.i].n>1?btn('Drop all','dropall'):'');card=itemCard(p.inv[sel.i],a)}
     else if(sel&&sel.src==='eq'&&p.eq[sel.slot]){const e=p.eq[sel.slot],it=ITEMS[e.id];card=itemCard(e,btn('Take off','unequip','','go')+(it.dur&&e.d<it.dur&&count(s,'repair_kit')?btn('Use repair kit','kit'):'')+(sel.slot==='w1'||sel.slot==='w2'?btn('Make active','active'):''))}
     else card=itemCard(null);
@@ -57,6 +60,7 @@ PANELS.inv={title:'Pack',live:true,open(){sel=null},
     else if(a==='drop'||a==='dropall'){const it=p.inv[sel.i],n=a==='drop'?1:it.n;if(G.Z&&G.Z.pl)dropAt(G.Z,G.Z.pl.x+Math.cos(G.Z.pl.a)*1.1,G.Z.pl.y+Math.sin(G.Z.pl.a)*1.1,[{id:it.id,n,d:it.d}]).full=G.Z.time+6;it.n-=n;if(it.n<=0){p.inv[sel.i]=null;sel=null}}
     else if(a==='unequip'){unequip(s,sel.slot);sel=null}
     else if(a==='kit'){repairWithKit(s,sel.slot)}
+    else if(a==='kitOn'){repairWithKit(s,d.slot);if(!p.inv[sel.i])sel=null}
     else if(a==='active'){p.active=sel.slot;bus.emitEq()}
   }};
 const defaultAct=it=>{const t=ITEMS[it.id].t;return['melee','gun','tool','throw'].includes(t)?'equip':'use'};
@@ -70,7 +74,7 @@ function recipeRow(r,at,tier){
   // when something is short, say where it comes from
   const short=!lock&&why?Object.keys(r.i).find(k=>count(s,k,home)<r.i[k]):null,src=short?sourcesOf(short):'';
   return`<div class="rec ${why?'off':''}">${ic}<div><b>${esc(name)}${r.q>1?' × '+r.q:''}</b> <small>${r.t?fmtMin(r.t):''}${lock?' · '+lock:''}${!r.fx&&count(s,r.o,home)?' · you have '+count(s,r.o,home):''}</small>${chips(r.i)}${src?`<small style="display:block;color:var(--dim)">To get ${esc(ITEMS[short].n)}: ${esc(src)}</small>`:''}${r.fx?`<small>${esc(VEHICLES[r.fx.veh].d)}</small>`:it.d&&!why?'':''}</div>
-    <div class="row" style="flex-wrap:nowrap">${why?`<small style="color:var(--dim);max-width:110px;text-align:right">${lock?'':esc(why)}</small>`:btn('Make','make',`data-r="${r.id}" data-n="1"`,'go')+(max>=2?btn('×'+Math.min(max,r.t?10:max>20?20:max),'make',`data-r="${r.id}" data-n="${Math.min(max,r.t?10:max>20?20:max)}" title="Make ${Math.min(max,r.t?10:max>20?20:max)} at once"`):'')}</div></div>`;
+    <div class="row" style="flex-wrap:nowrap">${why?`<small style="color:var(--dim);max-width:110px;text-align:right">${lock?'':esc(why)}</small>`:btn('Make','make',`data-r="${r.id}" data-n="1"`,'go')+(max>=2?btn('×'+Math.min(max,r.t?10:max>20?20:max),'make',`data-r="${r.id}" data-n="${Math.min(max,r.t?10:max>20?20:max)}" title="Make ${Math.min(max,r.t?10:max>20?20:max)} ${r.q>1?'batches at once: '+Math.min(max,r.t?10:max>20?20:max)*r.q+' '+esc(name):'at once'}"`):'')}</div></div>`;
 }
 PANELS.craft={title:a=>a!=null&&G.Z&&G.Z.obj[a]?OBJ[G.Z.obj[a].k].n:'Crafting',live:true,
   open(a){if(a!=null&&G.Z&&G.Z.obj[a]&&G.Z.obj[a].out)collectStation(S(),a)},

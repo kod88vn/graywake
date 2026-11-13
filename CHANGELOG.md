@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.9.8 — 2026-11-13
+
+Small things from the bot's notes on its second hour.
+
+- **The map warns when a trip would miss the tide**: "the tide comes in 1h 59m: you would not be back in time". The bot left on a four-hour walk with the tide four and a half hours off.
+- **A Repair Kit selected in the pack offers to mend your most worn piece** ("Repair Flint Spear (17%)"); before, it only offered Drop, and the repair button was on the weapon's own card.
+- **A batch button says what it makes**: "Make 10 batches at once: 20 Plank".
+- **A barred strongroom says what opens it**: "Barred from inside: it opens when the place is clear. 2 of the garrison still alive (red on the minimap)".
+- The map says "1h 52m on foot", not "by on foot".
+
 ## 0.9.7 — 2026-11-13
 
 The bot went to the Pharmacy twice at two and three skulls and died both times with the whole building on top of it.
