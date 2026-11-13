@@ -12,8 +12,9 @@ header .meta{color:var(--ink2);font-size:13px}
 .pill{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:999px;padding:1px 10px;font-size:12.5px;color:var(--ink2);background:var(--bg)}
 .dot{width:8px;height:8px;border-radius:50%;background:var(--ink3)}.live .dot{background:var(--good);animation:blink 1.4s infinite}.paused .dot{background:var(--warn)}.dead .dot{background:var(--crit)}
 @keyframes blink{50%{opacity:.35}}
-main{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(320px,1fr);gap:14px;padding:14px 16px;min-height:0}
-@media (max-width:980px){main{grid-template-columns:minmax(0,1fr)}}
+main{display:grid;grid-template-columns:minmax(0,1fr) minmax(320px,1fr);gap:14px;padding:10px 0 14px;min-height:0}main>section{margin:0 16px}main>section+section{margin-left:0}
+main>.card:first-child{border-radius:0;border-left:0;border-right:0}main>.card:first-child #stage{border-radius:0}
+@media (max-width:980px){main{grid-template-columns:minmax(0,1fr)}main>section+section{margin-left:16px}}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:10px;min-width:0}
 .card>h2{font-size:12px;text-transform:uppercase;letter-spacing:.07em;color:var(--ink3);margin:0;padding:9px 12px 0;font-weight:650}
 .card .in{padding:8px 12px 12px}
@@ -55,12 +56,13 @@ dialog{border:1px solid var(--line);border-radius:10px;background:var(--surface)
   </span>
 </header>
 <main>
+  <!-- the live picture takes the whole width of the window; everything else sits under it -->
+  <div class="card" style="grid-column:1/-1">
+    <div id="stage"><img id="live" alt="Live picture of the game the bot is playing"><span id="ro">live · watch only</span><div id="cap"></div></div>
+    <div class="vitals" id="vitals"></div>
+    <div class="facts" id="facts"></div>
+  </div>
   <section style="display:grid;gap:14px;align-content:start;min-width:0">
-    <div class="card">
-      <div id="stage"><img id="live" alt="Live picture of the game the bot is playing"><span id="ro">live · watch only</span><div id="cap"></div></div>
-      <div class="vitals" id="vitals"></div>
-      <div class="facts" id="facts"></div>
-    </div>
     <div class="card"><h2>What the bot is saying</h2><div class="in"><div class="says" id="says"></div></div></div>
     <div class="card"><h2>Tell it something</h2><div class="in" style="display:grid;gap:8px">
       <form class="row" id="hint"><input type="text" placeholder="A hint or an instruction: it reads this with its next move" maxlength="500"><button class="pri">Send</button></form>
