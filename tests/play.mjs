@@ -32,7 +32,8 @@ try{
     if(!got)misses.push(await J(`(()=>{const Z=GW.G.Z,p=Z.pl,h=Z.hint,o=Z.obj[${t?t[2]:-1}];return{nothingFrom:${JSON.stringify(kind[0])},at:[+p.x.toFixed(2),+p.y.toFixed(2)],target:${JSON.stringify(t)},obj:o?{k:o.k,empty:o.empty,hits:o.hits,n:o.n}:null,act:p.act?p.act.type:null,hint:h?h.label:null,auto:GW.G.auto,paused:GW.G.paused,panel:GW.UI.panel,free:GW.G.S.p.inv.filter(x=>!x).length,len:GW.G.S.p.inv.length}})()`))}
   T.ok(await count('stone')>=4&&await count('stick')>=3&&await count('fiber')>=4,'E gathers stones, sticks and fibre by hand ('+await count('stone')+' stone, '+await count('stick')+' stick, '+await count('fiber')+' fibre)'+(misses.length?' misses: '+JSON.stringify(misses):''));
   // ---- the starter crate: search, take, put back
-  await use(['crate']);T.ok(await until(`GW.UI.panel==='loot'`,5000),'E on the crate opens it');
+  {const t=await use(['crate']),ok=await until(`GW.UI.panel==='loot'`,5000);
+    T.ok(ok,'E on the crate opens it'+(ok?'':' '+await ev(`(()=>{const Z=GW.G.Z,p=Z.pl,h=Z.hint,o=h&&h.i!==undefined?Z.obj[h.i]:null;return JSON.stringify({at:[+p.x.toFixed(2),+p.y.toFixed(2)],crate:${JSON.stringify(t)},hint:h?{label:h.label,type:h.type,k:o&&o.k,i:h.i}:null,panel:GW.UI.panel,mode:GW.G.mode,act:p.act&&p.act.type,paused:GW.G.paused})})()`)))}
   const c0=await ev(`document.querySelectorAll('#pb [data-a=take][title]').length`);await click('#pb [data-a="take"][title]');
   T.ok(await ev(`document.querySelectorAll('#pb [data-a=take][title]').length`)===c0-1,'clicking an item takes it');
   await click('#pb [data-a="put"][title]');T.ok(await ev(`document.querySelectorAll('#pb [data-a=take][title]').length`)===c0,'clicking a pack item puts it back in the crate');

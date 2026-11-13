@@ -4,7 +4,7 @@
 // Conventions: Y is up, the model stands on y=0, a tile is 1×1 centred on the origin, "front" faces +Z.
 import * as THREE from '../../vendor/three.module.min.js';
 
-const _m=new THREE.Matrix4(),_q=new THREE.Quaternion(),_e=new THREE.Euler(),_s=new THREE.Vector3(),_p=new THREE.Vector3(),_c=new THREE.Color(),_v=new THREE.Vector3(),_a=new THREE.Vector3(),_b=new THREE.Vector3();
+const _m=new THREE.Matrix4(),_q=new THREE.Quaternion(),_e=new THREE.Euler(),_e2=new THREE.Euler(0,0,0,'ZYX'),_s=new THREE.Vector3(),_p=new THREE.Vector3(),_c=new THREE.Color(),_v=new THREE.Vector3(),_a=new THREE.Vector3(),_b=new THREE.Vector3();
 const cache=new Map(),_hsl={h:0,s:0,l:0};
 const prim=(key,make)=>{let g=cache.get(key);if(!g){g=make();if(g.index)g=g.toNonIndexed();cache.set(key,g)}return g};
 /** Give a lump the normals of a sphere, so low-poly blobs shade as soft rounded forms. */
@@ -51,21 +51,38 @@ export class Geo{
     this.cyl(r0,r1,len,color,x+mx,y+my,z+mz,seg,rx,ry,rz);this.sph(r0,color,x,y,z,1,1,1,seg,5);return this.sph(r1,color,x+ex,y+ey,z+ez,1,1,1,seg,5);
   }
   // `lift` (off by default) raises saturation and lightness a little; nothing uses it in the realistic look.
-  /** A smooth skin through elliptical rings: rings = [[y, rx, rz, cx=0, cz=0], ...] in order along the form. Normals run smoothly from ring to ring,
-   *  so a torso or a calf reads as one continuous surface instead of stacked balls. cap: close 'both' ends, the 'start', the 'end' or 'none'. */
-  loft(rings,color,seg=12,cap='both'){
+  /** A smooth skin through rings: rings = [[y, rx, rz, cx=0, cz=0, n=2, rb=rz, colour], ...] in order along the form. Normals run smoothly from ring
+   *  to ring, so a torso or a calf reads as one continuous surface instead of stacked balls. cap: close 'both' ends, the 'start', the 'end' or 'none'.
+   *  A ring is an ellipse by default. `n` squares it off (2 an ellipse, 3 nearly a rounded box, below 2 towards a diamond), `rb` gives the back half
+   *  (−Z) its own depth, and a colour on a ring overrides the loft's and blends into its neighbours.
+   *  o = {warp(p,a,i): move a point [x,y,z] before the normals are made (a = its angle round the ring, i = its ring; a warped loft takes the side its
+   *       normals face from the order of its rings, so hollows in it shade as hollows), paint(p,a,i): a colour for that
+   *       point or nothing, front: 0..0.9 crowds the columns towards +Z (a face), arc: [a0,a1] draws only part of the way round (an open coat)} */
+  loft(rings,color,seg=12,cap='both',o){
     _c.set(color);if(this.lift){_c.getHSL(_hsl);_c.setHSL(_hsl.h,Math.min(1,_hsl.s*1.12+.02),_hsl.l+(1-_hsl.l)*.1)}const jt=1+(this._rnd()-.5)*2*this.jit,cr=_c.r*jt,cg=_c.g*jt,cb=_c.b*jt;
-    const n=rings.length,P=[],N=[],flip=rings[n-1][0]<rings[0][0];
-    for(let i=0;i<n;i++){const[y,rx,rz,cx=0,cz=0]=rings[i];for(let j=0;j<seg;j++){const a=j/seg*Math.PI*2;P.push([cx+Math.cos(a)*rx,y,cz+Math.sin(a)*rz])}}
-    const at=(i,j)=>P[i*seg+((j%seg)+seg)%seg];
-    for(let i=0;i<n;i++)for(let j=0;j<seg;j++){const p0=at(i,j-1),p1=at(i,j+1),q0=at(Math.max(0,i-1),j),q1=at(Math.min(n-1,i+1),j);
-      _a.set(p1[0]-p0[0],p1[1]-p0[1],p1[2]-p0[2]);_b.set(q1[0]-q0[0],q1[1]-q0[1],q1[2]-q0[2]);_v.crossVectors(_b,_a);const a=j/seg*Math.PI*2;if(_v.x*Math.cos(a)+_v.z*Math.sin(a)<0)_v.negate();if(_v.lengthSq()<1e-12)_v.set(Math.cos(a),0,Math.sin(a));_v.normalize();N.push([_v.x,_v.y,_v.z])}
-    const put=(p,nr)=>{this.pos.push(p[0],p[1],p[2]);this.nor.push(nr[0],nr[1],nr[2]);this.col.push(cr,cg,cb)},tri=(a,na,b,nb,c,nc)=>{if(flip){put(a,na);put(c,nc);put(b,nb)}else{put(a,na);put(b,nb);put(c,nc)}};
-    for(let i=0;i<n-1;i++)for(let j=0;j<seg;j++){const a=i*seg+j,b=i*seg+(j+1)%seg,c=(i+1)*seg+j,d=(i+1)*seg+(j+1)%seg;tri(P[a],N[a],P[c],N[c],P[d],N[d]);tri(P[a],N[a],P[d],N[d],P[b],N[b])}
-    const end=(i,up)=>{const[y,,,cx=0,cz=0]=rings[i],c=[cx,y,cz],nc=[0,up?1:-1,0];for(let j=0;j<seg;j++){const a=i*seg+j,b=i*seg+(j+1)%seg;if(up!==flip)tri(c,nc,P[b],N[b],P[a],N[a]);else tri(c,nc,P[a],N[a],P[b],N[b])}};
+    const warp=o&&o.warp,paint=o&&o.paint,fr=o&&o.front||0,arc=o&&o.arc,cols=arc?seg+1:seg;if(arc)cap='none';
+    const n=rings.length,P=[],N=[],C=[],A=[],flip=rings[n-1][0]<rings[0][0];
+    for(let j=0;j<cols;j++){const u=arc?arc[0]+(arc[1]-arc[0])*j/seg:j/seg*Math.PI*2;A.push(u+fr*Math.cos(u))}
+    for(let i=0;i<n;i++){const[y,rx,rz,cx=0,cz=0,sq=2,rb=rz,rc]=rings[i],e=2/sq;let r0=cr,g0=cg,b0=cb;if(rc){_c.set(rc);r0=_c.r*jt;g0=_c.g*jt;b0=_c.b*jt}
+      for(let j=0;j<cols;j++){const a=A[j],c=Math.cos(a),s=Math.sin(a),ux=sq===2?c:Math.sign(c)*Math.pow(Math.abs(c),e),uz=sq===2?s:Math.sign(s)*Math.pow(Math.abs(s),e),p=[cx+ux*rx,y,cz+uz*(s>=0?rz:rb)];
+        if(warp)warp(p,a,i);P.push(p);const pc=paint&&paint(p,a,i);if(pc){_c.set(pc);C.push([_c.r*jt,_c.g*jt,_c.b*jt])}else C.push([r0,g0,b0])}}
+    const at=(i,j)=>P[i*cols+(arc?Math.max(0,Math.min(seg,j)):((j%seg)+seg)%seg)],nx=j=>arc?j+1:(j+1)%seg;
+    for(let i=0;i<n;i++)for(let j=0;j<cols;j++){const p0=at(i,j-1),p1=at(i,j+1),q0=at(Math.max(0,i-1),j),q1=at(Math.min(n-1,i+1),j);
+      _a.set(p1[0]-p0[0],p1[1]-p0[1],p1[2]-p0[2]);_b.set(q1[0]-q0[0],q1[1]-q0[1],q1[2]-q0[2]);_v.crossVectors(_b,_a);const a=A[j];if(warp?flip:_v.x*Math.cos(a)+_v.z*Math.sin(a)<0)_v.negate();if(_v.lengthSq()<1e-14)_v.set(Math.cos(a),0,Math.sin(a));_v.normalize();N.push([_v.x,_v.y,_v.z])}
+    const put=(p,nr,c)=>{this.pos.push(p[0],p[1],p[2]);this.nor.push(nr[0],nr[1],nr[2]);this.col.push(c[0],c[1],c[2])},tri=(a,b,c)=>{if(flip){put(P[a],N[a],C[a]);put(P[c],N[c],C[c]);put(P[b],N[b],C[b])}else{put(P[a],N[a],C[a]);put(P[b],N[b],C[b]);put(P[c],N[c],C[c])}};
+    for(let i=0;i<n-1;i++)for(let j=0;j<seg;j++){const a=i*cols+j,b=i*cols+nx(j),c=(i+1)*cols+j,d=(i+1)*cols+nx(j);tri(a,c,d);tri(a,d,b)}
+    const end=(i,up)=>{const[y,,,cx=0,cz=0]=rings[i],c=[cx,y,cz],nc=[0,up?1:-1,0],cc=C[i*cols];for(let j=0;j<seg;j++){const a=i*seg+j,b=i*seg+(j+1)%seg;
+      if(up!==flip){put(c,nc,cc);put(P[b],N[b],C[b]);put(P[a],N[a],C[a])}else{put(c,nc,cc);put(P[a],N[a],C[a]);put(P[b],N[b],C[b])}}};
     if(cap==='both'||cap==='start')end(0,flip);if(cap==='both'||cap==='end')end(n-1,!flip);
     return this;
   }
+  /** An ellipsoid with its own radii, turned any way (an ear, an eyelid, a pauldron). */
+  ell(rx,ry,rz,color,x=0,y=0,z=0,ax=0,ay=0,az=0,ws=7,hs=5){return this.add(prim('s'+ws+'_'+hs,()=>new THREE.SphereGeometry(1,ws,hs)),color,x,y,z,ax,ay,az,rx,ry,rz)}
+  /** Where the drawing stands now; hand it to `turn` to move everything drawn since. */
+  mark(){return this.pos.length}
+  /** Turn everything drawn since `from` about the origin (x, then y, then z) and then shift it: draw a part lying along Y, then stand it where it belongs. */
+  turn(from,ax=0,ay=0,az=0,x=0,y=0,z=0){_e2.set(ax,ay,az);_q.setFromEuler(_e2);const p=this.pos,n=this.nor;
+    for(let i=from;i<p.length;i+=3){_v.set(p[i],p[i+1],p[i+2]).applyQuaternion(_q);p[i]=_v.x+x;p[i+1]=_v.y+y;p[i+2]=_v.z+z;_v.set(n[i],n[i+1],n[i+2]).applyQuaternion(_q);n[i]=_v.x;n[i+1]=_v.y;n[i+2]=_v.z}return this}
   /** Bake into a BufferGeometry (position, normal, color). */
   build(){
     const g=new THREE.BufferGeometry();
@@ -77,6 +94,15 @@ export class Geo{
   }
 }
 
+/** Rings for `loft` with `sub` more rings eased in between each pair, so a few rings give a smooth profile (a calf, a waist) and not a row of cones. */
+export function smoothRings(rings,sub=1){
+  const R=rings.map(r=>[r[0],r[1],r[2],r[3]||0,r[4]||0,r[5]||2,r[6]===undefined?r[2]:r[6],r[7]]),out=[],n=R.length;
+  for(let i=0;i<n-1;i++){const a=R[Math.max(0,i-1)],b=R[i],c=R[i+1],d=R[Math.min(n-1,i+2)];out.push(b);
+    for(let k=1;k<=sub;k++){const t=k/(sub+1),t2=t*t,t3=t2*t,r=[];for(let m=0;m<7;m++){let v=.5*(2*b[m]+(c[m]-a[m])*t+(2*a[m]-5*b[m]+4*c[m]-d[m])*t2+(3*b[m]-a[m]-3*c[m]+d[m])*t3);
+      const lo=Math.min(b[m],c[m]),hi=Math.max(b[m],c[m]);if(m===0||m===5)v=b[m]+(c[m]-b[m])*t;else{const sl=(hi-lo)*.12;v=Math.max(lo-sl,Math.min(hi+sl,v))}r.push(v)}
+      r.push(b[7]&&c[7]&&b[7]!==c[7]?mix(b[7],c[7],t):b[7]||c[7]);out.push(r)}}
+  out.push(R[n-1]);return out;
+}
 /** Subdivision used for rounded lumps: 1 near the player, 0 for the distant tree line. */
 Geo.DETAIL=1;
 

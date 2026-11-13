@@ -3,10 +3,11 @@
 <canvas id="c"></canvas><div id="labs"></div>
 <script type="module">
 // Character sheet: every creature rig plus the player in several outfits. ?pose=walk|idle|attack|dead &close=1 closer camera
-// &q=substring only matching names &low=1 a low camera to check faces &surv=N adds N survivors
+// &q=substring only matching names &low=1 a low camera to check faces &surv=N adds N survivors &ry=angle turns every figure
+// &cam=x,y,z&look=x,y,z places the camera by hand (a front view, a face close-up); window.TRIS lists triangles per figure
 import {THREE,matte} from '../js/view/geo.js';
 import {Post} from '../js/view/post.js';
-import {rigFor,playerRig,setWeapon,pose} from '../js/view/rigs.js';
+import {rigFor,playerRig,setWeapon,pose,humanoid} from '../js/view/rigs.js';
 import {ENEMIES} from '../js/data/enemies.js';
 const qs=new URLSearchParams(location.search),mode=qs.get('pose')||'walk';
 const cv=document.getElementById('c'),R=new THREE.WebGLRenderer({canvas:cv});R.setPixelRatio(2);R.shadowMap.enabled=true;R.shadowMap.type=THREE.PCFSoftShadowMap;const post=new Post(R);
@@ -17,6 +18,8 @@ const list=[];const set=(k,pack,g)=>({head:k+'_'+(k==='hide'?'hood':k==='leather
 const outfits=[['bare',{}],['rags',{head:'bandana',body:'rag_shirt',legs:'rag_pants',feet:'rag_wraps',hands:'hand_wraps'},'hatchet'],['hide',set('hide','pack_sack'),'spear'],['leather',set('leather','pack_small','leather_gloves'),'machete'],['scrap',set('scrap','pack_small','scrap_gauntlets'),'sledge'],['ranger',set('ranger','pack_hiker','leather_gloves'),'rifle'],['marauder',set('marauder',null,'scrap_gauntlets'),'machete'],['riot',set('riot','pack_hiker','scrap_gauntlets'),'shotgun'],['fur',set('fur','pack_hiker','fur_mitts'),'bow'],['mil',set('mil','pack_mil','tac_gloves'),'rifle'],['hazmat',set('haz','pack_mil','haz_gloves'),'shotgun'],['exo',set('exo','pack_exped','exo_gauntlets'),'katana']];
 for(const[n,eq,w]of outfits){const e={};for(const k in eq)if(eq[k])e[k]={id:eq[k]};const r=playerRig(e);if(w)setWeapon(r,w);list.push([n,r,w&&['rifle','shotgun'].includes(w)?2:0])}
 let i=0;for(const k in ENEMIES){for(let v=0;v<(ENEMIES[k].rig[1].vary?3:1);v++)list.push([k,rigFor(ENEMIES[k],++i*7+3),0])}
+// &hair=1 adds one figure for each hair style (named hair0..hair5), a woman and a man by turns, to look at heads
+if(qs.get('hair'))for(let k=0;k<6;k++)list.push(['hair'+k,humanoid({skin:['#e0b896','#c99a78','#a87a5a','#f0d0b4','#8a6044','#d8a882'][k],hair:['#2e2218','#6b4a2a','#1c1612','#8a6a3a','#b89858','#7a3a1c'][k],hairStyle:k,build:k%2?'m':'f',top:['#6a7a5a','#7a5a4a','#4a5a6a','#8a7a4a','#5a4a5a','#3a5a4a'][k],eye:'#4a3828',beard:k===3?'#8a6a3a':null,scale:k%2?1:.95}),0]);
 {const sv=+qs.get('surv')||0;for(let k=0;k<sv;k++)list.push(['survivor',rigFor({rig:['human',{}],ai:'follow'},k*13+5),0])}
 // &strip=walk|run|sneak|attack|chop|die|husk|strike : one figure at ten successive moments of that motion, left to right (a film strip, since stills cannot show movement)
 const strip=qs.get('strip');if(strip){list.length=0;const N=10;for(let i=0;i<N;i++){const husk=strip==='husk',r=husk||strip==='strike'?rigFor(ENEMIES.shambler,11):playerRig(strip==='chop'?{w1:{id:'hatchet_stone'}}:{});if(strip==='attack')setWeapon(r,'machete');if(strip==='chop')setWeapon(r,'hatchet');r.ph=0;r.sd=1;
@@ -32,9 +35,18 @@ const q=qs.get('q');if(q){const keep=list.filter(l=>q.split(',').some(t=>l[0].in
 const cols=Math.min(10,list.length),gap=1.5,rows=Math.ceil(list.length/cols),marks=[];
 list.forEach(([n,r,gun],j)=>{const x=(j%cols-(cols-1)/2)*gap,z=(Math.floor(j/cols)-(rows-1)/2)*2.1;r.root.position.set(x,0,z);r.root.rotation.y=.5;S.add(r.root);marks.push([n,x,z]);
   if(r._strip){r.root.rotation.y=+qs.get('ry')||.9;return}
+  if(qs.get('ry')!==null)r.root.rotation.y=+qs.get('ry');
   const st={dt:.2,t:j*.7,mv:mode==='walk'?3.4:0,atk:mode==='attack'?.55:-1,wind:0,gun,dead:mode==='dead',deadT:1,flash:0,vis:1};r.ph=1.1+j;for(let k=0;k<12;k++)pose(r,st)});
 const cam=new THREE.PerspectiveCamera(+qs.get('fov')||(qs.get('close')?16:30),1,.1,200);
-function draw(){const w=innerWidth,h=innerHeight;R.setSize(w,h,false);cam.aspect=w/h;cam.updateProjectionMatrix();const span=Math.max(cols*gap*.6,rows*2.1*.9)+1;if(qs.get('low')){cam.position.set(0,span*.5+.7,span*1.5);cam.lookAt(0,+qs.get('y')||.7,0)}else{cam.position.set(0,span*1.15,span*1.0);cam.lookAt(0,.5,0)}post.render(S,cam);
+function draw(){const w=innerWidth,h=innerHeight;R.setSize(w,h,false);cam.aspect=w/h;cam.updateProjectionMatrix();const span=Math.max(cols*gap*.6,rows*2.1*.9)+1;if(qs.get('cam')){const c=qs.get('cam').split(',').map(Number),l=(qs.get('look')||'0,.7,0').split(',').map(Number);cam.position.set(c[0],c[1],c[2]);cam.lookAt(l[0],l[1],l[2])}else if(qs.get('low')){cam.position.set(0,span*.5+.7,span*1.5);cam.lookAt(0,+qs.get('y')||.7,0)}else{cam.position.set(0,span*1.15,span*1.0);cam.lookAt(0,.5,0)}post.render(S,cam);
   const L=document.getElementById('labs');L.innerHTML='';for(const[t,x,z]of marks){const v=new THREE.Vector3(x,0,z+.5).project(cam);const d=document.createElement('div');d.className='lab';d.textContent=t;d.style.left=(v.x*.5+.5)*w+'px';d.style.top=(-v.y*.5+.5)*h+'px';L.appendChild(d)}}
-draw();addEventListener('resize',draw);window.READY=true;
+// triangles per character (window.TRIS), for keeping an eye on the cost of a crowd
+window.TRIS=list.map(([n,r])=>{let t=0;r.root.traverse(o=>{if(o.isMesh)t+=o.geometry.attributes.position.count/3});return n+':'+t}).join(' ');
+draw();addEventListener('resize',draw);
+// &crowd=N : N husks walking under the game's camera, timed over 120 frames of pose + draw (window.FRAME_MS, the median): the cost of a tide's worth of figures
+if(qs.get('crowd')){const N=+qs.get('crowd'),rs=[];for(const[,r]of list)S.remove(r.root);for(let k=0;k<N;k++){const r=rigFor(ENEMIES.shambler,k*7+3);r.root.position.set((k%10-4.5)*1.1,0,(Math.floor(k/10)-N/20)*1.1);S.add(r.root);rs.push(r)}
+  cam.position.set(0,13,9);cam.lookAt(0,0,0);const gl=R.getContext(),ms=[],px=new Uint8Array(4);let t=0;   // (reading a pixel back makes the browser wait for the graphics card, so the time includes the drawing)
+  for(let f=0;f<150;f++){const t0=performance.now();t+=1/60;for(const r of rs)pose(r,{dt:1/60,t,mv:1.6,atk:-1,wind:0,gun:0,dead:false,deadT:0,flash:0,vis:1});post.render(S,cam);gl.readPixels(0,0,1,1,gl.RGBA,gl.UNSIGNED_BYTE,px);if(f>=30)ms.push(performance.now()-t0)}
+  ms.sort((a,b)=>a-b);window.FRAME_MS=ms[ms.length>>1].toFixed(2)+' ms median, '+ms[Math.floor(ms.length*.9)].toFixed(2)+' ms at the 90th percentile, '+N+' husks, '+rs.reduce((n,r)=>{r.root.traverse(o=>{if(o.isMesh)n+=o.geometry.attributes.position.count/3});return n},0)+' triangles'}
+window.READY=true;
 </script></body></html>
