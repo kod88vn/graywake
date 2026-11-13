@@ -119,7 +119,9 @@ function close(){if(!cur)return;sfx('ui_close');closeQuiet();if(G.mode==='map')M
 // ---------------------------------------------------------------- hot-keys
 function hot(k){
   const S=G.S;if(!S||G.mode==='menu')return;const Z=G.Z;
-  if(k==='esc'){if(cur){if(!PANELS[cur].modal)close()}else if(G.build){if(B.moving!=null){B.moving=null;toast('Put back','info')}else buildClose()}else open('menu');return}
+  if(k==='esc'){if(cur){if(!PANELS[cur].modal)close()}else if(G.build){if(B.moving!=null){B.moving=null;toast('Put back','info')}else buildClose()}
+    // on the map there is no world behind the sheet to return to: say what the choices are instead of opening the menu (P still does)
+    else if(G.mode==='map')toast('You are on the road: pick a place and Travel, or go back in where you were. P opens the menu','info');else open('menu');return}
   if(cur){if(PANELS[cur].modal)return;const same={inv:'inv',craft:'craft',journal:'journal',camp:'camp',menu:'menu'}[k]===cur;close();if(same)return}
   if(k==='inv')open('inv');else if(k==='journal')open('journal');else if(k==='menu')open('menu');
   else if(k==='craft'){const h=Z&&Z.hint;open('craft',h&&h.type==='station'?h.i:null)}
