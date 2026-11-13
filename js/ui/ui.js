@@ -233,7 +233,7 @@ function minimap(Z,p){
   const x0=Math.max(0,Math.floor(px-range)),x1=Math.min(Z.w-1,Math.ceil(px+range)),y0=Math.max(0,Math.floor(py-range)),y1=Math.min(Z.h-1,Math.ceil(py+range));
   for(let ty=y0;ty<=y1;ty++)for(let tx=x0;tx<=x1;tx++){const o=Z.obj[ty*Z.w+tx];if(!o)continue;const d=OBJ[o.k];
     if(d.wall||d.door){x.fillStyle=d.cost?'#b8a070':'#6a6f66';x.fillRect(X(tx),Y(ty),k+.5,k+.5)}else if(d.loot&&!o.empty){x.fillStyle='#e3a432';x.fillRect(X(tx+.25),Y(ty+.25),k*.5,k*.5)}else if(d.station||d.store||d.turret){x.fillStyle='#8a9a78';x.fillRect(X(tx+.15),Y(ty+.15),k*.7,k*.7)}else if(d.special==='deathbag'){x.fillStyle='#fff';x.fillRect(X(tx),Y(ty),k,k)}}
-  if(Z.ed.length){x.fillStyle='#b8a070';for(let ty=y0;ty<=y1+1;ty++)for(let tx=x0;tx<=x1+1;tx++){const e=(ty*Z.w+tx)*2;if(Z.ed[e])x.fillRect(X(tx),Y(ty)-1,k+.5,2.5);if(Z.ed[e+1])x.fillRect(X(tx)-1,Y(ty),2.5,k+.5)}}
+  if(Z.ed.length){const col=w=>OBJ[w.k].cost?'#b8a070':OBJ[w.k].low?'#55594f':'#8a8f84';for(let ty=y0;ty<=y1+1;ty++)for(let tx=x0;tx<=x1+1;tx++){const e=(ty*Z.w+tx)*2,a=Z.ed[e],b=Z.ed[e+1];if(a){x.fillStyle=col(a);x.fillRect(X(tx),Y(ty)-1,k+.5,2.5)}if(b){x.fillStyle=col(b);x.fillRect(X(tx)-1,Y(ty),2.5,k+.5)}}}
   for(const d of Z.drops){x.fillStyle='#fff';x.fillRect(X(d.x)-2,Y(d.y)-2,4,4)}
   for(const a of Z.actors){if(a.pl||a.dead)continue;if(a.team===1&&!a.alert&&Math.hypot(a.x-px,a.y-py)>range*.6)continue;if(a.vis<.5)continue;x.fillStyle=a.team===0?'#60c0ff':a.def.ai==='flee'?'#c8c8a0':a.def.boss?'#ff9030':'#e04030';x.beginPath();x.arc(X(a.x),Y(a.y),a.def.boss?6:3.5,0,7);x.fill()}
   x.translate(R,R);x.rotate(p.a+Math.PI/2);x.fillStyle='#fff';x.beginPath();x.moveTo(0,-8);x.lineTo(6,7);x.lineTo(0,4);x.lineTo(-6,7);x.closePath();x.fill();x.restore();

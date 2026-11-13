@@ -473,7 +473,7 @@ function approach(Z,e,tx,ty,speed,dt,flow){
   e.blk=e.mv<.25&&dist(e.x,e.y,tx,ty)>2.6?(e.blk||0)+dt:Math.max(0,(e.blk||0)-dt*2);
   const direct=dist(e.x,e.y,tx,ty)<8&&los(Z,e.x,e.y,tx,ty)&&!(flow&&e.blk>.5);let gx=tx,gy=ty;
   if(!direct&&flow){const n=stepOn(Z,flow,e.x,e.y);if(n>=0){gx=n%Z.w+.5;gy=Math.floor(n/Z.w)+.5;const o=Z.obj[n];if(o&&o.hp>0&&OBJ[o.k].solid&&OBJ[o.k].cost)return n;
-      const ex=Math.floor(e.x),ey=Math.floor(e.y),nx=n%Z.w,ny=Math.floor(n/Z.w);if(Z.ed.length&&(ex===nx)!==(ey===ny)){const eb=edgeBetween(Z,ex,ey,nx,ny);if(eb>=0)return EREF+eb}}}
+      const ex=Math.floor(e.x),ey=Math.floor(e.y),nx=n%Z.w,ny=Math.floor(n/Z.w);if(Z.ed.length&&(ex===nx)!==(ey===ny)){const eb=edgeBetween(Z,ex,ey,nx,ny);if(eb>=0&&OBJ[Z.ed[eb].k].cost)return EREF+eb}}}
   const ang=Math.atan2(gy-e.y,gx-e.x),b=breakableAt(Z,e.x+Math.cos(ang)*(e.r+.45),e.y+Math.sin(ang)*(e.r+.45));
   if(b>=0&&Z.home)return b;
   if(Z.home){const ec=edgeCross(Z,e.x,e.y,e.x+Math.cos(ang)*(e.r+.45),e.y+Math.sin(ang)*(e.r+.45));if(ec>=0)return EREF+ec}

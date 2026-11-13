@@ -177,7 +177,7 @@ function syncFloor(i){
 }
 /** A wall or door on a cell edge: drawn at the middle of that edge, turned a quarter turn when it runs north to south. */
 function syncEdge(e){
-  const w=Z.ed[e],d=w&&OBJ[w.k],key=d?'E:'+w.k+(d.door?'|1':''):null,old=shownE[e];
+  const w=Z.ed[e],d=w&&OBJ[w.k],key=d?'E:'+w.k+'|'+(d.door?1:d.cost?0:(w.v||0)):null,old=shownE[e];
   if(old&&old!==key){entry(old).set.delete(e);dirty.add(old)}if(key){entry(key).set.add(e);dirty.add(key)}shownE[e]=key;
   // a door's frame is drawn with the walls; its leaf hangs on a hinge of its own so it can swing (see stepDoors)
   let L=leaves.get(e);if(L&&(!d||!d.door||L.k!==w.k)){scene.remove(L.root);leaves.delete(e);L=null}
@@ -198,7 +198,7 @@ function flush(){
     if(n>e.cap||!e.mesh){if(e.mesh){scene.remove(e.mesh);e.mesh.dispose()}e.cap=Math.max(8,Math.ceil(n*1.5));const gk=floor?key.slice(2)+'|0':edge?key.slice(2)+(key.includes('|')?'':'|0'):key;
       e.mesh=new THREE.InstancedMesh(modelGeo(gk),matFor(gk),e.cap);e.mesh.castShadow=!e.flat&&!floor;e.mesh.receiveShadow=true;e.mesh.frustumCulled=false;scene.add(e.mesh)}
     let j=0;const mesh=e.mesh;
-    if(edge){for(const ei of e.set){const w=Z.ed[ei];if(!w)continue;const ti=ei>>1,x=ti%W,y=(ti-x)/W,f=w.hp/maxHp(w.k),hit=w.hit!==undefined&&Z.time-w.hit<.14,tint=f<.6?.6+f*.6:1,red=f<.6?(.6-f)*.5:0;
+    if(edge){for(const ei of e.set){const w=Z.ed[ei];if(!w)continue;const ti=ei>>1,x=ti%W,y=(ti-x)/W,f=w.hp>0?w.hp/maxHp(w.k):1,hit=w.hit!==undefined&&Z.time-w.hit<.14,tint=f<.6?.6+f*.6:1,red=f<.6?(.6-f)*.5:0;
       _q.setFromAxisAngle(UP,ei&1?Math.PI/2:0);_m.compose(_p.set(ei&1?x:x+.5,0,ei&1?y+.5:y),_q,_s.set(hit?1.03:1,hit?.94:1,hit?1.03:1));mesh.setMatrixAt(j,_m);mesh.setColorAt(j,_c.setRGB(Math.min(1,tint+red),tint,tint));j++}
       mesh.count=j;mesh.instanceMatrix.needsUpdate=true;if(mesh.instanceColor)mesh.instanceColor.needsUpdate=true;continue}
     for(const i of e.set){const x=i%W,y=(i-x)/W,o=floor?null:Z.obj[i],h=hash(x*31+7,y*17+3);let rot=0,s=1,sy=1,tint=1,red=0;

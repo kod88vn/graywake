@@ -190,17 +190,19 @@ stash(g,v=0){at(g,0,0,0,V(v,.2,-.3,1.2),()=>{g.ico(.42,C.dirt,0,0,0,1,.16,.9,v);
 deathbag(g){const c='#a8672e';g.box(.32,.28,.22,c,0,.14,0,0,.3);g.box(.34,.08,.24,shade(c,.78),0,.3,0,0,.3);g.box(.2,.14,.06,shade(c,1.2),.04,.12,.13,0,.3);g.box(.1,.04,.05,C.black,0,.36,0,0,.3);
   g.box(.03,.8,.03,C.woodL,-.24,.4,-.06);g.box(.26,.18,.014,C.red,-.1,.7,-.06);g.box(.1,.1,.018,C.white,-.1,.7,-.06)},
 // ================= scenery walls =================
-w_brick(g,v=0){const c=V(v,C.brick,'#a45c46','#94503e');for(let i=0;i<3;i++)g.box(1-(i%2)*.03,.36,1-(i%2)*.03,shade(c,i%2?.86:1),0,.18+i*.36,0);wtop(g,v,1.08,.32,shade(c,1.12));
-  for(const[x,y]of[[-.3,.2],[.2,.55],[-.14,.9],[.34,.9]])g.box(.24,.1,.02,shade(c,1.28),x,y,.502)},
-w_concrete(g,v=0){const c=C.conc;g.box(1,.14,1,shade(c,.72),0,.07,0);g.box(.98,.94,.98,c,0,.61,0);wtop(g,v,1.08,.32,shade(c,1.12));g.box(.03,.9,.02,shade(c,.78),0,.6,.492);g.box(.3,.2,.02,shade(c,.86),-.26,.4,.492);
-  if(v){limb(g,.015,.015,.3,C.rust,.3,1.2,.2,.3,1,3);limb(g,.015,.015,.26,C.rust,.34,1.2,-.2,.4,3,3)}},
-w_wood(g,v=0){for(let i=0;i<5;i++){const h=1.4-(i%2)*.04-(v===1&&i===3?.4:0)-(v===2&&i<2?.25+i*.2:0);g.box(.2,h,1,shade(C.plank,.84+(i*37%5)*.07),-.4+i*.2,h/2,0)}g.box(1.01,.1,1.01,C.woodD,0,.9,0);g.box(1.01,.08,1.01,C.woodD,0,.3,0)},
-w_metal(g,v=0){const c='#6c7e86';for(let i=0;i<6;i++)g.box(1/6,1.3,i%2?.94:1,i===V(v,9,1,4)?mix(c,C.rust,.7):shade(c,i%2?.82:1.05),-.4167+i/6,.65,0);wtop(g,v,1.3,.1,C.steelD);g.box(.3,.4,.02,C.rust,.2,.3,.502);g.box(.2,.2,.02,mix(c,C.rust,.6),-.3,1,.502)},
-w_log(g,v=0){for(let i=0;i<3;i++)for(const z of[-.25,.25]){const cut=i===2&&((v===1&&z>0)||(v===2&&z<0));g.cyl(.25,.25,cut?.6:1,shade(C.log,.86+((i+(z>0))%3)*.12),cut?-.2:0,.25+i*.45,z,6,PI/6,0,H2)}},
-w_lab(g,v=0){const c='#dfe3e2';g.box(1,.12,1,C.steelD,0,.06,0);g.box(.98,.96,.98,c,0,.6,0);g.box(1,.08,1,C.teal,0,.92,0);wtop(g,v,1.08,.32,'#eef0ee');g.box(.02,.74,.02,'#a2acae',0,.5,.492);g.box(.2,.12,.02,'#a2acae',.28,.6,.492)},
-w_ice(g,v=0){g.box(1,.5,1,'#9fcfe4',0,.25,0);g.box(.97,.5,.97,'#b8dff0',0,.75,0);wtop(g,v,1,.4,'#d2ecf8');g.box(.5,.04,.6,C.white,-.2,1.42,.1,0,.2);g.box(.3,.3,.02,'#e4f6fc',.2,.5,.502,0,0,.3)},
-w_bloom(g,v=0){const c='#5c5468';g.box(1,1.1,1,c,0,.55,0);wtop(g,v,1.1,.3,'#6c6280');g.ico(.24,C.gray,-.2,1.4,.1,1,.4,1,v);g.ico(.16,C.grayD,.24,v?1.2:1.4,-.2,1,.5,1);g.box(.04,.9,.02,C.violet,-.2,.5,.502,0,0,.1);g.box(.04,.6,.02,C.violet,.24,.4,.502,0,0,-.15);
-  g.box(.1,.1,.04,C.violetL,-.2,.96,.49,0,0,.6);g.box(.08,.08,.04,C.violetL,.26,.72,.49,0,0,.6);g.box(.1,.1,.1,C.violetL,-.2,1.5,.1,.5,.5)},
+// ---- walls of the world (buildings, ruins): thin, standing on the edge of a cell like the walls you build. Each is the old whole-cell block
+// pressed to a quarter of its depth, running along X from -.5 to .5, with a pier at each end so that two that meet at a corner close up.
+w_brick(g,v=0){thin(g,()=>{const c=V(v,C.brick,'#a45c46','#94503e');for(let i=0;i<3;i++)g.box(1-(i%2)*.03,.36,1-(i%2)*.03,shade(c,i%2?.86:1),0,.18+i*.36,0);wtop(g,v,1.08,.32,shade(c,1.12));
+  for(const[x,y]of[[-.3,.2],[.2,.55],[-.14,.9],[.34,.9]])g.box(.24,.1,.02,shade(c,1.28),x,y,.502)},.24);{const h=v?1.1:1.42;for(const x of[-.5,.5])g.box(.16,h,.3,'#8a4c3a',x,h/2,0)}},
+w_concrete(g,v=0){thin(g,()=>{const c=C.conc;g.box(1,.14,1,shade(c,.72),0,.07,0);g.box(.98,.94,.98,c,0,.61,0);wtop(g,v,1.08,.32,shade(c,1.12));g.box(.03,.9,.02,shade(c,.78),0,.6,.492);g.box(.3,.2,.02,shade(c,.86),-.26,.4,.492);
+  if(v){limb(g,.015,.015,.3,C.rust,.3,1.2,.2,.3,1,3);limb(g,.015,.015,.26,C.rust,.34,1.2,-.2,.4,3,3)}},.24);{const h=v?1.1:1.42;for(const x of[-.5,.5])g.box(.16,h,.3,shade(C.conc,.8),x,h/2,0)}},
+w_wood(g,v=0){thin(g,()=>{for(let i=0;i<5;i++){const h=1.4-(i%2)*.04-(v===1&&i===3?.4:0)-(v===2&&i<2?.25+i*.2:0);g.box(.2,h,1,shade(C.plank,.84+(i*37%5)*.07),-.4+i*.2,h/2,0)}g.box(1.01,.1,1.01,C.woodD,0,.9,0);g.box(1.01,.08,1.01,C.woodD,0,.3,0)},.24);{const h=1.42;for(const x of[-.5,.5])g.box(.16,h,.3,C.woodD,x,h/2,0)}},
+w_metal(g,v=0){thin(g,()=>{const c='#6c7e86';for(let i=0;i<6;i++)g.box(1/6,1.3,i%2?.94:1,i===V(v,9,1,4)?mix(c,C.rust,.7):shade(c,i%2?.82:1.05),-.4167+i/6,.65,0);wtop(g,v,1.3,.1,C.steelD);g.box(.3,.4,.02,C.rust,.2,.3,.502);g.box(.2,.2,.02,mix(c,C.rust,.6),-.3,1,.502)},.24);{const h=1.34;for(const x of[-.5,.5])g.box(.16,h,.3,C.steelD,x,h/2,0)}},
+w_log(g,v=0){thin(g,()=>{for(let i=0;i<3;i++)for(const z of[-.25,.25]){const cut=i===2&&((v===1&&z>0)||(v===2&&z<0));g.cyl(.25,.25,cut?.6:1,shade(C.log,.86+((i+(z>0))%3)*.12),cut?-.2:0,.25+i*.45,z,6,PI/6,0,H2)}},.24);for(const x of[-.5,.5])g.cyl(.13,.14,1.4,shade(C.log,.78),x,(1.4)/2,0,6)},
+w_lab(g,v=0){thin(g,()=>{const c='#dfe3e2';g.box(1,.12,1,C.steelD,0,.06,0);g.box(.98,.96,.98,c,0,.6,0);g.box(1,.08,1,C.teal,0,.92,0);wtop(g,v,1.08,.32,'#eef0ee');g.box(.02,.74,.02,'#a2acae',0,.5,.492);g.box(.2,.12,.02,'#a2acae',.28,.6,.492)},.24);{const h=v?1.1:1.42;for(const x of[-.5,.5])g.box(.16,h,.3,'#c4cac9',x,h/2,0)}},
+w_ice(g,v=0){thin(g,()=>{g.box(1,.5,1,'#9fcfe4',0,.25,0);g.box(.97,.5,.97,'#b8dff0',0,.75,0);wtop(g,v,1,.4,'#d2ecf8');g.box(.5,.04,.6,C.white,-.2,1.42,.1,0,.2);g.box(.3,.3,.02,'#e4f6fc',.2,.5,.502,0,0,.3)},.24);{const h=v?1.02:1.42;for(const x of[-.5,.5])g.box(.16,h,.3,'#9fcfe4',x,h/2,0)}},
+w_bloom(g,v=0){thin(g,()=>{const c='#5c5468';g.box(1,1.1,1,c,0,.55,0);wtop(g,v,1.1,.3,'#6c6280');g.ico(.24,C.gray,-.2,1.4,.1,1,.4,1,v);g.ico(.16,C.grayD,.24,v?1.2:1.4,-.2,1,.5,1);g.box(.04,.9,.02,C.violet,-.2,.5,.502,0,0,.1);g.box(.04,.6,.02,C.violet,.24,.4,.502,0,0,-.15);
+  g.box(.1,.1,.04,C.violetL,-.2,.96,.49,0,0,.6);g.box(.08,.08,.04,C.violetL,.26,.72,.49,0,0,.6);g.box(.1,.1,.1,C.violetL,-.2,1.5,.1,.5,.5)},.24);{const h=v?1.12:1.42;for(const x of[-.5,.5])g.box(.16,h,.3,'#4c4458',x,h/2,0)}},
 // ================= scenery =================
 fence_wood(g,v=0){const c=V(v,C.wood,'#86705a','#96784c');for(const x of[-.42,.42])g.box(.1,.8,.1,C.woodD,x,.4,0);for(const y of[.28,.6])g.box(1,.07,.05,shade(c,.9),0,y,-.03);
   for(let i=0;i<5;i++){if(v===2&&i===3)continue;const h=.72+(i*3%4)*.04;g.box(.13,h,.03,shade(c,.95+(i%3)*.1),-.36+i*.18,h/2+.03,.02,0,0,v===1&&i===1?.2:0);}},

@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.8.2 — 2026-11-13
+
+Every wall in the game stands on the side of a cell.
+
+- **Buildings out in the world have thin walls too.** 0.8.0 moved only the walls you build onto cell edges; cabins, houses, shops, warehouses, bunkers and the big single-building places (the market, the hospital, the tunnels) still had walls a whole cell thick. They now use the same system: a building's whole footprint is floor, its walls stand on the outer sides of its outermost cells, a doorway is a side left open, and rooms are divided by walls between cells. Interiors are a ring of cells larger for the same footprint, and furniture stands against the walls.
+- **Fences stand on cell sides** as well. They still stop feet and not eyes, shots or reach.
+- Walls of the world cannot be broken, walked through or pathed through by anything; sight, shots, melee and reach are stopped by them exactly as by your own.
+- All eight wall materials (brick, concrete, boards, sheet metal, logs, lab panel, ice, bloom) have thin models with a pier at each end so corners close.
+- No save change: places are generated fresh on every visit, so this applies the next time you travel.
+- Found by watching the bot play: it spent a hundred moves in the Lakeside Cabins and the thick walls were on screen the whole time.
+
 ## Tooling — 2026-11-13 (no change to how the game plays)
 
 - **A bot can play the game while you work.** `npm run bot` runs a Claude model (Haiku by default) on the game in a browser of its own, in real time, through real key and mouse events. It files bugs (with the screen, the save and its last moves attached) and ideas as it goes. Your typing, clicking, window switching, your own save and edits to the code cannot reach it, and it has no access to your files.

@@ -67,7 +67,7 @@ function around(full){
   foes.sort((a,b)=>a.dist-b.dist);others.sort((a,b)=>a.dist-b.dist);
   const list=[...things.values()].sort((a,b)=>a.dist-b.dist).slice(0,full?40:18).map(t=>({name:t.name,act:t.act,yours:t.yours,n:t.n,x:t.x,y:t.y,dist:r1(t.dist),dir:compass(t.x+.5-p.x,t.y+.5-p.y)}));
   const drops=Z.drops.map(d=>({x:r1(d.x),y:r1(d.y),dist:r1(Math.hypot(d.x-p.x,d.y-p.y)),dir:compass(d.x-p.x,d.y-p.y),what:(d.items||[]).map(it=>(ITEMS[it.id]?ITEMS[it.id].n:it.id)+(it.n>1?' ×'+it.n:'')).join(', ')})).sort((a,b)=>a.dist-b.dist).slice(0,6);
-  let walls=0;if(Z.ed)for(const w of Z.ed)if(w)walls++;
+  let walls=0;if(Z.ed)for(const w of Z.ed)if(w&&OBJ[w.k]&&OBJ[w.k].cost)walls++;
   return{things:list,foes:foes.slice(0,12),others:others.slice(0,8),drops,walls}}
 
 B.observe=(full=false)=>{

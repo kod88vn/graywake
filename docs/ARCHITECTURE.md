@@ -66,7 +66,7 @@ A zone is `{w, h, g (ground ids), fl (floors), obj (one object per tile), ed (wa
 - `town`: a road, buildings facing it, cars and street furniture along it.
 - `complex`: one large building split into rooms by recursive partition, the boss in the room farthest from the entrance.
 
-Indoor placement goes through `putIn`, which refuses anything that would wall off part of a room. `tests/sim.mjs` checks reachability of every container, node and spawn in every location for three seeds.
+Indoor placement goes through `putIn`, which refuses anything that would wall off part of a room (its flood fill, `roomOk`, counts walls on cell edges). `tests/sim.mjs` checks reachability of every container, node and spawn in every location for three seeds.
 
 Movement is circles against tiles (`collide`). Objects are `solid: 1` (whole tile), `2` (round, radius `r`), or `0`. Doors block enemies only. `low` objects block movement but not shots or sight.
 
@@ -78,7 +78,7 @@ Walls and doors the player builds stand on the edge between two tiles, not in a 
 - `edgeCross(Z, x0, y0, x1, y1, ally)` returns the first wall a segment crosses. `los` calls it; projectiles, melee (both sides), interaction reach, auto-gather and blasts (`blastEdges`) call it directly.
 - `field` refuses allies a step across a wall that is not a door, charges attackers `3 + hp/25` to cross one, and lets nobody cut a corner a wall ends on; `stepOn(…, ally)` applies the same rule to the step taken.
 - Attackers that find a wall on their next step or across their line to the target attack it (`approach`, `stepEnemy`).
-- Scenery walls in locations (`w_brick` …) are ordinary `solid: 1` tile objects and are untouched by any of this.
+- Walls of buildings in locations (`w_brick` …) and fences are edge walls as well, written by `wallOn()` during generation with `{k, v}` (a look variant) and no `hp`. Having no `cost`, they are impassable in `field` and `stepOn` for everyone and are never chosen as something to break. A `low` kind (fences) is skipped by `edgeCross`, so it blocks movement only. `stamp()` makes a building's whole footprint floor with walls on its outer sides and leaves a side open for each doorway; `genComplex` divides its one large building with walls on the west or north side of a row or column of cells.
 
 The renderer draws walls as instanced meshes keyed `E:<kind>` at the edge midpoint, turned a quarter turn on west edges. A door's frame is instanced the same way (model part 1) and its leaf (part 2) is a mesh on a hinge that `stepDoors` swings toward open while anyone on the player's side is within a step of it.
 
