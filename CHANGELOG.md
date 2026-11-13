@@ -1,5 +1,12 @@
 # Changelog
 
+## Tooling — 2026-11-13 (no change to how the game plays)
+
+- **A bot can play the game while you work.** `npm run bot` runs a Claude model (Haiku by default) on the game in a browser of its own, in real time, through real key and mouse events. It files bugs (with the screen, the save and its last moves attached) and ideas as it goes. Your typing, clicking, window switching, your own save and edits to the code cannot reach it, and it has no access to your files.
+- **Watch it live** at `http://127.0.0.1:8777/`: a moving picture of the game, the bot's commentary, every move, its reports. Watch-only; you can pause it, send it a hint, or file a bug yourself. `--window` also puts the real game window on screen with your input shielded off.
+- `npm run bot:report` sums a session up for triage. `docs/AUTOMATION.md` has the rest.
+- In the game's code: a `G.hold` flag in the loop (the world can be held still without pausing the page) and `MapScreen.spots()` (where each place is drawn on the map). Neither is used by the game itself.
+
 ## 0.8.1 — 2026-11-13
 
 Combat that answers and reads.

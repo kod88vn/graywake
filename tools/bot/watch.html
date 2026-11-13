@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Graywake · bot watch</title>
+<style>
+:root{color-scheme:light;--bg:#f4f3ef;--surface:#fcfcfb;--line:#dcdad2;--ink:#0b0b0b;--ink2:#52514e;--ink3:#7b7a74;--accent:#2a78d6;--good:#2e7d4f;--warn:#a86a00;--serious:#b4531a;--crit:#b3261e;--hp:#b8463a;--food:#b9862f;--water:#3d86bd}
+@media (prefers-color-scheme:dark){:root{color-scheme:dark;--bg:#121211;--surface:#1a1a19;--line:#34332f;--ink:#f0efec;--ink2:#c3c2b7;--ink3:#8f8e85;--accent:#5b9ff0;--good:#5fb384;--warn:#d9a441;--serious:#e08a4f;--crit:#ef6b62;--hp:#d0584b;--food:#d19c3f;--water:#559fd6}}
+*{box-sizing:border-box}html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--ink);font:14px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif;display:grid;grid-template-rows:auto 1fr;min-height:100vh}
+header{display:flex;flex-wrap:wrap;gap:6px 18px;align-items:center;padding:10px 16px;border-bottom:1px solid var(--line);background:var(--surface)}
+header h1{font-size:15px;margin:0;font-weight:650;letter-spacing:.01em}
+header .meta{color:var(--ink2);font-size:13px}
+.pill{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:999px;padding:1px 10px;font-size:12.5px;color:var(--ink2);background:var(--bg)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--ink3)}.live .dot{background:var(--good);animation:blink 1.4s infinite}.paused .dot{background:var(--warn)}.dead .dot{background:var(--crit)}
+@keyframes blink{50%{opacity:.35}}
+main{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(320px,1fr);gap:14px;padding:14px 16px;min-height:0}
+@media (max-width:980px){main{grid-template-columns:minmax(0,1fr)}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;min-width:0}
+.card>h2{font-size:12px;text-transform:uppercase;letter-spacing:.07em;color:var(--ink3);margin:0;padding:9px 12px 0;font-weight:650}
+.card .in{padding:8px 12px 12px}
+#stage{position:relative;background:#000;border-radius:10px 10px 0 0;overflow:hidden;aspect-ratio:16/9}
+#stage img{width:100%;height:100%;display:block;object-fit:contain}
+#cap{position:absolute;left:10px;bottom:10px;right:10px;display:flex;gap:8px;flex-wrap:wrap;pointer-events:none}
+#cap span{background:rgba(10,10,10,.72);color:#f3f1ea;border-radius:6px;padding:2px 9px;font-size:12.5px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#ro{position:absolute;right:10px;top:10px;background:rgba(10,10,10,.6);color:#e8e6df;border-radius:6px;padding:1px 8px;font-size:11.5px}
+.vitals{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px 16px;padding:10px 12px;border-top:1px solid var(--line)}
+.v b{display:flex;justify-content:space-between;font-weight:500;font-size:12.5px;color:var(--ink2)}.v b span{color:var(--ink);font-variant-numeric:tabular-nums}
+.bar{height:6px;border-radius:3px;background:var(--line);overflow:hidden;margin-top:3px}.bar i{display:block;height:100%;border-radius:3px}
+.facts{display:flex;flex-wrap:wrap;gap:4px 16px;padding:0 12px 10px;color:var(--ink2);font-size:13px}.facts b{color:var(--ink);font-weight:600}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+button,input,select{font:inherit;color:inherit}
+button{border:1px solid var(--line);background:var(--bg);border-radius:7px;padding:5px 12px;cursor:pointer}button:hover{border-color:var(--ink3)}button.pri{background:var(--accent);border-color:var(--accent);color:#fff}button.danger{border-color:var(--crit);color:var(--crit)}
+input[type=text],select{border:1px solid var(--line);background:var(--bg);border-radius:7px;padding:5px 9px;min-width:0}input[type=text]{flex:1}
+.says{max-height:150px;overflow:auto;display:grid;gap:6px;font-size:13.5px}.says p{margin:0}.says time,.log time{color:var(--ink3);font-size:11.5px;font-variant-numeric:tabular-nums;margin-right:6px}
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);padding:6px 8px 0}.tabs button{border:0;background:none;border-bottom:2px solid transparent;border-radius:0;padding:6px 10px;color:var(--ink2)}.tabs button.on{color:var(--ink);border-bottom-color:var(--accent);font-weight:600}
+.tabs em{font-style:normal;color:var(--ink3);font-variant-numeric:tabular-nums;margin-left:4px}
+.pane{overflow:auto;padding:8px 12px 12px;min-height:0}
+#side{display:grid;grid-template-rows:auto 1fr;min-height:420px;max-height:calc(100vh - 84px)}
+.log{display:grid;gap:1px;font-size:13px}.log div{padding:3px 4px;border-radius:5px;cursor:pointer;display:grid;grid-template-columns:auto 1fr;gap:0 4px}.log div:hover{background:var(--bg)}
+.log code{font:12.5px ui-monospace,Menlo,monospace;color:var(--ink)}.log small{grid-column:2;color:var(--ink2)}.log .session code{color:var(--warn)}.log .you code{color:var(--accent)}
+.item{border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin-bottom:8px}.item h3{margin:0 0 3px;font-size:14px}.item p{margin:3px 0;color:var(--ink2);white-space:pre-wrap;font-size:13px}.item a{color:var(--accent);margin-right:10px;font-size:12.5px}
+.sev{display:inline-block;border:1px solid currentColor;border-radius:4px;padding:0 6px;font-size:11px;text-transform:uppercase;letter-spacing:.05em;margin-right:6px;vertical-align:1px}
+.sev.minor{color:var(--warn)}.sev.major{color:var(--serious)}.sev.blocker{color:var(--crit)}
+.item img{width:100%;border-radius:6px;margin-top:6px;border:1px solid var(--line)}
+pre{white-space:pre-wrap;margin:0;font:13px/1.5 ui-monospace,Menlo,monospace;color:var(--ink2)}
+.empty{color:var(--ink3);padding:14px 4px}
+dialog{border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink);padding:0;max-width:min(1100px,94vw)}dialog img{display:block;max-width:100%}dialog p{margin:0;padding:8px 12px;font-size:13px;color:var(--ink2)}dialog::backdrop{background:rgba(0,0,0,.55)}
+</style></head>
+<body>
+<header>
+  <h1>Graywake · bot watch</h1>
+  <span id="state" class="pill"><i class="dot"></i><span>connecting…</span></span>
+  <span class="meta" id="meta"></span>
+  <span class="row" style="margin-left:auto">
+    <button id="pause">Pause</button><button id="stop" class="danger" title="Let the bot write its notebook, then end the session">Stop</button>
+  </span>
+</header>
+<main>
+  <section style="display:grid;gap:14px;align-content:start;min-width:0">
+    <div class="card">
+      <div id="stage"><img id="live" alt="Live picture of the game the bot is playing"><span id="ro">live · watch only</span><div id="cap"></div></div>
+      <div class="vitals" id="vitals"></div>
+      <div class="facts" id="facts"></div>
+    </div>
+    <div class="card"><h2>What the bot is saying</h2><div class="in"><div class="says" id="says"></div></div></div>
+    <div class="card"><h2>Tell it something</h2><div class="in" style="display:grid;gap:8px">
+      <form class="row" id="hint"><input type="text" placeholder="A hint or an instruction: it reads this with its next move" maxlength="500"><button class="pri">Send</button></form>
+      <form class="row" id="mybug"><select><option>minor</option><option>major</option><option>blocker</option></select><input type="text" placeholder="Saw a bug yourself? Describe it: the picture and the save are attached" maxlength="300"><button>File bug</button></form>
+    </div></div>
+  </section>
+  <section class="card" id="side">
+    <div class="tabs" id="tabs"></div>
+    <div class="pane" id="pane"></div>
+  </section>
+</main>
+<dialog id="dlg"><img alt=""><p></p></dialog>
+<script>
+const $=id=>document.getElementById(id),esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const post=(op,b={})=>fetch('/api/control',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({op,...b})});
+const hm=iso=>new Date(iso).toTimeString().slice(0,8);
+let S=null,tab=localStorage.tab||'moves',lastKey='',fails=0;
+// The picture: ask the session for "the next frame after the one I have", show it, ask again. Plain fetches, so it works in any browser, keeps
+// up with the game (about 30 a second) and picks itself up after a restart. Nothing is fetched while the tab is hidden.
+const nap=ms=>new Promise(r=>setTimeout(r,ms));let frameN=-1,shown=0,lastShown=0,fpsNow=0;
+(async function pump(){const im=$('live');let old=null;
+  for(;;){try{if(document.hidden){await nap(400);continue}
+      const r=await fetch('/frame.jpg?after='+frameN,{cache:'no-store'}),n=+r.headers.get('x-frame');
+      if(r.status===200){const u=URL.createObjectURL(await r.blob()),prev=old;old=u;im.onload=()=>{if(prev)URL.revokeObjectURL(prev)};im.src=u;frameN=n;shown++;lastShown=performance.now()}
+      else if(r.status===204){if(n<frameN)frameN=-1}else await nap(700)
+    }catch(e){frameN=-1;await nap(1000)}}})();
+setInterval(()=>{fpsNow=shown;shown=0;const stale=performance.now()-lastShown>4000;$('ro').textContent=!lastShown?'waiting for the picture…':stale?'picture unchanged for '+Math.round((performance.now()-lastShown)/1000)+' s · watch only':'live · '+fpsNow+' frames/s · watch only'},1000);
+// a newer version of this page on disk replaces the one that is open
+let me=null;setInterval(async()=>{try{const t=await (await fetch('/',{cache:'no-store'})).text();if(me===null)me=t;else if(t!==me)location.reload()}catch(e){}},10000);
+$('pause').onclick=()=>post(S&&S.paused?'resume':'pause').then(poll);
+$('stop').onclick=()=>{if(confirm('Stop the session? The bot gets to save its notebook first.'))post('stop').then(poll)};
+$('hint').onsubmit=e=>{e.preventDefault();const i=e.target.querySelector('input');if(i.value.trim())post('hint',{text:i.value.trim()}).then(()=>{i.value='';poll()})};
+$('mybug').onsubmit=e=>{e.preventDefault();const i=e.target.querySelector('input'),s=e.target.querySelector('select');if(i.value.trim())post('bug',{title:i.value.trim(),severity:s.value}).then(()=>{i.value='';tab='bugs';poll()})};
+$('dlg').onclick=()=>$('dlg').close();
+function show(src,text){const d=$('dlg');d.querySelector('img').src=src;d.querySelector('p').textContent=text;d.showModal()}
+const meter=(name,v,max,col)=>`<div class="v"><b>${name}<span>${v}${max?' / '+max:''}</span></b><div class="bar"><i style="width:${Math.max(0,Math.min(100,v/(max||100)*100))}%;background:var(${col})"></i></div></div>`;
+function render(){
+  const s=S,st=$('state');
+  st.className='pill '+(s.chromeDead?'dead':s.paused?'paused':'live');st.lastElementChild.textContent=s.chromeDead?'browser gone':s.stopping?'stopping':s.paused?'paused by you':s.busy?'playing':'thinking';
+  $('pause').textContent=s.paused?'Resume':'Pause';
+  $('meta').textContent=`game ${s.version||''} at ${s.commit}${s.dirty?' + uncommitted':''} · ${s.pace==='live'?'real time':'world waits between moves'} · up ${Math.floor(s.uptime/60)} min · shift ${s.shift.n||0}${s.shift.total?', '+s.shift.left+' moves left':''}${s.shift.model?' · '+s.shift.model:''}`;
+  const y=s.you;$('vitals').innerHTML=y?meter('Health',y.hp,y.maxHp,'--hp')+meter('Food',y.food,100,'--food')+meter('Water',y.water,100,'--water'):'<div class="empty">Not in a game yet.</div>';
+  $('facts').innerHTML=y?`<span><b>${esc(s.zone?s.zone.name:s.layer||'')}</b></span><span>${esc((s.clock||'').replace(/\n/g,' · '))}</span><span>${esc(s.tide||'')}</span><span>level <b>${y.level}</b></span><span>in hand: <b>${esc(y.weapon)}</b></span><span>Auto <b>${y.auto?'on':'off'}</b></span><span><b>${s.actions}</b> moves · <b>${s.deaths}</b> deaths</span>`:'';
+  const last=s.events[s.events.length-1];$('cap').innerHTML=(s.busy?`<span>▶ ${esc(s.busy.cmd)}</span>`:last?`<span>${esc(last.cmd+' '+last.args.join(' '))} → ${esc(last.result||'looked')}</span>`:'')+(s.quest?`<span>${esc(s.quest.replace(/\n+/g,' · '))}</span>`:'');
+  const says=$('says'),atEnd=says.scrollTop+says.clientHeight>=says.scrollHeight-8;says.innerHTML=s.says.length?s.says.map(x=>`<p><time>${hm(x.at)}</time>${esc(x.text)}</p>`).join(''):'<div class="empty">Nothing yet.</div>';if(atEnd)says.scrollTop=says.scrollHeight;
+  const T=[['moves','Moves',s.actions],['bugs','Bugs',s.bugs.length],['ideas','Ideas',s.ideas.length],['notebook','Notebook',''],['errors','Page errors',s.errors.length]];
+  $('tabs').innerHTML=T.map(([id,l,n])=>`<button data-t="${id}" class="${tab===id?'on':''}">${l}${n!==''?`<em>${n}</em>`:''}</button>`).join('');
+  const key=tab+'|'+s.events.length+'|'+s.bugs.length+'|'+s.ideas.length+'|'+s.notebook.length+'|'+s.errors.length;if(key===lastKey)return;lastKey=key;
+  const P=$('pane');let h='';
+  if(tab==='moves')h=s.events.length?'<div class="log">'+s.events.slice().reverse().map(e=>`<div class="${e.who}" data-shot="${esc(e.shot||'')}" data-cap="${esc(e.n+' · '+e.cmd+' '+e.args.join(' ')+' → '+(e.result||''))}"><time>${hm(e.at)}</time><code>${esc(e.cmd+' '+e.args.join(' ')).slice(0,70)}</code><small>${esc(e.result||'')}${e.who!=='bot'?' ('+e.who+')':''}</small></div>`).join('')+'</div>':'<div class="empty">No moves yet. Click a move to see the screen after it.</div>';
+  else if(tab==='bugs')h=s.bugs.length?s.bugs.slice().reverse().map(b=>`<div class="item"><h3><span class="sev ${esc(b.severity)}">${esc(b.severity)}</span>${esc(b.title)}</h3><p>${esc(b.details)}</p><p>#${b.id} · ${hm(b.at)} · reported by ${b.source==='session'?'the session (automatic check)':b.source==='you'?'you':'the bot'} · move ${b.n}</p><a href="/files/${b.dir}/report.md" target="_blank">report</a><a href="/files/${b.dir}/save.json" target="_blank">save</a><a href="/files/${b.dir}/state.json" target="_blank">what it saw</a><a href="/files/${b.dir}/events.json" target="_blank">last moves</a><img loading="lazy" src="/files/${b.dir}/shot.jpg" alt="Screen when bug ${b.id} was filed"></div>`).join(''):'<div class="empty">No bug reports yet.</div>';
+  else if(tab==='ideas')h=s.ideas.length?s.ideas.slice().reverse().map(i=>`<div class="item"><p style="color:var(--ink)">${esc(i.text)}</p><p>#${i.id} · ${hm(i.at)}${i.where?' · '+esc(i.where):''}</p></div>`).join(''):'<div class="empty">No ideas yet.</div>';
+  else if(tab==='notebook')h=s.notebook.trim()?`<pre>${esc(s.notebook)}</pre>`:'<div class="empty">The bot has not written its notebook yet. It does so at the end of each shift; it is all it remembers.</div>';
+  else h=s.errors.length?s.errors.slice().reverse().map(e=>`<div class="item"><p>${hm(new Date(e.at).toISOString())}</p><pre>${esc(e.text)}</pre></div>`).join(''):'<div class="empty">The page has thrown no errors.</div>';
+  P.innerHTML=h;
+}
+$('tabs').onclick=e=>{const b=e.target.closest('[data-t]');if(b){tab=localStorage.tab=b.dataset.t;lastKey='';render()}};
+$('pane').onclick=e=>{const d=e.target.closest('[data-shot]');if(d&&d.dataset.shot)show('/files/'+d.dataset.shot,d.dataset.cap);const im=e.target.closest('.item img');if(im)show(im.src,im.alt)};
+async function poll(){try{S=await (await fetch('/api/status')).json();
+    fails=0;render()}catch(e){if(++fails>2){$('state').className='pill dead';$('state').lastElementChild.textContent='no session running: start one with npm run bot'}}}
+poll();setInterval(poll,1000);
+</script>
+</body></html>

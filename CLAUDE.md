@@ -15,6 +15,9 @@ npm run test:sim     # headless simulation only (Node, no browser)
 npm run shots        # 22 screenshots to .out/shots/ — look at them after art, lighting or UI changes
 npm run gallery      # every model on a tile to .out/shots/gallery-*.png — look after touching js/view/props.js
 node tests/audio.mjs # level table for every sound and music scene
+npm run bot          # a Claude model (Haiku) plays the game by itself for 30 minutes; watch at http://127.0.0.1:8777/ (docs/AUTOMATION.md)
+npm run bot:report   # the latest bot session: bugs, ideas, where it struggled
+npm run test:bot     # self-test of the bot harness, no model, 40 s
 ```
 
 ## Map
@@ -33,7 +36,9 @@ node tests/audio.mjs # level table for every sound and music scene
 - `js/audio.js` procedural sound and music (`Snd`). `js/input.js`. `js/main.js` boot and loop.
 - `index.html` is a **fragment** (the artifact host wraps it). Never add doctype, html or body tags. Never open it as a file; use `npm start`.
 
-Guides: `docs/ARCHITECTURE.md`, `docs/CONTENT_GUIDE.md`, `docs/BALANCE.md`, `docs/TESTING.md`.
+- `tools/bot/` automated play: `session.mjs` (a Chrome of its own, command API, live picture, logs), `page.js` (what the bot can see), `mcp.mjs` (the bot's tools), `run.mjs` (runs a model in shifts), `watch.html`, `PLAYER.md` (the bot's brief), `report.mjs`, `ctl.mjs` (the same commands by hand). Session files go to `.out/bot/`.
+
+Guides: `docs/ARCHITECTURE.md`, `docs/CONTENT_GUIDE.md`, `docs/BALANCE.md`, `docs/TESTING.md`, `docs/AUTOMATION.md`.
 
 ## Rules that are easy to break
 
@@ -54,6 +59,16 @@ Guides: `docs/ARCHITECTURE.md`, `docs/CONTENT_GUIDE.md`, `docs/BALANCE.md`, `doc
 - **The simulation runs in real time at any frame rate** (`main.js` splits slow frames into steps). Never cap `dt` in a way that slows the game down.
 - **The game sells nothing:** no purchases, energy, real-time waits or ads. Time only passes while you play or travel.
 - **No dependencies and no build step** without discussing it first.
+
+## Bot sessions
+
+The user runs a bot (Haiku) on the game while working on other things, watches it live, and wants both of you to spot bugs and plan improvements from what it finds. Their conditions, in their words: "I still need to do other stuff and I do not want my other activities to interfere with bot session", "I need to be able to observe too, just cannot control", "I want live observation". So:
+
+- The bot's browser stays separate from the user's (own Chrome profile, no focus, frozen copy of the code) and the bot gets game tools only. Do not point it at the user's Chrome, the Claude-in-Chrome extension or computer use, and do not give it a shell.
+- Watching stays live (a moving picture, real-time pace by default) and watch-only.
+- To review a session: `npm run bot:report`, then `bugs/NNN/` under the session folder (look at `shot.jpg`; `save.json` reproduces). Sort each report into game bug, rough edge, or the bot's tools misreading the game, and say which is which. Reports from a bot are leads, not verdicts: reproduce before changing the game.
+- You may start a run yourself in the background (`npm run bot -- --minutes N`); it uses the user's Claude allowance, so say so.
+- Everything the bot does must go through real input. If it "cannot" do something a player can, extend `tools/bot/`, never add a cheat.
 
 ## Verifying a change
 

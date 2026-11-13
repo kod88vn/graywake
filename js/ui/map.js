@@ -12,7 +12,9 @@ import {drawIcon} from './icons.js';
 
 let c,x,sel=null,scale=1,ox=0,oy=0,drag=null,moved=0,pulse=0,raf=0;
 const MW=1000,MH=640,DIRS=['north','east','south','west'];
-export const MapScreen={init,open,draw};
+export const MapScreen={init,open,draw,spots};
+/** Every place drawn on the map with where it is on the screen (page pixels), for tools that have to click one: the play harness and tests. */
+function spots(){const r=c.getBoundingClientRect(),S=G.S;return nodes().map(n=>({id:n.id,name:n.site?SITES[n.site.site].n:n.loc.n,x:r.left+ox+n.x*scale,y:r.top+oy+n.y*scale,here:n.id===S.pos,sel:n.id===sel}))}
 
 function init(){
   c=$('mapc');x=c.getContext('2d');

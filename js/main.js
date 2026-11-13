@@ -35,15 +35,17 @@ function drain(){
     else if(t==='obj'||t==='edge'||t==='floor'||t==='fx'||t==='shake'||t==='eq'||t==='veh'||t==='zoneDirty'){View.onEvent(e);if(t==='eq'||t==='obj')UI.dirty()}
     else UI.onEvent(e)}
 }
-let last=0,sceneT=0;
+let last=0,sceneT=0,holdT=0;
 function loop(ts){
   requestAnimationFrame(loop);const dt=Math.min(.25,(ts-last)/1000||0);last=ts;
   Input.frame();
   if(G.mode==='play'&&G.Z){
     // the simulation keeps real time whatever the frame rate: a slow frame is split into steps of at most 1/30 s
-    if(!G.paused){const n=Math.max(1,Math.ceil(dt*30)),h=dt/n;for(let i=0;i<n&&G.Z&&!G.paused&&G.mode==='play';i++)World.tick(h)}
+    // G.hold freezes the world without pausing the page: the play harness (tools/bot) sets it between a bot's moves so the game waits while the
+    // bot thinks. The interface stays live, and the picture is redrawn ten times a second instead of every frame.
+    if(!G.paused&&!G.hold){const n=Math.max(1,Math.ceil(dt*30)),h=dt/n;for(let i=0;i<n&&G.Z&&!G.paused&&!G.hold&&G.mode==='play';i++)World.tick(h)}
     drain();
-    if(G.Z&&G.mode==='play'){View.frame(G.paused?0:dt);UI.frame(dt)}
+    if(G.Z&&G.mode==='play'){if(!G.hold)View.frame(G.paused?0:dt);else if((holdT-=dt)<=0){holdT=.1;View.frame(0)}UI.frame(dt)}
   }else drain();
   sceneT-=dt;if(sceneT<=0){sceneT=1;const S=G.S,Z=G.Z;
     if(G.mode==='menu')Snd.scene({biome:'menu',night:false,weather:'clear',danger:0});

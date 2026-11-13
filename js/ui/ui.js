@@ -200,7 +200,7 @@ const setBar=(el,v,max,warn)=>{el.firstElementChild.style.width=Math.max(0,Math.
 function frame(dt){if(cur==='inv')Portrait.frame(dt||.016);
   const S=G.S,Z=G.Z;if(!S||!Z)return;const p=Z.pl,ds=G.ds;
   if(deathT>0){deathT-=dt;if(deathT<=0)open('death')}
-  if(cur&&PANELS[cur].tick&&PANELS[cur].tick(curArg,dt||1/60)){const keep=$('pb').scrollTop;refresh();$('pb').scrollTop=keep}
+  if(cur&&!G.hold&&PANELS[cur].tick&&PANELS[cur].tick(curArg,dt||1/60)){const keep=$('pb').scrollTop;refresh();$('pb').scrollTop=keep}
   if(hints.length){hintT+=dt;if(hintT>=hints[0][0]){toast(hints.shift()[1],'info')}}
   if(G.build)buildFrame();
   hudT-=dt;if(hudT>0&&!needHud)return;hudT=.1;needHud=false;

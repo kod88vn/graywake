@@ -16,6 +16,12 @@
     "shots": "node tests/shots.mjs",
     "gallery": "node tests/gallery.mjs",
     "test:play": "node tests/play.mjs",
-    "test:monkey": "node tests/monkey.mjs"
+    "test:monkey": "node tests/monkey.mjs",
+    "test:bot": "node tests/bot.mjs",
+    "bot": "node tools/bot/run.mjs",
+    "bot:watch": "node tools/bot/ctl.mjs open",
+    "bot:status": "node tools/bot/ctl.mjs status",
+    "bot:stop": "node tools/bot/ctl.mjs end",
+    "bot:report": "node tools/bot/report.mjs"
   }
 }

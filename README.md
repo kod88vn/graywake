@@ -24,6 +24,10 @@ Needs Node 22 or newer. There is nothing to install.
 | In build mode: turn a piece | R or right-click | Turn piece / Rotate |
 | Heal, eat, drink, antidote | 1, 2, 3, 4 | tap the bar |
 
+## A bot can play it for you
+
+`npm run bot` lets a Claude model play in a browser of its own while you do other things; watch live at `http://127.0.0.1:8777/`, read what it found with `npm run bot:report`. See `docs/AUTOMATION.md`.
+
 ## What is in it
 
 - **A homestead that persists.** 86 buildable pieces: five tiers of walls and doors that stand on the sides of cells and leave the cells free, floors, 13 kinds of crafting station with upgrades, storage, beds, gardens, rain catchers, wells, coops, hives, traps, five turrets, guard posts, lights, a generator, a radio, a kennel.
