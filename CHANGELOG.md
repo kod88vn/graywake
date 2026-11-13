@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.10.2 — 2026-11-13
+
+- **Fixed: in a tide, Auto mode walked out of your yard.** It held "the middle of the homestead", which was the middle of the map: a yard built anywhere else was abandoned for the open ground, and the bot died there. Auto now holds the spot you were standing on when the tide (or Auto) began, fights what comes within a few steps of it, and only leaves to find stragglers once the last wave is in. Measured against the last version, standing eight tiles off the middle: the same survival and tide length at tides 1, 3 and 5, a third less walking.
+- **Fixed: loading an older save in a shared world charged the same hours twice.** A bot whose session restarted before it had woken from a death fought the same tide again and was charged a second death and a lost tide. The world now ignores tides and deaths from hours it has already seen from that enclave, and the game saves as soon as the world has been told of a deed.
+
 ## 0.10.1 — 2026-11-13
 
 From the two bots' first hours in a shared world.
