@@ -1,9 +1,10 @@
 // The renderer: turns the current zone into a three.js scene and keeps it in step with the simulation.
 // Sim (x, y) maps to world (X, Z); Y is up. A sim facing angle a becomes rotation.y = π/2 − a.
-import {THREE,Geo,material,shade} from './geo.js';
+import {THREE,Geo,material,shade,toon} from './geo.js';
+import {Post,inkBlend,noInk} from './post.js';
 import {PROPS} from './props.js';
 import {rigFor,playerRig,setWeapon,pose,disposeRig} from './rigs.js';
-import {groundTex,cloudTex,glowTex,rippleTex,CLUTTER_BY_BIOME,clutterGeo,windMaterial,setWind} from './scenery.js';
+import {groundTex,cloudTex,glowTex,puffTex,starTex,rippleTex,CLUTTER_BY_BIOME,clutterGeo,windMaterial,setWind} from './scenery.js';
 import {OBJ,GROUND,G as GT} from '../data/objects.js';
 import {BIOMES} from '../data/world.js';
 import {VEHICLES} from '../data/recipes.js';
@@ -13,19 +14,19 @@ import {daylight} from '../sim/world.js';
 import {hash,clamp} from '../sim/util.js';
 
 const V3=THREE.Vector3,M4=THREE.Matrix4,Q=THREE.Quaternion,C=THREE.Color;
-const _m=new M4(),_q=new Q(),_p=new V3(),_s=new V3(),_c=new C(),_c2=new C(),_e=new THREE.Euler(),UP=new V3(0,1,0),ZERO=new M4().makeScale(0,0,0);
-const MARGIN=18,QUAL={low:{pr:1,shadow:0,dens:.3},med:{pr:1.5,shadow:1024,dens:.65},high:{pr:2,shadow:2048,dens:1}};
-let R,scene,cam,sun,hemi,plight,fxLight,canvas,quality='high',zoom=.88,Z=null,frame=0,time=0;
+const _m=new M4(),_q=new Q(),_q2=new Q(),_p=new V3(),_s=new V3(),_c=new C(),_c2=new C(),_e=new THREE.Euler(),UP=new V3(0,1,0),ZERO=new M4().makeScale(0,0,0);
+const MARGIN=18,QUAL={low:{pr:1,shadow:0,dens:.3,aa:0},med:{pr:1.5,shadow:1024,dens:.65,aa:2},high:{pr:2,shadow:2048,dens:1,aa:4}};
+let R,post,scene,cam,sun,hemi,plight,fxLight,canvas,quality='high',zoom=.82,Z=null,frame=0,time=0;
 let ground=null,water=null,borderMeshes=[],clutterMeshes=[],vehMesh=null,clouds=null;
-let matStd,matTree,matBush,matGrass,matGround,matWater,texCloud;
+let matStd,matTree,matBush,matGrass,matClutter,matClutterWind,matGround,matWater,texCloud;
 const geoCache=new Map(),inst=new Map(),shown=[],shownF=[],dirty=new Set(),dyn=new Map(),wobble=[],clutterAt=new Map();
 const rigs=new Map(),lightPool=[],lightSrc=[];
-let projMesh,dropMesh,barBg,barFg,partMesh,wxMesh,decalMesh,glowMesh,aoMesh,aoActors,hintRing,ghost=null,ghostTile,areaPool=[],arcPool=[],playerRing;
-const parts=[],wx=[],decals=[],glows=[];let decalN=0,decalDirty=true,shakeAmt=0,flashT=0,boltT=8,boltF=0,ambT=0;
+let projMesh,dropMesh,barBg,barFg,starMesh,partMesh,wxMesh,decalMesh,glowMesh,aoMesh,aoActors,hintRing,ghost=null,ghostTile,areaPool=[],arcPool=[],playerRing;
+const parts=[],wx=[],decals=[],glows=[],stars=[];let decalN=0,decalDirty=true,shakeAmt=0,flashT=0,boltT=8,boltF=0,ambT=0;
 const camT=new V3(),camOff=new V3(0,13.5,9.4),basicBox=new THREE.BoxGeometry(1,1,1);
 let fps=60,fpsAcc=0,fpsN=0,lowT=0;
 
-export const View={init,setZone,frame:draw,onEvent,resize,pick,project,setGhost,setQuality,get quality(){return quality},setZoom(z){zoom=clamp(z,.6,1.5)},get zoom(){return zoom},get fps(){return fps},shot:()=>R.domElement.toDataURL()};
+export const View={init,setZone,frame:draw,onEvent,resize,pick,project,setGhost,setQuality,get quality(){return quality},setZoom(z){zoom=clamp(z,.6,1.5)},get zoom(){return zoom},get fps(){return fps},get ink(){return !!(post&&post.ok&&post.rt)},shot:()=>R.domElement.toDataURL()};
 
 function modelGeo(key,lo){
   const ck=lo?key+'~':key;let g=geoCache.get(ck);if(g)return g;const[m,v]=key.split('|'),fn=PROPS[m];const b=new Geo();Geo.DETAIL=lo?0:1;
@@ -36,25 +37,30 @@ const SWAY_TREE=/^tree_/,SWAY_BUSH=/^(bush_|cactus|scarecrow|flag)/,SWAY_GRASS=/
 const matFor=key=>SWAY_TREE.test(key)?matTree:SWAY_BUSH.test(key)?matBush:SWAY_GRASS.test(key)?matGrass:matStd;
 
 function init(cv,q){
-  canvas=cv;R=new THREE.WebGLRenderer({canvas:cv,antialias:true,powerPreference:'high-performance'});
-  R.toneMapping=THREE.ACESFilmicToneMapping;R.toneMappingExposure=1.28;
+  canvas=cv;R=new THREE.WebGLRenderer({canvas:cv,antialias:false,powerPreference:'high-performance'});post=new Post(R);
   scene=new THREE.Scene();scene.background=new C('#a9c0a0');scene.fog=new THREE.Fog('#a9c0a0',24,52);
   cam=new THREE.PerspectiveCamera(38,1,1,160);
-  matStd=material();matTree=windMaterial(.011,.004);matBush=windMaterial(.03,.02);matGrass=windMaterial(.1,.1);
-  matGround=new THREE.MeshLambertMaterial({vertexColors:true,map:groundTex()});
-  matWater=new THREE.MeshPhongMaterial({color:'#2c7ea6',transparent:true,opacity:.82,shininess:140,specular:'#d8f2ff',bumpMap:rippleTex(),bumpScale:.9});
-  hemi=new THREE.HemisphereLight('#cfe0ff','#5a5040',1);scene.add(hemi);
+  matStd=material();matTree=windMaterial(.011,.004,{amp:.16,scale:1.2,ink:.4});matBush=windMaterial(.03,.02,{amp:.16,scale:1.2,ink:.4});matGrass=windMaterial(.1,.1,{amp:.1,scale:1.2,ink:.4});
+  // ground cover is never outlined: it writes an ink weight of zero
+  matClutter=toon({ink:0});matClutterWind=windMaterial(.1,.1,{amp:.1,scale:1.2,ink:0});
+  matGround=toon({ink:0,amp:.06},{map:groundTex()});
+  // the painted patches fade out on pale ground (snow, tile, concrete), where they would read as stains
+  {const prev=matGround.onBeforeCompile,key=matGround.customProgramCacheKey();matGround.onBeforeCompile=(sh,r)=>{sh.fragmentShader=sh.fragmentShader.replace('#include <map_fragment>','vec3 gtx=texture2D(map,vMapUv).rgb;diffuseColor.rgb*=mix(gtx,vec3(1.0),smoothstep(.42,.8,dot(vColor.rgb,vec3(.3,.6,.1)))*.72);');prev(sh,r)};matGround.customProgramCacheKey=()=>key+'gnd'}
+  matWater=new THREE.MeshPhongMaterial(Object.assign({color:'#3a9ad0',transparent:true,opacity:.84,shininess:160,specular:'#ffffff',bumpMap:rippleTex(),bumpScale:.9},inkBlend()));
+  hemi=new THREE.HemisphereLight('#d6e2ff','#8f86b0',1);scene.add(hemi);
   sun=new THREE.DirectionalLight('#fff2d8',2.2);sun.castShadow=true;sun.shadow.bias=-.0006;sun.shadow.normalBias=.03;scene.add(sun);scene.add(sun.target);
   plight=new THREE.PointLight('#ffd9a0',0,13,1.6);scene.add(plight);fxLight=new THREE.PointLight('#ffb060',0,14,1.5);scene.add(fxLight);
   for(let i=0;i<4;i++){const l=new THREE.PointLight('#ffb060',0,12,1.6);scene.add(l);lightPool.push(l)}
-  const basic=o=>new THREE.MeshBasicMaterial(Object.assign({color:'#ffffff'},o));
-  projMesh=new THREE.InstancedMesh(basicBox,basic({toneMapped:false}),256);dropMesh=new THREE.InstancedMesh(modelGeo('lootbag|0'),matStd,96);dropMesh.castShadow=true;
+  const basic=o=>new THREE.MeshBasicMaterial(Object.assign({color:'#ffffff'},o&&o.transparent?inkBlend(o.blending===THREE.AdditiveBlending):null,o,o&&o.blending===THREE.AdditiveBlending?{blending:THREE.CustomBlending}:null));
+  projMesh=new THREE.InstancedMesh(basicBox,noInk(basic({toneMapped:false})),256);dropMesh=new THREE.InstancedMesh(modelGeo('lootbag|0'),matStd,96);dropMesh.castShadow=true;
   const plane=new THREE.PlaneGeometry(1,1);barBg=new THREE.InstancedMesh(plane,basic({color:'#15130f',depthTest:false,transparent:true,opacity:.75,toneMapped:false}),96);barFg=new THREE.InstancedMesh(plane,basic({depthTest:false,transparent:true,toneMapped:false}),96);
   wxMesh=new THREE.InstancedMesh(basicBox,basic({transparent:true,opacity:.55}),500);
   decalMesh=new THREE.InstancedMesh(new THREE.CircleGeometry(1,12).rotateX(-Math.PI/2),basic({transparent:true,opacity:.72,depthWrite:false}),140);
-  const texGlow=glowTex(),flat=new THREE.PlaneGeometry(1,1).rotateX(-Math.PI/2),aoMat=()=>basic({map:texGlow,color:'#000000',transparent:true,opacity:.62,depthWrite:false});
+  const texGlow=glowTex(),flat=new THREE.PlaneGeometry(1,1).rotateX(-Math.PI/2),aoMat=()=>basic({map:texGlow,color:'#10122c',transparent:true,opacity:.5,depthWrite:false});
   glowMesh=new THREE.InstancedMesh(plane,basic({map:texGlow,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,fog:false,toneMapped:false}),90);
-  partMesh=new THREE.InstancedMesh(plane,basic({map:texGlow,transparent:true,depthWrite:false}),900);partMesh.renderOrder=5;
+  partMesh=new THREE.InstancedMesh(plane,basic({map:puffTex(),transparent:true,depthWrite:false}),900);partMesh.renderOrder=5;
+  // impact stars: a white flash that pops where a blow lands
+  starMesh=new THREE.InstancedMesh(plane,basic({map:starTex(),transparent:true,depthWrite:false,depthTest:false,toneMapped:false}),24);starMesh.count=0;starMesh.frustumCulled=false;starMesh.renderOrder=7;scene.add(starMesh);
   // soft contact shadows: a dark blob under everything that stands on the ground
   aoMesh=new THREE.InstancedMesh(flat,aoMat(),3200);aoActors=new THREE.InstancedMesh(flat,aoMat(),110);aoMesh.renderOrder=1;aoActors.renderOrder=1;
   for(const m of[projMesh,dropMesh,barBg,barFg,partMesh,wxMesh,decalMesh,glowMesh,aoMesh,aoActors]){m.count=0;m.frustumCulled=false;scene.add(m)}barBg.renderOrder=10;barFg.renderOrder=11;decalMesh.renderOrder=1;glowMesh.renderOrder=6;
@@ -66,14 +72,14 @@ function init(cv,q){
   // weapon swing arcs: a fan in front of the model (+Z), faded out over a few frames
   for(let i=0;i<4;i++){const m=new THREE.Mesh(new THREE.RingGeometry(.45,1,18,1,-Math.PI/2-.95,1.9).rotateX(-Math.PI/2),basic({color:'#fff6dc',transparent:true,opacity:0,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide,toneMapped:false}));m.visible=false;m.userData.t=0;scene.add(m);arcPool.push(m)}
   // drifting cloud shadows
-  texCloud=cloudTex();texCloud.repeat.set(2.4,2.4);clouds=new THREE.Mesh(new THREE.PlaneGeometry(150,150).rotateX(-Math.PI/2),basic({map:texCloud,color:'#000814',transparent:true,opacity:.2,depthWrite:false}));clouds.renderOrder=2;clouds.position.y=.06;scene.add(clouds);
+  texCloud=cloudTex();texCloud.repeat.set(2.4,2.4);clouds=new THREE.Mesh(new THREE.PlaneGeometry(150,150).rotateX(-Math.PI/2),basic({map:texCloud,color:'#101440',transparent:true,opacity:.2,depthWrite:false}));clouds.renderOrder=2;clouds.position.y=.06;scene.add(clouds);
   setQuality(q||'auto');resize();
 }
 function setQuality(q){
   if(q==='auto')q=(matchMedia('(pointer:coarse)').matches||Math.min(screen.width,screen.height)<700)?'med':'high';
   const was=quality;quality=q;const o=QUAL[q]||QUAL.med;R.setPixelRatio(Math.min(o.pr,devicePixelRatio||1));
   R.shadowMap.enabled=!!o.shadow;R.shadowMap.type=THREE.PCFSoftShadowMap;if(o.shadow){sun.shadow.mapSize.set(o.shadow,o.shadow);if(sun.shadow.map){sun.shadow.map.dispose();sun.shadow.map=null}}
-  sun.castShadow=!!o.shadow;const sc=sun.shadow.camera;sc.left=-19;sc.right=19;sc.top=19;sc.bottom=-19;sc.near=1;sc.far=70;sc.updateProjectionMatrix();
+  post.set(o.aa,1,q==='low'?2:4);sun.castShadow=!!o.shadow;const sc=sun.shadow.camera;sc.left=-19;sc.right=19;sc.top=19;sc.bottom=-19;sc.near=1;sc.far=70;sc.updateProjectionMatrix();
   scene.traverse(o=>{if(o.material&&o.material.needsUpdate!==undefined)o.material.needsUpdate=true});resize();
   if(Z&&was!==q&&(QUAL[was]||{}).dens!==o.dens)buildClutter();
 }
@@ -86,7 +92,7 @@ function disposeZone(){
   for(const e of inst.values()){scene.remove(e.mesh);e.mesh.dispose()}inst.clear();shown.length=0;shownF.length=0;dirty.clear();
   for(const m of dyn.values())scene.remove(m);dyn.clear();
   for(const r of rigs.values()){scene.remove(r.root);disposeRig(r)}rigs.clear();
-  if(vehMesh){scene.remove(vehMesh);vehMesh=null}parts.length=0;wobble.length=0;decals.length=0;decalN=0;decalDirty=true;glows.length=0;if(aoMesh)aoMesh.count=0;
+  if(vehMesh){scene.remove(vehMesh);vehMesh=null}parts.length=0;stars.length=0;wobble.length=0;decals.length=0;decalN=0;decalDirty=true;glows.length=0;if(aoMesh)aoMesh.count=0;
 }
 const HARD={asphalt:1,concrete:1,tile:1,boards:1,water:1};
 function buildGround(b){
@@ -132,7 +138,7 @@ function buildClutter(){
       if(paved&&!pave)return;let n=d*dens*(inside?1:.55)*(bare&&wind?.2:1)*(paved?.6:1);const h0=hash(x*73+k*911,y*91+k*13);let cnt=Math.floor(n)+((h0%1000)/1000<n-Math.floor(n)?1:0);
       for(let c=0;c<cnt;c++){const h=hash(x*131+c*17+k*5,y*197+c*29),key=name+'|'+((h>>>20)%3);(buckets[key]=buckets[key]||{wind,rows:[]}).rows.push([x+(h&255)/255,y+((h>>>8)&255)/255,((h>>>4)%628)/100,.75+((h>>>14)%100)/160,inside?i:-1])}});
   }
-  for(const key in buckets){const b=buckets[key],[name,v]=key.split('|'),m=new THREE.InstancedMesh(clutterGeo(name,+v),b.wind?matGrass:matStd,b.rows.length);m.castShadow=false;m.receiveShadow=true;m.frustumCulled=false;
+  for(const key in buckets){const b=buckets[key],[name,v]=key.split('|'),m=new THREE.InstancedMesh(clutterGeo(name,+v),b.wind?matClutterWind:matClutter,b.rows.length);m.castShadow=false;m.receiveShadow=true;m.frustumCulled=false;
     b.rows.forEach(([x,z,rot,s,tile],idx)=>{_q.setFromAxisAngle(UP,rot);_m.compose(_p.set(x,0,z),_q,_s.set(s,s,s));m.setMatrixAt(idx,_m);if(tile>=0&&Z.home){let a=clutterAt.get(tile);if(!a)clutterAt.set(tile,a=[]);a.push(m,idx)}});
     scene.add(m);clutterMeshes.push(m)}
 }
@@ -144,7 +150,7 @@ function setZone(z){
   const lists={};
   for(let y=-MARGIN+2;y<H+MARGIN-2;y++)for(let x=-MARGIN+2;x<W+MARGIN-2;x++){if(x>=-1&&y>=-1&&x<=W&&y<=H)continue;const h=hash(x*3+11,y*7+5);if((h%100)>=(Z.home||Z.biome==='forest'||Z.biome==='frost'||Z.biome==='gray'?40:16))continue;
     const kind=b.border[(h>>>8)%b.border.length],key=kind+'|'+((h>>>12)%3);(lists[key]=lists[key]||[]).push([x,y,h])}
-  for(const key in lists){const L=lists[key],m=new THREE.InstancedMesh(modelGeo(key,true),matFor(key),L.length);m.castShadow=false;m.receiveShadow=true;m.frustumCulled=false;
+  for(const key in lists){const L=lists[key],m=new THREE.InstancedMesh(modelGeo(key,quality==='low'),matFor(key),L.length);m.castShadow=false;m.receiveShadow=true;m.frustumCulled=false;
     L.forEach(([x,y,h],i)=>{const s=.9+((h>>>16)%100)/250;_q.setFromAxisAngle(UP,((h>>>4)%628)/100);_m.compose(_p.set(x+.5,0,y+.5),_q,_s.set(s,s,s));m.setMatrixAt(i,_m)});scene.add(m);borderMeshes.push(m)}
   for(let i=0;i<W*H;i++){if(Z.obj[i])syncObj(i);if(Z.fl[i])syncFloor(i)}flush();
   if(Z.home&&G.S.veh>0&&VEHICLES[G.S.veh].m)parkVehicle();
@@ -177,7 +183,7 @@ function flush(){
   if(!dirty.size)return;const W=Z.w;
   for(const key of dirty){const e=inst.get(key);if(!e)continue;const n=e.set.size,floor=key.startsWith('F:');
     if(n>e.cap||!e.mesh){if(e.mesh){scene.remove(e.mesh);e.mesh.dispose()}e.cap=Math.max(8,Math.ceil(n*1.5));const gk=floor?key.slice(2)+'|0':key;
-      e.mesh=new THREE.InstancedMesh(modelGeo(gk),matFor(gk),e.cap);e.mesh.castShadow=!e.flat&&!floor;e.mesh.receiveShadow=true;e.mesh.frustumCulled=false;scene.add(e.mesh)}
+      e.mesh=new THREE.InstancedMesh(modelGeo(gk),floor?matClutter:matFor(gk),e.cap);e.mesh.castShadow=!e.flat&&!floor;e.mesh.receiveShadow=true;e.mesh.frustumCulled=false;scene.add(e.mesh)}
     let j=0;const mesh=e.mesh;
     for(const i of e.set){const x=i%W,y=(i-x)/W,o=floor?null:Z.obj[i],h=hash(x*31+7,y*17+3);let rot=0,s=1,sy=1,tint=1,red=0;
       if(o){const d=OBJ[o.k];if(d.node||(!d.cost&&d.solid!==1&&!d.loot)){rot=((h>>>4)%628)/100;s=.88+((h>>>14)%100)/400}else rot=(o.r||0)*Math.PI/2;
@@ -214,9 +220,10 @@ function burst(x,y,z,n,cols,spd,up,life,size,grav=9,spread=1){
     parts.push({x,y,z,vx:Math.cos(a)*r,vy:up*(.5+Math.random()*.8),vz:Math.sin(a)*r,life:life*(.6+Math.random()*.6),max:life,size:size*(.6+Math.random()*.8),r:_c.r,g:_c.g,b:_c.b,grav})}
 }
 function decal(x,y,r,col,grow=0){_c.set(col);const d={x:x+(Math.random()-.5)*.2,y:y+(Math.random()-.5)*.2,r,rot:Math.random()*6.28,sx:.8+Math.random()*.5,cr:_c.r,cg:_c.g,cb:_c.b,t:grow?0:1};if(decals.length<138)decals.push(d);else{decals[decalN%138]=d;decalN++}decalDirty=true}
+function star(x,h,y,size){if(stars.length<24)stars.push({x:x+(Math.random()-.5)*.15,h,y,size,t:.14,rot:Math.random()*1.5})}
 function glow(x,h,y,size,col,t){if(glows.length<24)glows.push({x,h,y,size,col,t,T:t})}
 function spawnFx(name,x,y,a){
-  if(name==='blood'){burst(x,.7,y,6,[a||'#8a2a2a',shade(a||'#8a2a2a',.6)],2.2,2.5,.5,.09);if(Math.random()<.4)decal(x,y,.1+Math.random()*.14,'#4a1210')}
+  if(name==='blood'){star(x,.85,y,.75);burst(x,.7,y,6,[a||'#8a2a2a',shade(a||'#8a2a2a',.6)],2.2,2.5,.5,.09);if(Math.random()<.4)decal(x,y,.1+Math.random()*.14,'#4a1210')}
   else if(name==='muzzle'){for(let i=0;i<4;i++){_c.set(PAL.spark[i%3]);const s=6+Math.random()*6,an=a+(Math.random()-.5)*.5;parts.push({x,y:.85,z:y,vx:Math.cos(an)*s,vy:Math.random(),vz:Math.sin(an)*s,life:.09,max:.09,size:.11,r:_c.r,g:_c.g,b:_c.b,grav:0})}fxLight.position.set(x,1.2,y);fxLight.color.set('#ffd080');flashT=.06;fxLight.userData.i=40;glow(x,.9,y,1.6,'#ffd080',.07)}
   else if(name==='explode'){burst(x,.5,y,26,PAL.explode,5*(a||2.5)/2.5,5,.8,.22,7);burst(x,.3,y,10,PAL.dust,3,1.5,1.2,.3,1);for(let i=0;i<8;i++)parts.push({x:x+(Math.random()-.5),y:.6,z:y+(Math.random()-.5),vx:(Math.random()-.5),vy:1.4+Math.random(),vz:(Math.random()-.5),life:2.2,max:2.2,size:.3,grow:1.5,r:.2,g:.19,b:.18,grav:-.2});
     fxLight.position.set(x,1.6,y);fxLight.color.set('#ff9040');flashT=.22;fxLight.userData.i=220;glow(x,1,y,(a||2.5)*3,'#ffa040',.3);decal(x,y,(a||2.5)*.55,'#1c1814')}
@@ -226,7 +233,7 @@ function spawnFx(name,x,y,a){
   else if(name==='arc'){const dx=a.x-x,dy=a.y-y,n=Math.max(4,Math.ceil(Math.hypot(dx,dy)*3));for(let i=0;i<=n;i++){const f=i/n;parts.push({x:x+dx*f+(Math.random()-.5)*.25,y:1+(Math.random()-.5)*.3,z:y+dy*f+(Math.random()-.5)*.25,vx:0,vy:0,vz:0,life:.14,max:.14,size:.1,r:.6,g:.85,b:1,grav:0})}glow(a.x,1,a.y,1.8,'#80c0ff',.12)}
   else if(name==='fire')burst(x,.4,y,2,PAL.fire,.6,2.2,.5,.14,-2);
   else if(name==='heal'||name==='level'){burst(x,.3,y,name==='level'?26:8,PAL[name],1,3,1,.1,-1.5);if(name==='level')glow(x,1,y,4,'#ffd870',.6)}
-  else if(name==='die'){burst(x,.5,y,9,PAL.die,2,2.5,.7,.12);decal(x,y,.42+Math.random()*.2,'#3e0e0c',1)}
+  else if(name==='die'){star(x,.7,y,1.3);burst(x,.5,y,9,PAL.die,2,2.5,.7,.12);decal(x,y,.42+Math.random()*.2,'#3e0e0c',1)}
   else if(PAL[name])burst(x,name==='dust'?.2:.7,y,name==='dust'?8:5,PAL[name],name==='spark'?3.5:2,name==='dust'?1.2:2.6,name==='dust'?.8:.5,name==='dust'?.2:.09,name==='dust'?1:9);
 }
 
@@ -289,6 +296,8 @@ function stepParts(dt){
     p.vy-=p.grav*dt;if(p.w){p.vx+=Math.sin(time*2.3+p.w*40)*p.w*dt;p.vz+=Math.cos(time*1.9+p.w*70)*p.w*dt}p.x+=p.vx*dt;p.y+=p.vy*dt;p.z+=p.vz*dt;if(p.y<.03&&p.grav>0){p.y=.03;p.vy*=-.3;p.vx*=.6;p.vz*=.6}}
   for(const p of parts){const f=p.life/p.max,s=p.size*Math.min(1,f*2.5)*(p.grow?1+p.grow*(1-f):1)*(p.pulse?.6+.4*Math.sin(time*6+p.w*90):1);_m.compose(_p.set(p.x,p.y,p.z),cam.quaternion,_s.set(s*2.6,s*2.6,1));partMesh.setMatrixAt(n,_m);partMesh.setColorAt(n,_c.setRGB(p.r,p.g,p.b));n++}
   partMesh.count=n;partMesh.instanceMatrix.needsUpdate=true;if(partMesh.instanceColor)partMesh.instanceColor.needsUpdate=true;
+  n=0;for(let i=stars.length-1;i>=0;i--){const q=stars[i];q.t-=dt||.016;if(q.t<=0){stars.splice(i,1);continue}const f=q.t/.14,sz=q.size*(1.25-f*.7);_e.set(0,0,q.rot+(1-f)*.6);_q.copy(cam.quaternion).multiply(_q2.setFromEuler(_e));_m.compose(_p.set(q.x,q.h,q.y),_q,_s.set(sz,sz,1));starMesh.setMatrixAt(n++,_m)}
+  starMesh.count=n;starMesh.instanceMatrix.needsUpdate=true;
 }
 /** Smoke and embers from fires, and the drifting life of each biome: leaves, fireflies, dust, ash, spores. */
 function stepAmbient(dt,dl){
@@ -318,21 +327,21 @@ function stepWeather(dt,W,dl=1){
   if(W.rain>1&&!Z.dark&&dt>0){boltT-=dt;if(boltT<=0){boltT=5+Math.random()*10;boltF=.22;G.ev.push(['sfx','thunder'])}}
   if(boltF>0)boltF-=dt;
 }
-const NIGHT_FOG=new C('#0b0f18'),NIGHT_SUN=new C('#5a76c0'),WARM=new C('#ffa860'),SKY_D=new C('#cfe0ff'),SKY_N=new C('#34446e'),GR_D=new C('#5a5040'),GR_N=new C('#141824');
+const NIGHT_FOG=new C('#101632'),NIGHT_SUN=new C('#8aa4ff'),WARM=new C('#ffa060'),SKY_D=new C('#d6e2ff'),SKY_N=new C('#5068c0'),GR_D=new C('#8f86b0'),GR_N=new C('#2a2c60');
 function stepLight(dt,W,dl){
   const S=G.S,b=BIOMES[Z.biome]||BIOMES.forest,p=Z.pl,wl=W.light||1,ramp=Z.dark?0:1-Math.abs(dl*2-1),camQ=cam.quaternion;
-  _c.set(b.sun).lerp(WARM,ramp*.6);sun.color.copy(NIGHT_SUN).lerp(_c,Math.min(1,dl*1.4));sun.intensity=(.25+2.7*dl)*(dl>.2?wl:1);
+  _c.set(b.sun).lerp(WARM,ramp*.6);sun.color.copy(NIGHT_SUN).lerp(_c,Math.min(1,dl*1.4));sun.intensity=(.45+1.1*dl)*(dl>.2?wl:1);
   const h=(S.t/60)%24,ang=dl>0?(h-12)/12*1.1:(h<12?h+12:h-12-12)/12*.8;sun.position.set(camT.x+Math.sin(ang)*20-6,24,camT.z+9+Math.cos(ang)*4);sun.target.position.copy(camT);
   const bolt=boltF>0?Math.max(0,boltF/.22)*(Math.random()<.5?3:1.4):0;
-  hemi.color.copy(SKY_N).lerp(SKY_D,dl);hemi.groundColor.copy(GR_N).lerp(GR_D,dl);hemi.intensity=(.36+.72*dl)*(.6+wl*.4)+bolt;
+  hemi.color.copy(SKY_N).lerp(SKY_D,dl);hemi.groundColor.copy(GR_N).lerp(GR_D,dl);hemi.intensity=(.85+1.05*dl)*(.6+wl*.4)+bolt;
   _c.set(b.fog).multiplyScalar(.55+.45*wl);_c2.copy(NIGHT_FOG).lerp(_c,Math.pow(dl,.8));if(W.spores)_c2.lerp(_c.set('#5a4a80'),.4);
   scene.fog.color.lerp(_c2,Math.min(1,dt*2+(dt?0:1)));scene.background.copy(scene.fog.color);
   const fogK=(W.fog?.5:W.rain?.85:1)*(Z.dark?.75:1)*(.75+.25*dl),zf=camOff.length()*zoomEff()/16;scene.fog.near=20*fogK*zf;scene.fog.far=(50*fogK+4)*zf;
   // the player's own light and the nearest fires
-  const dark=1-dl;plight.position.set(p.x,1.5,p.y);plight.intensity=dark*(G.ds&&G.ds.light?30:13);plight.distance=G.ds&&G.ds.light?15:9;
+  const dark=1-dl;plight.position.set(p.x,1.5,p.y);plight.intensity=dark*(G.ds&&G.ds.light?24:8);plight.distance=G.ds&&G.ds.light?15:9;
   if(lightSrc.dirty!==false)collectLights();
   const near=lightSrc.map(l=>({l,d:(l.x-p.x)**2+(l.y-p.y)**2})).sort((a,c)=>a.d-c.d);
-  for(let i=0;i<lightPool.length;i++){const L=lightPool[i],s=near[i];if(s&&s.d<900){L.position.set(s.l.x,1.3,s.l.y);L.color.set(s.l.lamp?'#e8f0ff':'#ff9a40');L.distance=s.l.r*1.7;L.intensity=(.25+dark*.95)*s.l.r*(s.l.lamp?3.4:3)*(s.l.lamp?1:.88+Math.sin(time*11+i*2)*.07+Math.sin(time*23+i)*.05)}else L.intensity=0}
+  for(let i=0;i<lightPool.length;i++){const L=lightPool[i],s=near[i];if(s&&s.d<900){L.position.set(s.l.x,1.3,s.l.y);L.color.set(s.l.lamp?'#e8f0ff':'#ff9a40');L.distance=s.l.r*1.7;L.intensity=(.25+dark*.95)*s.l.r*(s.l.lamp?2.5:2.1)*(s.l.lamp?1:.88+Math.sin(time*11+i*2)*.07+Math.sin(time*23+i)*.05)}else L.intensity=0}
   if(flashT>0){flashT-=dt;fxLight.intensity=fxLight.userData.i*Math.max(0,flashT)*6}else fxLight.intensity=0;
   // glow billboards: fires, lamps, loose loot, flashes
   let n=0;const k=.28+dark*.72,put=(x,hh,z,size,col,a)=>{if(n>=89)return;_m.compose(_p.set(x,hh,z),camQ,_s.set(size,size,1));glowMesh.setMatrixAt(n,_m);glowMesh.setColorAt(n,_c.set(col).multiplyScalar(a));n++};
@@ -342,7 +351,7 @@ function stepLight(dt,W,dl){
   if(G.ds&&G.ds.light&&dark>.3)put(p.x,1,p.y,1.6,'#ffd090',dark*.35);
   glowMesh.count=n;glowMesh.instanceMatrix.needsUpdate=true;if(glowMesh.instanceColor)glowMesh.instanceColor.needsUpdate=true;
   // cloud shadows sliding over the ground
-  const cv=!Z.dark&&quality!=='low'&&dl>.08;clouds.visible=cv;if(cv){clouds.position.set(camT.x,.06,camT.z);clouds.material.opacity=.2*dl*(wl<1?.45:1);texCloud.offset.set(camT.x/150*2.4+time*.006,-camT.z/150*2.4+time*.0035)}
+  const cv=!Z.dark&&quality!=='low'&&dl>.08;clouds.visible=cv;if(cv){clouds.position.set(camT.x,.06,camT.z);clouds.material.opacity=.13*dl*(wl<1?.45:1);texCloud.offset.set(camT.x/150*2.4+time*.006,-camT.z/150*2.4+time*.0035)}
   if(water)matWater.bumpMap.offset.set(time*.02,time*.013);
 }
 const zoomEff=()=>zoom*(cam.aspect<1?1.12:1);
@@ -357,7 +366,7 @@ function draw(dt){
   syncActors(dt);syncProjs(dt);flush();stepAmbient(dt,dl);stepParts(dt);stepWeather(dt,W,dl);stepLight(dt,W,dl);
   const h=Z.hint;if(h&&!G.build&&!p.dead){hintRing.visible=true;hintRing.position.set(h.x,.05,h.y);hintRing.scale.setScalar(1+Math.sin(time*5)*.06)}else hintRing.visible=false;
   playerRing.visible=!p.dead;playerRing.position.set(p.x,.04,p.y);
-  R.render(scene,cam);
+  post.render(scene,cam,[scene.fog.near*.9,scene.fog.far*.8]);
   const now=performance.now();fpsN++;if(!fpsAcc)fpsAcc=now;if(now-fpsAcc>=1000){fps=Math.round(fpsN*1000/(now-fpsAcc));fpsAcc=now;fpsN=0;if(G.S.set.quality==='auto'&&!location.search.includes('shots')&&!document.hidden){if(fps<26)lowT++;else lowT=0;if(lowT>=3){lowT=0;if(quality==='high')setQuality('med');else if(quality==='med')setQuality('low')}}}
 }
 /** Screen point → sim ground coordinates. */
@@ -366,7 +375,7 @@ function pick(cx,cy){const r=canvas.getBoundingClientRect();ndc.set((cx-r.left)/
 /** Sim point (+height) → screen pixels relative to the canvas. */
 function project(x,y,h=0){_p.set(x,h,y).project(cam);const r=canvas.getBoundingClientRect();return{x:(_p.x*.5+.5)*r.width,y:(-_p.y*.5+.5)*r.height,vis:_p.z<1}}
 /** Placement preview in build mode. kind=null hides it. */
-const ghostMat=new THREE.MeshBasicMaterial({color:'#7cff7c',transparent:true,opacity:.5,depthWrite:false,toneMapped:false});
+const ghostMat=new THREE.MeshBasicMaterial(Object.assign({color:'#7cff7c',transparent:true,opacity:.5,depthWrite:false,toneMapped:false},inkBlend()));
 function setGhost(kind,tx,ty,ok,rot=0){
   if(!kind||tx==null){if(ghost)ghost.visible=false;ghostTile.visible=false;return}
   ghostTile.visible=true;ghostTile.position.set(tx+.5,.06,ty+.5);ghostTile.material.color.set(ok?'#7cff7c':'#ff5a4a');

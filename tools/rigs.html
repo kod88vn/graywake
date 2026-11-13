@@ -1,24 +1,28 @@
 <!doctype html><html><head><meta charset="utf-8"><title>Graywake character sheet</title>
-<style>html,body{margin:0;height:100%;background:#20241f;color:#e8e2d0;font:12px/1.2 system-ui}canvas{display:block;width:100%;height:100%}.lab{position:absolute;transform:translate(-50%,0);background:#000a;padding:1px 5px;border-radius:3px;white-space:nowrap}</style></head><body>
+<style>html,body{margin:0;height:100%;overflow:hidden;background:#20241f;color:#e8e2d0;font:12px/1.2 system-ui}canvas{display:block;width:100%;height:100%}.lab{position:absolute;transform:translate(-50%,0);background:#000a;padding:1px 5px;border-radius:3px;white-space:nowrap}</style></head><body>
 <canvas id="c"></canvas><div id="labs"></div>
 <script type="module">
-// Character sheet: every creature rig plus the player in several outfits, in a walking or attacking pose. ?pose=walk|idle|attack|dead &close=1 for a closer camera
-import {THREE,material} from '../js/view/geo.js';
+// Character sheet: every creature rig plus the player in several outfits. ?pose=walk|idle|attack|dead &close=1 closer camera
+// &q=substring only matching names &low=1 a low camera to check faces &surv=N adds N survivors
+import {THREE,toon} from '../js/view/geo.js';
+import {Post} from '../js/view/post.js';
 import {rigFor,playerRig,setWeapon,pose} from '../js/view/rigs.js';
 import {ENEMIES} from '../js/data/enemies.js';
 const qs=new URLSearchParams(location.search),mode=qs.get('pose')||'walk';
-const cv=document.getElementById('c'),R=new THREE.WebGLRenderer({canvas:cv,antialias:true});R.setPixelRatio(2);R.shadowMap.enabled=true;R.shadowMap.type=THREE.PCFSoftShadowMap;R.toneMapping=THREE.ACESFilmicToneMapping;R.toneMappingExposure=1.28;
-const S=new THREE.Scene();S.background=new THREE.Color('#3a4434');S.add(new THREE.HemisphereLight('#cfe0ff','#5a5040',1.05));
-const sun=new THREE.DirectionalLight('#fff2d8',2.9);sun.position.set(-6,14,7);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-12,right:12,top:12,bottom:-12,near:1,far:40});sun.shadow.bias=-.0005;S.add(sun);
-const g=new THREE.Mesh(new THREE.PlaneGeometry(60,60).rotateX(-Math.PI/2),new THREE.MeshLambertMaterial({color:'#5d7a42'}));g.receiveShadow=true;S.add(g);
+const cv=document.getElementById('c'),R=new THREE.WebGLRenderer({canvas:cv});R.setPixelRatio(2);R.shadowMap.enabled=true;R.shadowMap.type=THREE.PCFSoftShadowMap;const post=new Post(R);
+const S=new THREE.Scene();S.background=new THREE.Color('#3a4434');S.add(new THREE.HemisphereLight('#d6e2ff','#8f86b0',1.9));
+const sun=new THREE.DirectionalLight('#fff2d8',1.55);sun.position.set(-6,14,7);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-12,right:12,top:12,bottom:-12,near:1,far:40});sun.shadow.bias=-.0005;S.add(sun);
+const g=new THREE.Mesh(new THREE.PlaneGeometry(60,60).rotateX(-Math.PI/2),toon({ink:0},{vertexColors:false,color:'#6f9a4a'}));g.receiveShadow=true;S.add(g);
 const list=[];const outfits=[['player',{}],['hide',{head:'hide_hood',body:'hide_vest',legs:'hide_pants',feet:'hide_boots',pack:'pack_sack'},'spear'],['leather',{head:'leather_cap',body:'leather_jacket',legs:'leather_pants',feet:'leather_boots',pack:'pack_small'},'machete'],['riot',{head:'riot_helm',body:'riot_vest',legs:'riot_pants',feet:'riot_boots',pack:'pack_hiker'},'rifle'],['hazmat',{head:'haz_mask',body:'haz_suit',legs:'haz_pants',feet:'haz_boots',pack:'pack_mil'},'shotgun'],['exo',{head:'exo_helm',body:'exo_plate',legs:'exo_legs',feet:'exo_boots',pack:'pack_exped'},'katana']];
 for(const[n,eq,w]of outfits){const e={};for(const k in eq)e[k]={id:eq[k]};const r=playerRig(e);if(w)setWeapon(r,w);list.push([n,r,w&&['rifle','shotgun'].includes(w)?2:0])}
 let i=0;for(const k in ENEMIES){for(let v=0;v<(ENEMIES[k].rig[1].vary?3:1);v++)list.push([k,rigFor(ENEMIES[k],++i*7+3),0])}
-const cols=10,gap=1.5,rows=Math.ceil(list.length/cols),marks=[];
+{const sv=+qs.get('surv')||0;for(let k=0;k<sv;k++)list.push(['survivor',rigFor({rig:['human',{}],ai:'follow'},k*13+5),0])}
+const q=qs.get('q');if(q){const keep=list.filter(l=>q.split(',').some(t=>l[0].includes(t)));list.length=0;list.push(...keep)}
+const cols=Math.min(10,list.length),gap=1.5,rows=Math.ceil(list.length/cols),marks=[];
 list.forEach(([n,r,gun],j)=>{const x=(j%cols-(cols-1)/2)*gap,z=(Math.floor(j/cols)-(rows-1)/2)*2.1;r.root.position.set(x,0,z);r.root.rotation.y=.5;S.add(r.root);marks.push([n,x,z]);
   const st={dt:.2,t:j*.7,mv:mode==='walk'?3.4:0,atk:mode==='attack'?.55:-1,wind:0,gun,dead:mode==='dead',deadT:1,flash:0,vis:1};r.ph=1.1+j;for(let k=0;k<12;k++)pose(r,st)});
-const cam=new THREE.PerspectiveCamera(qs.get('close')?16:30,1,.1,200);
-function draw(){const w=innerWidth,h=innerHeight;R.setSize(w,h,false);cam.aspect=w/h;cam.updateProjectionMatrix();const span=Math.max(cols*gap*.6,rows*2.1*.9)+1;cam.position.set(0,span*1.15,span*1.0);cam.lookAt(0,.5,0);R.render(S,cam);
+const cam=new THREE.PerspectiveCamera(+qs.get('fov')||(qs.get('close')?16:30),1,.1,200);
+function draw(){const w=innerWidth,h=innerHeight;R.setSize(w,h,false);cam.aspect=w/h;cam.updateProjectionMatrix();const span=Math.max(cols*gap*.6,rows*2.1*.9)+1;if(qs.get('low')){cam.position.set(0,span*.5+.7,span*1.5);cam.lookAt(0,+qs.get('y')||.7,0)}else{cam.position.set(0,span*1.15,span*1.0);cam.lookAt(0,.5,0)}post.render(S,cam);
   const L=document.getElementById('labs');L.innerHTML='';for(const[t,x,z]of marks){const v=new THREE.Vector3(x,0,z+.5).project(cam);const d=document.createElement('div');d.className='lab';d.textContent=t;d.style.left=(v.x*.5+.5)*w+'px';d.style.top=(-v.y*.5+.5)*h+'px';L.appendChild(d)}}
 draw();addEventListener('resize',draw);window.READY=true;
 </script></body></html>

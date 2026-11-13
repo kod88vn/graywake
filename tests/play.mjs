@@ -84,10 +84,10 @@ try{
   await ev(`GW.G.S.p.sp=1`);await click('#tabs [data-t="perks"]');await click('#pb [data-a="perk"]:not([disabled])');T.ok(await ev(`Object.keys(GW.G.S.p.perks).length`)===1,'a perk can be bought');await page.key('Escape');
   // ---- sleep
   await ev(`GW.G.S.t=Math.floor(GW.G.S.t/1440)*1440+21.5*60;GW.G.S.tide.at=GW.G.S.t+4000`);await use(['bed_roll']);T.ok(await until(`GW.UI.panel==='bed'`,4000),'E on the bedroll opens Rest');
-  const d0=await ev(`Math.floor(GW.G.S.t/1440)`);await click('#pb [data-a="sleep"]');T.ok(await ev(`Math.floor(GW.G.S.t/1440)`)===d0+1,'Sleep passes the night');
+  const d0=await ev(`Math.floor(GW.G.S.t/1440)`);await click('#pb [data-a="sleep"]');T.ok(await until(`Math.floor(GW.G.S.t/1440)===${d0+1}`,3000),'Sleep passes the night');
   // ---- leave, map, travel, event, arrive
   const gate=await J(`[GW.G.Z.w/2,GW.G.Z.h-1.2]`);await walkTo(c[0]-1.5,c[1]+1.2,.45);await walkTo(c[0]-1.5,c[1]+3.6,.45);await walkTo(gate[0],c[1]+4.2,.5);T.ok(await walkTo(gate[0],gate[1],.8),'walk out through the gap and down the south trail to the edge');T.ok(await until(`!document.getElementById('travel').hidden`,2000),'the Leave button appears');
-  await click('#travel');T.ok(await until(`GW.G.mode==='map'`,2000),'Leave opens the map');
+  await click('#travel');T.ok(await until(`GW.G.mode==='map'&&document.getElementById('mapc').getBoundingClientRect().width>100`,4000),'Leave opens the map');
   const node=await J(`(()=>{const c=document.getElementById('mapc'),r=c.getBoundingClientRect();return[r.left,r.top,r.width,r.height]})()`);
   // click the Birch Hollow node: find it by scanning for the info card to say so
   let found=false;for(let gx=.04;gx<.4&&!found;gx+=.02)for(let gy=.2;gy<.6&&!found;gy+=.03){await page.click(node[0]+node[2]*gx,node[1]+node[3]*gy);if(await ev(`document.getElementById('mapinfo').innerText.toUpperCase().includes('BIRCH HOLLOW')`))found=true}
@@ -95,6 +95,7 @@ try{
   await until(`GW.UI.panel==='event'||(GW.G.Z&&GW.G.Z.id==='birch_hollow')||(GW.G.Z&&GW.G.Z.id==='ambush')`,6000);
   if(await ev(`GW.UI.panel==='event'`)){await ev(`[...document.querySelectorAll('#pb [data-a=opt]:not([disabled])')].pop().click()`);await page.sleep(200);T.ok(await ev(`!!document.querySelector('#pb [data-a=done]')`),'a road event resolves to a result');await click('#pb [data-a="done"]');await page.sleep(600)}
   if(await ev(`GW.G.Z&&GW.G.Z.id==='ambush'`)){await ev(`for(const a of GW.G.Z.actors)if(a.team===1)a.dead=true;GW.G.Z.pl.y=GW.G.Z.h-1`);await page.sleep(400);await click('#travel');await page.sleep(800)}
+  if(!(await until(`GW.G.Z&&GW.G.Z.id==='birch_hollow'&&GW.G.mode==='play'`,6000)))console.log('DBG',await ev(`JSON.stringify({mode:GW.G.mode,panel:GW.UI.panel,z:GW.G.Z&&GW.G.Z.id,pos:GW.G.S.pos,pend:!!GW.G.pending,q:GW.View.quality,fps:GW.View.fps,info:document.getElementById('mapinfo').innerText.slice(0,50),pb:document.getElementById('pb').innerText.slice(0,80)})`));
   T.ok(await until(`GW.G.Z&&GW.G.Z.id==='birch_hollow'&&GW.G.mode==='play'`,6000),'Travel arrives at Birch Hollow');
   // ---- fight with the mouse
   await ev(`(()=>{const{G}=GW,Z=G.Z;G.S.p.active='w1';for(const a of Z.actors)if(a.team===1)a.dead=true;window.__e=GW.World&&null})()`);

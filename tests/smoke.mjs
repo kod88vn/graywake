@@ -26,6 +26,7 @@ try{
   await ev(`GW.G.pending=null;GW.World.arrive('birch_hollow')`);await page.sleep(1500);
   T.ok(await ev(`GW.G.Z&&GW.G.Z.id==='birch_hollow'&&GW.G.Z.actors.length>3`),'arrive at Birch Hollow with creatures in it');
   await ev(`GW.UI.close()`);await page.sleep(1500);
+  T.ok(await ev(`GW.View.ink`),'ink outline pass is active');
   T.ok(await ev(`GW.View.fps>0`),'renderer is producing frames ('+await ev(`GW.View.fps`)+' fps on the software rasteriser)');
   // save and reload
   await ev(`GW.api.save()`);T.ok(await ev(`!!localStorage.getItem('graywake.save.v1')`),'save is written');

@@ -6,30 +6,31 @@
 <script type="module">
 // Model gallery. ?set=props|hand (default props) &page=N &per=24 &q=substring &night=1
 // Each model stands on a 1×1 tile outline, lit the way the game lights it, seen from the game camera angle.
-import {Geo,THREE,material} from '../js/view/geo.js';
+import {Geo,THREE,material,toon} from '../js/view/geo.js';
+import {Post} from '../js/view/post.js';
 const qs=new URLSearchParams(location.search),set=qs.get('set')||'props',per=+qs.get('per')||24,pageN=+qs.get('page')||0,q=qs.get('q')||'';
 const mod=await import('../js/view/props.js');
 const table=set==='hand'?mod.HAND:mod.PROPS;
 let ids=Object.keys(table).filter(k=>k.includes(q));
 const pages=Math.ceil(ids.length/per);window.GALLERY={pages,count:ids.length,errors:[]};
 ids=ids.slice(pageN*per,pageN*per+per);
-const cv=document.getElementById('c'),R=new THREE.WebGLRenderer({canvas:cv,antialias:true,preserveDrawingBuffer:true});
+const cv=document.getElementById('c'),R=new THREE.WebGLRenderer({canvas:cv,preserveDrawingBuffer:true}),post=new Post(R);
 R.setPixelRatio(Math.min(2,devicePixelRatio));R.shadowMap.enabled=true;R.shadowMap.type=THREE.PCFSoftShadowMap;
 const S=new THREE.Scene();S.background=new THREE.Color(qs.get('night')?'#0d1016':'#2a3026');
-const hemi=new THREE.HemisphereLight('#cfe0ff','#4a4030',qs.get('night')?.35:1.1);S.add(hemi);
-const sun=new THREE.DirectionalLight('#fff2d8',qs.get('night')?.3:2.2);sun.position.set(-6,12,5);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);
+const hemi=new THREE.HemisphereLight('#d6e2ff','#8f86b0',qs.get('night')?.5:1.9);S.add(hemi);
+const sun=new THREE.DirectionalLight('#fff2d8',qs.get('night')?.22:1.55);sun.position.set(-6,12,5);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);
 Object.assign(sun.shadow.camera,{left:-14,right:14,top:14,bottom:-14,near:1,far:40});sun.shadow.bias=-.0005;S.add(sun);
 const cols=Math.min(6,Math.ceil(Math.sqrt(ids.length*1.6))),rows=Math.ceil(ids.length/cols),gap=set==='hand'?1.6:2.1;
-const ground=new THREE.Mesh(new THREE.PlaneGeometry(60,60).rotateX(-Math.PI/2),new THREE.MeshLambertMaterial({color:'#4f6a36'}));ground.receiveShadow=true;S.add(ground);
+const ground=new THREE.Mesh(new THREE.PlaneGeometry(60,60).rotateX(-Math.PI/2),toon({ink:0},{vertexColors:false,color:'#5f8a40'}));ground.receiveShadow=true;S.add(ground);
 const labs=document.getElementById('labs'),marks=[];
 ids.forEach((id,i)=>{const x=(i%cols-(cols-1)/2)*gap,z=(Math.floor(i/cols)-(rows-1)/2)*gap;
-  const tile=new THREE.Mesh(new THREE.PlaneGeometry(1,1).rotateX(-Math.PI/2),new THREE.MeshLambertMaterial({color:'#5d7a42'}));tile.position.set(x,.005,z);tile.receiveShadow=true;S.add(tile);
+  const tile=new THREE.Mesh(new THREE.PlaneGeometry(1,1).rotateX(-Math.PI/2),toon({ink:0},{vertexColors:false,color:'#6f9a4a'}));tile.position.set(x,.005,z);tile.receiveShadow=true;S.add(tile);
   try{const g=new Geo();table[id](g,i%3);const m=new THREE.Mesh(g.build(),material());m.position.set(x,set==='hand'?.5:0,z);m.castShadow=m.receiveShadow=true;if(set==='hand')m.scale.setScalar(1.8);S.add(m);
     const tris=g.pos.length/9;marks.push([id+(tris>600?' ('+tris+'△)':''),x,z])}
   catch(e){GALLERY.errors.push(id+': '+e.message);marks.push(['ERR '+id,x,z])}});
 const cam=new THREE.PerspectiveCamera(32,1,.1,200);const span=Math.max(cols*gap*.62,rows*gap*.95)+1.5;
 cam.position.set(0,span*1.25,span*.9);cam.lookAt(0,.3,0);
-function draw(){const w=innerWidth,h=innerHeight;R.setSize(w,h,false);cam.aspect=w/h;cam.updateProjectionMatrix();R.render(S,cam);
+function draw(){const w=innerWidth,h=innerHeight;R.setSize(w,h,false);cam.aspect=w/h;cam.updateProjectionMatrix();post.render(S,cam);
   labs.innerHTML='';for(const[t,x,z]of marks){const v=new THREE.Vector3(x,0,z+.62).project(cam);const d=document.createElement('div');d.className='lab';d.textContent=t;d.style.left=(v.x*.5+.5)*w+'px';d.style.top=(-v.y*.5+.5)*h+'px';labs.appendChild(d)}}
 draw();addEventListener('resize',draw);
 document.getElementById('bar').innerHTML=`${set} · ${GALLERY.count} models · page ${pageN+1}/${pages} · `+Array.from({length:pages},(_,i)=>`<a href="?set=${set}&per=${per}&page=${i}">${i+1}</a>`).join(' ')+` · <a href="?set=${set==='hand'?'props':'hand'}">${set==='hand'?'props':'hand'}</a>`+(GALLERY.errors.length?'<br>'+GALLERY.errors.join('<br>'):'');

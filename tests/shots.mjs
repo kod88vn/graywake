@@ -18,6 +18,8 @@ const BASE=`(()=>{const{G,World}=GW,S=G.S,Z=G.Z,cx=Math.floor(Z.w/2),cy=Math.flo
   S.veh=3;World.goHome(false);G.Z.pl.x=cx+.5;G.Z.pl.y=cy+2.5;G.ev.push(['zone'])})()`;
 try{
   await page.sleep(900);await snap('01-title');
+  // the page renders slowly in headless Chrome while the simulation keeps real time: keep the player alive for the pictures
+  await ev(`setInterval(()=>{const p=GW.G.S&&GW.G.S.p;if(p&&p.hp<60)p.hp=60},40)`);
   await ev(`localStorage.clear();GW.api.newGame()`);for(let i=0;i<60&&!(await ev(`GW.UI.panel==='journal'`));i++)await page.sleep(200);await snap('02-journal-first');
   await ev(`GW.UI.close()`);await page.sleep(600);await snap('03-home-start');
   await ev(BASE);await page.sleep(900);await ev(`GW.UI.close()`);await page.sleep(400);await snap('04-base-day');

@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.4.0 — 2026-11-12
+
+The look changes from stylised realism to cel-shaded anime in 3D.
+
+- **Cel shading.** Sunlight falls in three flat bands (lit, half-tone, shade) instead of a smooth gradient. Shadows are cool blue-violet instead of grey. Lamps and fires still light smoothly.
+- **Ink outlines.** A new pass (`js/view/post.js`) draws dark lines on silhouettes and hard edges: characters and objects are outlined everywhere they meet the ground, foliage only where clumps overlap, grass and floors not at all. Lines fade with the fog.
+- **Anime characters.** Slim figures about five and a half heads tall (not chibi), big eyes with coloured irises and highlights, brows, blush, small mouths; six chunky hair styles (spiky, bob, ponytail, twin tails, long, short with a stray lock) in twelve colours; scarves that trail when running; gloves and cuffs. The player has pale spiky hair, a blue jacket and a red scarf. Husks have blank glowing eyes and teeth. Animals have large eyes with highlights.
+- **Clean palette.** Ground, fog and prop colours are brighter and more saturated; the ground is painted in flat-toned patches with brush ticks instead of noise; surface grain is reduced to a faint wash. Night is moonlit blue rather than near-black.
+- **Rounder props.** Trunks, logs, barrels, posts and conifers near you are drawn with twice the sides, so they read as round instead of as prisms.
+- **Effects.** Smoke, dust and sparks are flat cartoon puffs; a white star flashes where a blow lands.
+- Colour grading moved into the ink pass (saturation and a soft highlight shoulder) and replaces filmic tone mapping.
+- The camera sits a little closer again.
+
+**Fixed**
+- Crawlers were drawn under the ground since 0.3.0, so they were invisible in play. They now crawl on it.
+
+Still generated entirely in code and still not hand-drawn: faces are simple, and animation is posed by code.
+
 ## 0.3.0 — 2026-11-12
 
 A second graphics pass, away from the block look.

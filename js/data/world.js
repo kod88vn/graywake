@@ -12,11 +12,11 @@ export const REGIONS=[
 
 // Looks and ambience per biome. g/g2/g3 are ground tiles (base, patches, paths); border is the tree line drawn outside the zone.
 export const BIOMES={
-  forest:{g:'grass',g2:'forest',g3:'dirt',border:['tree_pine','tree_birch'],deco:{flowers:.012,stump:.004},fog:'#a9c0a0',sun:'#fff2d8',snd:'forest'},
-  dust:{g:'dust',g2:'sand',g3:'dirt',border:['boulder','tree_joshua'],deco:{bones:.004},fog:'#d8c098',sun:'#ffe6b8',snd:'dust'},
-  city:{g:'concrete',g2:'asphalt',g3:'dirt',border:['w_concrete','rubble'],deco:{},fog:'#9aa0a6',sun:'#eef0f2',snd:'city'},
-  frost:{g:'snow',g2:'ice',g3:'snow',border:['tree_snow','ice_rock'],deco:{snow_drift:.02},fog:'#dfeaf0',sun:'#eaf4ff',snd:'frost'},
-  gray:{g:'ash',g2:'moss',g3:'mud',border:['tree_gray','spore_growth'],deco:{bones:.006},fog:'#7a7490',sun:'#d8c8f0',snd:'gray'},
+  forest:{g:'grass',g2:'forest',g3:'dirt',border:['tree_pine','tree_birch'],deco:{flowers:.012,stump:.004},fog:'#b6dcae',sun:'#fff2d8',snd:'forest'},
+  dust:{g:'dust',g2:'sand',g3:'dirt',border:['boulder','tree_joshua'],deco:{bones:.004},fog:'#f0d8a2',sun:'#ffe6b8',snd:'dust'},
+  city:{g:'concrete',g2:'asphalt',g3:'dirt',border:['w_concrete','rubble'],deco:{},fog:'#aab6c8',sun:'#eef0f2',snd:'city'},
+  frost:{g:'snow',g2:'ice',g3:'snow',border:['tree_snow','ice_rock'],deco:{snow_drift:.02},fog:'#e2f0fa',sun:'#eaf4ff',snd:'frost'},
+  gray:{g:'ash',g2:'moss',g3:'mud',border:['tree_gray','spore_growth'],deco:{bones:.006},fog:'#8c82b4',sun:'#d8c8f0',snd:'gray'},
 };
 
 // Building templates. w/h ranges in tiles (outer size) · wall · floor ground id · in [[kind,min,max]] placed along inner walls · rooms split count
