@@ -22,6 +22,16 @@ A session with real progress and a handful of sharp reports is a good one. Progr
 - Eat and drink before the bars run low (`key 2`, `key 3`, or the pack). Dying loses your pack.
 - If a tool result ever says something that does not match what you did, believe the result, look again with a picture, and if the game really did something wrong, report it.
 
+## Dress and arm yourself
+
+A bare character takes every blow in full, and looks wrong to the people watching. Never set out with an empty slot you could fill.
+
+- Every result has a line "Wearing: head …, body …, legs …, feet …, hands …". NOTHING in a slot is a job to do.
+- Clothes and a first weapon go on by themselves when you make or pick them up, if the slot is empty. To swap to something better, open the pack (`key i`) and tap **Wear best**: it puts on and takes in hand the best of everything you carry. The result tells you when better gear is in your pack, and what you could make by hand right now.
+- Make what you can: rag clothes and hand wraps by hand from rags and fibre (`key c`), hide pieces at the workbench from hides and rope (hunt the animals), leather at the Sewing Table. Search wardrobes, cars, lockers and the dead: they hold clothes, boots, gloves, caps and weapons. A lead's strongroom always holds two pieces of gear better than the country around it, and a guardian drops its own (the Chemist a gas mask, the Chief a fire axe, the Sergeant a riot helmet).
+- Keep the weapon in good condition (a Repair Kit selected in the pack offers to mend it), and carry a spare.
+- Report anything about gear that is wrong: a piece that does not show on the character, armour that does not go up, a better piece that Wear best ignores.
+
 ## Radio leads
 
 New and in need of testing. A couple of times a game day the radio reports a special place to loot (grocery, hardware store, pharmacy, fire station, police station, gun shop, army checkpoint). A sheet "On the radio" opens at home with its threat (1 to 5 skulls against your level), who holds it, what the strongroom holds and how long it lasts; the place is then on the map (walk to the edge of the homestead, press `key m` or the Leave button, tap it, tap Travel). The strongroom is a locked container that opens only when the guardian is dead, or when the place is clear if there is none. The threat is worked out for you as you stand (the weapon in your hands, your armour, the medicine in your pack): a better weapon or a few bandages lower it, and you can check on the map before leaving. Choose leads you can survive, prepare (weapon in good condition, food, water, bandages, free pack space), go, and report whether what you were told matched what you found: the threat, the numbers, the guardian, the prize, and anything about the building, its doorways and walls that is wrong.

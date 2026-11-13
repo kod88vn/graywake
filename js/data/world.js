@@ -182,7 +182,24 @@ airdrop:T([['ammo_9',8,8,18,2],['arrow',6,6,12,1,1],['xbolt',5,6,10,1,2],['ammo_
 pod:T([['spore_resin',10,1,3],['mutagen',4,1,1],['gray_crystal',4,1,2],['biogel',2,1,1],['bone',4,1,3]]),
 stash:T([['old_coin',8,2,5],['ammo_9',5,3,8,2],['arrow',5,3,8,1,1],['canned_beans',6,1,2],['water',5,1,2],['bandage',6,1,2],['medkit',2,1,1,2],['lockpick',4,1,2],['gold_watch',1.5,1,1],['jerky',5,1,3],['moonshine',3,1,1],['repair_kit',3,1,1],['tape',3,1,2],['gunpowder',3,1,3,2],['painkillers',2,1,1],['bp_crossbow',.8,1,1,1,2]]),
 snack:T([['soda',10,1,3],['chips',10,1,3],['energy_bar',6,1,2],['water',6,1,2],['old_coin',3,1,3]]),
+// Things to wear and to fight with. Not the contents of any one container: a chance of one of these comes on top of what ordinary containers
+// hold (FIND below), and every lead's strongroom has two, a tier above the country it stands in. Every wearable and weapon that is not
+// schematic-only is here at some tier, so nothing can only ever be crafted.
+finds:T([
+  ['bandana',4,1,1,1,1],['hide_hood',4,1,1,1,2],['hand_wraps',3,1,1,1,1],['hide_vest',5,1,1,1,1],['hide_pants',5,1,1,1,1],['hide_boots',5,1,1,1,2],
+  ['leather_cap',3,1,1,1,2],['leather_gloves',3,1,1,1,2],['leather_boots',3,1,1,1,2],['leather_jacket',2,1,1,1,2],['leather_pants',2,1,1,1,2],
+  ['club',2,1,1,1,1],['bone_knife',3,1,1,1,2],['spear',4,1,1,1,1],['bat',4,1,1,1,2],['bow',3,1,1,1,2],['pack_sack',3,1,1,1,1],['pack_small',1.5,1,1,1,3],['machete',1,1,1,1,1],
+  ['scrap_helm',3,1,1,2,3],['scrap_plate',2.5,1,1,2,3],['scrap_greaves',3,1,1,2,3],['scrap_boots',3,1,1,2,3],['scrap_gauntlets',3,1,1,2,3],['gas_mask',2,1,1,2,4],
+  ['machete',3,1,1,2,3],['nail_bat',3,1,1,2,3],['crossbow',2,1,1,2,3],['pipe_pistol',2,1,1,2,3],['pack_hiker',1,1,1,2,4],
+  ['riot_helm',3,1,1,3,4],['riot_vest',2.5,1,1,3,4],['riot_pants',3,1,1,3,4],['riot_boots',3,1,1,3,4],['fur_hat',2,1,1,3,4],['fur_coat',2,1,1,3,4],['fur_pants',2,1,1,3,4],['fur_boots',2,1,1,3,4],['fur_mitts',2,1,1,3,4],
+  ['ranger_hat',1.2,1,1,3,3],['ranger_duster',1.2,1,1,3,3],['ranger_chaps',1.2,1,1,3,3],['ranger_boots',1.2,1,1,3,3],['marauder_mask',1.2,1,1,3,4],['marauder_harness',1.2,1,1,3,4],['marauder_kilt',1.2,1,1,3,4],['marauder_boots',1.2,1,1,3,4],
+  ['fire_axe',3,1,1,3,4],['sledge',2,1,1,3,4],['revolver',2,1,1,3,4],['shotgun',2,1,1,3,4],
+  ['mil_helm',3,1,1,4,5],['mil_vest',2.5,1,1,4,5],['mil_pants',3,1,1,4,5],['mil_boots',3,1,1,4,5],['tac_gloves',3,1,1,4,5],['katana',2.5,1,1,4,5],['shock_baton',2.5,1,1,4,5],['rifle',2,1,1,4,5],['smg',2,1,1,4,5],['pack_mil',1.5,1,1,4,5],
+  ['haz_mask',1.5,1,1,5,5],['haz_suit',1.2,1,1,5,5],['haz_pants',1.5,1,1,5,5],['haz_boots',1.5,1,1,5,5],['haz_gloves',1.5,1,1,5,5],['carbine',1.5,1,1,5,5],['saw_mace',1,1,1,5,5],['chainsaw',1,1,1,5,5],['sniper',1,1,1,5,5],['glaive',1,1,1,5,5],['reaver',.5,1,1,5,5],['pack_exped',1,1,1,5,5]]),
 };
+/** The chance that an ordinary container of a loot family also holds one thing from `finds`. People kept clothes at home, a coat in the car,
+ *  and the dead still wear what they died in. */
+export const FIND={corpse:.3,stash:.3,home:.22,car:.14,tool:.12,junk:.1,med:.04,food:.04,trash:.03};
 // what a radio lead's strongroom holds: its whole point, so the rolls are generous
 Object.assign(LOOT,{
 lead_guns:T([['ammo_9',10,12,28],['ammo_rifle',6,8,18,2],['shell',7,6,14],['arrow',5,10,20,1,2],['xbolt',5,8,14,1,3],['bow',4,1,1,1,1],['crossbow',4,1,1,1,2],['pipe_pistol',6,1,1,1,2],['revolver',5,1,1,2,4],['shotgun',4,1,1,2,4],['rifle',3,1,1,3,5],['smg',2,1,1,3,5],['bp_shotgun',3,1,1,1,3],['bp_revolver',3,1,1,1,2],['repair_kit',4,1,2],['machete',3,1,1,1,2]]),
@@ -191,4 +208,4 @@ lead_tools:T([['nails',10,10,24],['bolts',8,6,14],['scrap',8,4,10],['plank',7,4,
 lead_food:T([['canned_beans',10,2,5],['canned_soup',9,2,5],['jerky',6,2,4],['honey',4,1,2],['soda',6,2,4],['energy_bar',6,2,4],['water',8,3,6],['salt',4,1,3],['seed_potato',3,2,4],['seed_corn',3,2,4],['cloth',3,1,3]]),
 lead_mil:T([['ammo_9',8,16,36],['ammo_rifle',8,12,28,2],['shell',6,8,16],['grenade',4,1,3,2],['medkit',5,1,3],['rifle',4,1,1,2,5],['shotgun',4,1,1,2,4],['smg',3,1,1,3,5],['riot_vest',3,1,1,2,4],['riot_helm',3,1,1,2,4],['repair_kit',4,2,3],['fuel',4,1,3,2]]),
 });
-export const ROLLS={lead_guns:[6,8],lead_meds:[6,8],lead_tools:[7,9],lead_food:[7,9],lead_mil:[7,9],junk:[2,4],food:[2,3],home:[2,3],tool:[2,4],med:[2,3],trash:[0,2],car:[2,3],corpse:[1,3],barrel:[1,2],cash:[1,2],paper:[1,2],ammo:[1,3],gear:[1,2],mil:[3,4],vault:[3,4],armory:[4,6],lab:[3,5],relic:[4,5],airdrop:[6,8],pod:[1,2],stash:[3,4],snack:[2,3]};
+export const ROLLS={finds:[1,1],lead_guns:[6,8],lead_meds:[6,8],lead_tools:[7,9],lead_food:[7,9],lead_mil:[7,9],junk:[2,4],food:[2,3],home:[2,3],tool:[2,4],med:[2,3],trash:[0,2],car:[2,3],corpse:[1,3],barrel:[1,2],cash:[1,2],paper:[1,2],ammo:[1,3],gear:[1,2],mil:[3,4],vault:[3,4],armory:[4,6],lab:[3,5],relic:[4,5],airdrop:[6,8],pod:[1,2],stash:[3,4],snack:[2,3]};

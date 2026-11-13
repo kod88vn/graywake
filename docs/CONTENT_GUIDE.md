@@ -11,6 +11,7 @@ smoked_fish:{n:'Smoked Fish',t:'food',ic:['fish','#8a5a30'],v:12,food:30,hp:4},
 - `t` decides behaviour: `mat food med tool melee gun throw ammo head body legs feet pack seed bp key misc`.
 - `ic` is `[glyph, colour, colour2?]`. Reuse a glyph from `js/ui/icons.js` (`tools/icons.html` shows them all) or add one there.
 - It must be obtainable: give it a recipe, put it in a loot family, a creature's `drop`, a node's `give`, the trade list, or an event.
+- A weapon or something to wear also needs a row in `LOOT.finds` (`js/data/world.js`) at the tiers where it should turn up, unless it is made only from a schematic: `finds` is what ordinary containers and lead strongrooms draw gear from, and `npm run test:sim` fails if a piece is missing from every loot table.
 - Weapons and tools need `dur`. Held weapons need `mdl`, a key of `HAND` in `js/view/props.js`.
 - Armour that should show on the character needs `look:{c:'#colour', s:'hood|cap|helm|visor|mask'}` for heads or `s:'vest|jacket|plate'` for bodies.
 

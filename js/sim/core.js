@@ -6,7 +6,7 @@ import {RECIPES,VEHICLES} from '../data/recipes.js';
 import {PERK,xpFor,MAX_LEVEL} from '../data/progress.js';
 import {clamp,rnd} from './util.js';
 
-export const VERSION='0.9.8';
+export const VERSION='0.9.9';
 export const SAVE_V=2;
 export const HOME_W=46,HOME_H=46,EXIT_RING=2,NO_BUILD=4;
 export const MIN_PER_SEC=1.5;            // game minutes per real second: a day is 16 real minutes
@@ -82,13 +82,50 @@ export function removeFrom(inv,id,n){for(let i=inv.length-1;i>=0&&n>0;i--){const
 export function roomFor(S,id,n){const it=ITEMS[id],cap=slotCount(S);let room=0;for(let i=0;i<cap;i++){const s=S.p.inv[i];if(!s)room+=it.st;else if(s.id===id&&it.st>1)room+=it.st-s.n;if(room>=n)return true}return room>=n}
 export const freeSlots=S=>{const cap=slotCount(S);let n=0;for(let i=0;i<cap;i++)if(!S.p.inv[i])n++;return n};
 /** Give the player items. Whatever does not fit is dropped at their feet (or lost on the map). Returns the number that fit. */
+const WEAR=['head','body','legs','feet','hands'];
+/** Something has just come into the pack. The first weapon or tool goes straight into an empty hand, and a thing to wear goes straight on if
+ *  nothing is worn there (it says so). Taking something off does not come through here, so what the player takes off stays off. */
+export function gained(S,id,quiet){
+  const it=ITEMS[id],p=S.p;if(!it)return;
+  if(!p.eq.w1&&['melee','gun','tool'].includes(it.t)){const i=p.inv.findIndex(s=>s&&s.id===id);if(i>=0){p.eq.w1={id,d:p.inv[i].d};p.inv[i]=null;p.active='w1';G.ds=derive(S);emit('eq')}return}
+  if((WEAR.includes(it.t)||it.t==='pack')&&!p.eq[it.t]){const i=p.inv.findIndex(s=>s&&s.id===id);if(i>=0&&equip(S,i,it.t)&&!quiet)toast((it.t==='pack'?'Shouldered: ':'Put on: ')+it.n,'good')}
+}
+/** How good a thing is at its job, for comparing with what is worn or held: armour first for clothes (warmth, filters and speed count a little),
+ *  slots for a pack, damage a second for a weapon (a gun without a dozen shots is worth nothing; a weapon about to break very little). */
+export function gearScore(S,s){
+  const it=s&&ITEMS[s.id];if(!it)return 0;const frail=it.dur&&s.d!==undefined&&s.d<it.dur*.08?.2:1;
+  if(WEAR.includes(it.t))return((it.arm||0)+(it.cold||0)*6+(it.tox||0)*6+(it.spd||0)*20+.1)*frail;
+  if(it.t==='pack')return it.slots||0;
+  if(it.t==='gun')return count(S,it.ammo)>=(it.ammoPer||1)*12?it.dmg*(it.pellets||1)/it.spd*frail:0;
+  if(it.t==='melee')return it.dmg/it.spd*(1+(it.rng||1)*.2)*frail;
+  return 0;
+}
+/** What in the pack beats what is worn or held: [{i, slot, id, was}] with the pack slot it is in. Weapons fill the hand and the spare. */
+export function betterGear(S){
+  const p=S.p,out=[];
+  for(const slot of[...WEAR,'pack']){let bi=-1,bs=p.eq[slot]?gearScore(S,p.eq[slot]):0;p.inv.forEach((s,i)=>{if(s&&ITEMS[s.id].t===slot&&gearScore(S,s)>bs+1e-6){bs=gearScore(S,s);bi=i}});if(bi>=0)out.push({i:bi,slot,id:p.inv[bi].id,was:p.eq[slot]?p.eq[slot].id:null})}
+  // weapons: the best two of what is held and carried belong in the two hands; a thrown thing or a tool in the spare hand is left there
+  const held=['w1','w2'].filter(k=>!(k==='w2'&&p.eq.w2&&['throw','tool'].includes(ITEMS[p.eq.w2.id].t))),sc=k=>p.eq[k]&&['melee','gun'].includes(ITEMS[p.eq[k].id].t)?gearScore(S,p.eq[k]):0;
+  const cand=[];p.inv.forEach((s,i)=>{if(s&&['melee','gun'].includes(ITEMS[s.id].t)&&gearScore(S,s)>0)cand.push({i,v:gearScore(S,s),id:s.id})});cand.sort((a,b)=>b.v-a.v);
+  const slots=held.map(k=>({k,v:sc(k)})).sort((a,b)=>a.v-b.v);   // weakest hand first
+  for(const c of cand){const h=slots.find(h=>c.v>h.v+1e-6);if(!h)break;out.push({i:c.i,slot:h.k,id:c.id,was:p.eq[h.k]?p.eq[h.k].id:null});h.v=c.v;slots.sort((a,b)=>a.v-b.v)}
+  return out;
+}
+/** Put on and take in hand the best of everything carried. Returns the names of what changed. */
+export function wearBest(S){
+  const names=[];for(let guard=0;guard<12;guard++){const b=betterGear(S)[0];if(!b)break;if(!equip(S,b.i,b.slot))break;names.push(ITEMS[b.id].n)}
+  // the better of the two weapons goes in the hand, the other is the spare
+  {const p=S.p,a=p.eq.w1,b=p.eq.w2;if(b&&['melee','gun'].includes(ITEMS[b.id].t)&&gearScore(S,b)>(a&&['melee','gun'].includes(ITEMS[a.id].t)?gearScore(S,a):0)){p.eq.w1=b;p.eq.w2=a;p.active='w1';G.ds=derive(S);emit('eq');if(!names.length)names.push(ITEMS[b.id].n)}}
+  if(names.length){toast('Now using: '+names.join(', '),'good')}
+  else toast('You already have your best on','info');
+  return names;
+}
 export function give(S,id,n=1,d,quiet){
   if(!ITEMS[id]||n<=0)return 0;
   const left=addTo(S.p.inv,slotCount(S),id,n,d),got=n-left;
   S.codex.it[id]=1;
   if(got>0&&!quiet)emit('loot',id,got);
-  // first weapon or tool goes straight into an empty hand
-  if(got>0&&!S.p.eq.w1&&['melee','gun','tool'].includes(ITEMS[id].t)){const i=S.p.inv.findIndex(s=>s&&s.id===id);if(i>=0){S.p.eq.w1={id,d:S.p.inv[i].d};S.p.inv[i]=null;S.p.active='w1';G.ds=derive(S);emit('eq')}}
+  if(got>0)gained(S,id,quiet);
   if(left>0){if(G.Z&&G.Z.pl){dropAt(G.Z,G.Z.pl.x,G.Z.pl.y,[{id,n:left,d}]);if(!quiet)toast('Pack full: '+ITEMS[id].n+' dropped','bad')}else if(!quiet)toast('Pack full: '+ITEMS[id].n+' left behind','bad')}
   return got;
 }
@@ -194,7 +231,7 @@ export function produce(S,r,o){
   if(['campfire','medic','chem'].includes(r.s)&&rnd()<perk('double'))q*=2;
   if(it.t==='ammo')q=Math.round(q*(1+perk('ammo')));
   if(o){ // a station job: hand it to you if you are at home with room, otherwise it waits in the station's tray
-    let left=q;if(G.Z&&G.Z.home&&G.Z.pl&&!G.Z.pl.dead){left=addTo(S.p.inv,slotCount(S),r.o,q);if(q-left>0)emit('loot',r.o,q-left)}
+    let left=q;if(G.Z&&G.Z.home&&G.Z.pl&&!G.Z.pl.dead){left=addTo(S.p.inv,slotCount(S),r.o,q);if(q-left>0){emit('loot',r.o,q-left);gained(S,r.o)}}
     if(left>0){o.out=o.out||{};o.out[r.o]=(o.out[r.o]||0)+left}}
   else give(S,r.o,q);
   stat('crafted',q);stat('c_'+r.o,q);S.codex.it[r.o]=1;
@@ -202,7 +239,7 @@ export function produce(S,r,o){
 }
 export function collectStation(S,at){
   const o=G.Z&&G.Z.obj[at];if(!o||!o.out)return 0;let got=0;
-  for(const k in o.out){const n=o.out[k],cap=slotCount(S),left=addTo(S.p.inv,cap,k,n);if(n-left>0){emit('loot',k,n-left);got+=n-left}if(left>0)o.out[k]=left;else delete o.out[k]}
+  for(const k in o.out){const n=o.out[k],cap=slotCount(S),left=addTo(S.p.inv,cap,k,n);if(n-left>0){emit('loot',k,n-left);got+=n-left;gained(S,k)}if(left>0)o.out[k]=left;else delete o.out[k]}
   if(!Object.keys(o.out).length)delete o.out;if(got)sfx('pickup');emit('obj',at);return got;
 }
 export function cancelJob(S,at,qi){

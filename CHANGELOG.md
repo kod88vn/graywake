@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.9.9 — 2026-11-13
+
+"The bot is almost always naked. It should know to wear the best gear. We also need more useful items for it to loot, weapons and gear included."
+
+- **Gear turns up.** Ordinary containers now have a chance of holding something to wear or to fight with: the dead (3 in 10), stashes, wardrobes and drawers (about 1 in 5), cars, tool chests, crates. Measured over 12 visits each: Route 9 Fuel Stop went from one piece in twelve visits to about two a visit, Lakeside Cabins from 0.5 to 2.3, and the Corner Grocery and Hardware Store leads from none to about one, before their strongrooms.
+- **A lead's strongroom always holds two pieces of gear**, a tier better than the country around it (in the valley: scrap armour, a machete or nail bat, a crossbow, a gas mask). Guardians drop their own for certain: the Chemist a gas mask, the Chief a fire axe, the Desk Sergeant a riot helmet.
+- **Nothing is craft-only any more.** 33 weapons and wearables could never be found (every pair of gloves, the bandana, hide hood and boots, scrap boots, the fur and ranger sets, the late melee weapons); all are now in the finds table at their tier. Schematic-only pieces stay schematic-only.
+- **What you pick up goes on if the slot is empty** ("Put on: Leather Cap"), for clothes, packs and the first weapon, from containers, the ground and the craft bench. Nothing is swapped without asking, and what you take off stays off.
+- **Wear best.** One button in the pack puts on and takes in hand the best of everything you carry (armour first; a gun counts only with a dozen shots; a weapon about to break hardly counts) and counts what is waiting: "Wear best (2)". Items that would be an improvement carry a green corner, and their card says what they beat.
+- The bot is told what it wears, what in its pack is better and what it could make by hand, on every move, and its brief has a section on dressing and arming itself.
+
 ## 0.9.8 — 2026-11-13
 
 Small things from the bot's notes on its second hour.

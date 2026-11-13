@@ -6,10 +6,10 @@ import {ITEMS} from '../js/data/items.js';
 import {OBJ} from '../js/data/objects.js';
 import {RECIPES} from '../js/data/recipes.js';
 import {ENEMIES} from '../js/data/enemies.js';
-import {LOCATIONS,SITES} from '../js/data/world.js';
+import {LOCATIONS,SITES,LOOT} from '../js/data/world.js';
 import {EVENTS} from '../js/data/events.js';
 import {STORY} from '../js/data/progress.js';
-import {G,EREF,edgeIdx,structAt,dropAt,give,count,craft,place,upgrade,demolish,repair,moveObj,rotateObj,canMove,equip,useItem,quickUse,learnPerk,derive,canPlace,slotCount,freeSlots,sortInv,HOME_W} from '../js/sim/core.js';
+import {G,betterGear,wearBest,unequip,EREF,edgeIdx,structAt,dropAt,give,count,craft,place,upgrade,demolish,repair,moveObj,rotateObj,canMove,equip,useItem,quickUse,learnPerk,derive,canPlace,slotCount,freeSlots,sortInv,HOME_W} from '../js/sim/core.js';
 import {genZone,field,siteDef,blockAt,collide,los,edgeCross,edgeBetween} from '../js/sim/zone.js';
 import {spawnActor,enemiesAlive,populate,interact,interactInfo,guardDown,findInteract,lootAll,openLoot,plant,damageObj} from '../js/sim/actors.js';
 import * as World from '../js/sim/world.js';
@@ -364,6 +364,29 @@ safe('radio leads',()=>{
     T.ok(!kept.bag||!kept.bag.some(Boolean),'what is taken out one by one afterwards is gone from the pack the lead remembers');
     World.leaveZone();G.Z=null;World.arrive(st.id);T.ok(!G.Z.obj.some(o=>o&&o.k==='deathbag'),'and an emptied pack is not there on the next visit');S.p.inv=keepInv}
   G.Z=null;World.arrive('home');S.sites=[];
+});
+safe('gear',()=>{
+  const S=World.newGame(777);G.auto=false;const p=S.p;
+  // what is gained goes on if nothing is there, and stays in the pack if something is
+  give(S,'hide_vest',1);T.ok(p.eq.body&&p.eq.body.id==='hide_vest'&&count(S,'hide_vest')===0,'a vest picked up with nothing on the body goes straight on');
+  give(S,'leather_jacket',1);T.ok(p.eq.body.id==='hide_vest'&&count(S,'leather_jacket')===1,'a second one stays in the pack: nothing is swapped behind your back');
+  give(S,'spear',1);give(S,'bat',1);give(S,'leather_cap',1);give(S,'bandana',1);give(S,'pack_sack',1);
+  T.ok(p.eq.w1.id==='spear'&&p.eq.head.id==='leather_cap'&&p.eq.pack&&p.eq.pack.id==='pack_sack'&&count(S,'bandana')===1,'the first weapon, cap and pack go on; the bandana waits');
+  const b=betterGear(S).map(x=>x.id).sort().join(',');T.ok(b==='bat,leather_jacket','the pack knows what in it is better than what is on ('+b+')');
+  const names=wearBest(S);T.ok(p.eq.body.id==='leather_jacket'&&(p.eq.w1.id==='bat'||p.eq.w2.id==='bat')&&count(S,'hide_vest')===1&&betterGear(S).length===0,'Wear best puts on the jacket and takes up the bat ('+names.join(', ')+')');
+  unequip(S,'head');T.ok(!p.eq.head&&count(S,'leather_cap')===1,'what is taken off stays off');
+  give(S,'revolver',1);T.ok(!betterGear(S).some(x=>x.id==='revolver'),'a gun with no ammunition is not called better');give(S,'ammo_9',30);
+  T.ok(betterGear(S).some(x=>x.id==='revolver'),'with ammunition it is');
+  // every weapon and wearable that is not made from a schematic can be found somewhere
+  const found=new Set();for(const f in LOOT)for(const r of LOOT[f])found.add(r.i);for(const k in ENEMIES)for(const d of ENEMIES[k].drop||[])found.add(d[0]);
+  const never=Object.keys(ITEMS).filter(id=>['melee','gun','head','body','legs','feet','hands','pack'].includes(ITEMS[id].t)&&!found.has(id)&&!Object.values(RECIPES).some(r=>r.o===id&&r.bp)&&!/^rag_|^exo_/.test(id));
+  T.ok(never.length===0,'every weapon and wearable can be found as loot'+(never.length?': never '+never.join(', '):''));
+  // and the finds turn up: across a few visits to an early place, and for certain in a strongroom
+  let gear=0;for(let s=0;s<8;s++){const Z=G.Z=genZone(LOCATIONS.find(l=>l.id==='gas_stop'),500+s);Z.obj.forEach((o,i)=>{if(!o||!OBJ[o.k].loot||OBJ[o.k].store||OBJ[o.k].lock)return;openLoot(Z,i);for(const it of o.inv||[])if(it&&['melee','gun','head','body','legs','feet','hands','pack'].includes(ITEMS[it.id].t))gear++})}
+  T.ok(gear>=6,'an early place gives something to wear or fight with most visits ('+(gear/8).toFixed(1)+' a visit over 8)');
+  {const Z=G.Z=genZone(siteDef({site:'lead_grocery'},1,3),99);const i=Z.obj.findIndex(o=>o&&OBJ[o.k].lock==='guard');openLoot(Z,i);const g=Z.obj[i].inv.filter(it=>['melee','gun','head','body','legs','feet','hands','pack'].includes(ITEMS[it.id].t));
+    T.ok(g.length>=2,'a lead strongroom always holds gear ('+g.map(it=>ITEMS[it.id].n).join(', ')+')')}
+  G.Z=null;
 });
 // ---- contracts, trade, story bookkeeping
 safe('misc',()=>{

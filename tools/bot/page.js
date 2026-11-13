@@ -1,7 +1,8 @@
 // Runs inside the bot's game page (served only by tools/bot/session.mjs, never published). It reads what a player could see into plain data,
 // numbers the things that can be clicked, and helps the session steer by key presses. It never changes game state: every action the bot takes
 // goes through real key and mouse events sent by the session.
-import {G,weaponDef} from '../js/sim/core.js';
+import {G,weaponDef,betterGear,gearScore,canCraft,recipeVisible} from '../js/sim/core.js';
+import {RECIPE_LIST} from '../js/data/recipes.js';
 import {OBJ} from '../js/data/objects.js';
 import {ITEMS} from '../js/data/items.js';
 import {interactInfo} from '../js/sim/actors.js';
@@ -104,6 +105,10 @@ B.observe=(full=false)=>{
       weapon:it?it.n+(it.dur?' ('+Math.round((e.d||0)/it.dur*100)+'% condition)':'')+(it.ammo?', '+(p.inv.filter(s=>s&&s.id===it.ammo).reduce((a,s)=>a+s.n,0))+' '+ITEMS[it.ammo].n:''):'bare fists',
       spare:sp&&ITEMS[sp.id]?ITEMS[sp.id].n:null,auto:!!G.auto,build:!!G.build};
     o.you.pack=(p.inv||[]).filter(Boolean).length;
+    // what is worn, what in the pack would be better, and what could be made by hand this minute for a slot that is bare or poorly covered
+    {const W=['head','body','legs','feet','hands'];o.you.wearing=W.map(k=>k+': '+(p.eq[k]&&ITEMS[p.eq[k].id]?ITEMS[p.eq[k].id].n:'NOTHING')).join(', ');o.you.armour=ds.arm||0;
+      o.you.better=betterGear(S).map(b=>ITEMS[b.id].n+' ('+(b.slot==='w1'||b.slot==='w2'?'weapon':b.slot)+(b.was?', better than your '+ITEMS[b.was].n:', you have nothing there')+')');
+      o.you.canMake=RECIPE_LIST.filter(r=>r.o&&ITEMS[r.o]&&W.includes(ITEMS[r.o].t)&&r.s==='hand'&&recipeVisible(S,r)&&!canCraft(S,r,1,null)&&gearScore(S,{id:r.o})>(p.eq[ITEMS[r.o].t]?gearScore(S,p.eq[ITEMS[r.o].t]):0)&&!p.inv.some(s=>s&&s.id===r.o)).map(r=>ITEMS[r.o].n).slice(0,5)}
     o.clock=[...$('clock').querySelector('.t').childNodes].map(n=>n.textContent.trim()).filter(Boolean).join(' · ')||null;o.tide=txt($('tide'))||null;o.quest=vis($('quest'))?txt($('quest')):null;o.buffs=txt($('buffs'))||null;
     if(vis($('boss')))o.boss=txt($('boss'));
   }

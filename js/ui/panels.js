@@ -1,6 +1,6 @@
 // Every sheet that slides over the game: pack, crafting, containers, journal, camp, trade, events, settings and the small station dialogs.
 // A panel is {title, tabs?, render(arg, tab) → html, act(action, dataset) → false to skip re-render, open?, close?, narrow?, modal?}.
-import {G,VERSION,derive,count,take,give,addTo,removeFrom,slotCount,freeSlots,sortInv,equip,unequip,useItem,learnPerk,craft,canCraft,recipeVisible,knows,collectStation,cancelJob,repairWithKit,dropAt,maxHp,hasBuilt,homeStores} from '../sim/core.js';
+import {G,VERSION,gained,gearScore,betterGear,wearBest,derive,count,take,give,addTo,removeFrom,slotCount,freeSlots,sortInv,equip,unequip,useItem,learnPerk,craft,canCraft,recipeVisible,knows,collectStation,cancelJob,repairWithKit,dropAt,maxHp,hasBuilt,homeStores} from '../sim/core.js';
 import * as World from '../sim/world.js';
 import {openLoot,lootAll,checkEmpty,plant,cropReady} from '../sim/actors.js';
 import {story,goalProgress,goalText,contractText,contractReady,turnIn,dropContract} from '../sim/quests.js';
@@ -32,7 +32,9 @@ function itemCard(s,actions){
 }
 PANELS.inv={title:'Pack',live:true,open(){sel=null},
   render(){
-    const s=S(),p=s.p,cap=slotCount(s),ds=G.ds=derive(s);let g='';for(let i=0;i<cap;i++)g+=slot(p.inv[i],`data-a="sel" data-i="${i}"`,sel&&sel.src==='inv'&&sel.i===i?'sel':'');
+    const s=S(),p=s.p,cap=slotCount(s),ds=G.ds=derive(s),up=betterGear(s),upAt=new Set(up.map(b=>b.i));let g='';
+    // a green corner marks what would be better on you or in your hand than what is there now
+    for(let i=0;i<cap;i++)g+=slot(p.inv[i],`data-a="sel" data-i="${i}"`,(sel&&sel.src==='inv'&&sel.i===i?'sel':'')+(upAt.has(i)?' up':''));
     let eq='';for(const[k,l]of EQ){const e=p.eq[k];eq+=`<button class="sl ${sel&&sel.src==='eq'&&sel.slot===k?'sel':''} ${p.active===k?'sel':''}" data-a="seleq" data-slot="${k}" title="${l}"><em>${l}</em>${e?slot(e).replace(/^<button[^>]*>|<\/button>$/g,''):''}</button>`}
     let card;
     if(sel&&sel.src==='inv'&&p.inv[sel.i]){const it=ITEMS[p.inv[sel.i].id];let a='';
@@ -41,18 +43,20 @@ PANELS.inv={title:'Pack',live:true,open(){sel=null},
       else if(['head','body','legs','feet','hands','pack'].includes(it.t))a+=btn('Wear','use','','go');
       else if(p.inv[sel.i].id==='flare')a+=btn('Fire','flare','','go');
       else if(p.inv[sel.i].id==='repair_kit'){const w=mostWorn(p);a+=w?btn('Repair '+ITEMS[p.eq[w].id].n+' ('+Math.round(p.eq[w].d/ITEMS[p.eq[w].id].dur*100)+'%)','kitOn',`data-slot="${w}"`,'go'):'<small style="color:var(--dim)">Nothing you have on is worn.</small> '}
-      a+=btn(p.inv[sel.i].n>1?'Drop one':'Drop','drop')+(p.inv[sel.i].n>1?btn('Drop all','dropall'):'');card=itemCard(p.inv[sel.i],a)}
+      a+=btn(p.inv[sel.i].n>1?'Drop one':'Drop','drop')+(p.inv[sel.i].n>1?btn('Drop all','dropall'):'');
+      const b=up.find(b=>b.i===sel.i);card=itemCard(p.inv[sel.i],a);if(b)card=card.replace('<div class="row">',`<p class="okc">${b.was?'Better than the '+esc(ITEMS[b.was].n)+' you have '+(b.slot==='w1'||b.slot==='w2'?'in hand':'on')+'.':b.slot==='w1'||b.slot==='w2'?'You have a hand free for it.':'You have nothing on there.'}</p><div class="row">`)}
     else if(sel&&sel.src==='eq'&&p.eq[sel.slot]){const e=p.eq[sel.slot],it=ITEMS[e.id];card=itemCard(e,btn('Take off','unequip','','go')+(it.dur&&e.d<it.dur&&count(s,'repair_kit')?btn('Use repair kit','kit'):'')+(sel.slot==='w1'||sel.slot==='w2'?btn('Make active','active'):''))}
     else card=itemCard(null);
     const kv=[['Health',Math.ceil(p.hp)+' / '+ds.maxHp],['Armour',ds.arm+' (−'+Math.round(ds.armRed*100)+'% damage)'],['Cold resistance',Math.round(ds.cold*100)+'%'],['Toxin resistance',Math.round(ds.tox*100)+'%'],['Move speed',ds.spd.toFixed(1)],['Melee damage','×'+ds.melee.toFixed(2)],['Ranged damage','×'+ds.ranged.toFixed(2)],['Set bonus',ds.set?SETS[ds.set].n:'none'],['Vehicle',VEHICLES[s.veh].n],['Scrip',s.scrip]];
     return`<div class="cols w3"><div>${sec('Carried '+p.inv.filter(Boolean).length+' / '+cap,btn('Sort','sort'))}<div class="grid">${g}</div><div style="height:10px"></div>${card}</div>
-      <div>${sec('Equipped')}<div class="grid" style="grid-template-columns:repeat(4,minmax(0,1fr))">${eq}</div><div style="height:12px"></div>${sec('You',ds.set?SETS[ds.set].n+': '+SETS[ds.set].d:(['body','legs','feet'].every(k=>!p.eq[k])?'Nothing on: make rag clothes by hand':''))}<div id="doll" style="height:300px;background:radial-gradient(ellipse at 50% 60%,rgba(255,255,255,.07),rgba(0,0,0,0) 70%);border:1px solid var(--line);margin-bottom:8px"></div><div class="kv">${kv.map(([a,b])=>`<span>${a}</span><span class="num">${b}</span>`).join('')}</div></div></div>`;
+      <div>${sec('Equipped',btn(up.length?'Wear best ('+up.length+')':'Wear best','best','title="Put on and take in hand the best of what you carry"',up.length?'go':''))}<div class="grid" style="grid-template-columns:repeat(4,minmax(0,1fr))">${eq}</div><div style="height:12px"></div>${sec('You',ds.set?SETS[ds.set].n+': '+SETS[ds.set].d:(['body','legs','feet'].every(k=>!p.eq[k])?'Nothing on: make rag clothes by hand':''))}<div id="doll" style="height:300px;background:radial-gradient(ellipse at 50% 60%,rgba(255,255,255,.07),rgba(0,0,0,0) 70%);border:1px solid var(--line);margin-bottom:8px"></div><div class="kv">${kv.map(([a,b])=>`<span>${a}</span><span class="num">${b}</span>`).join('')}</div></div></div>`;
   },
   act(a,d){
     const s=S(),p=s.p;
     if(a==='sel'){const i=+d.i;if(sel&&sel.src==='inv'&&sel.i!==i&&p.inv[sel.i]&&!p.inv[i]){p.inv[i]=p.inv[sel.i];p.inv[sel.i]=null;sel={src:'inv',i}}else if(sel&&sel.src==='inv'&&sel.i===i&&p.inv[i]){PANELS.inv.act(defaultAct(p.inv[i]),{slot:'w1'})}else sel=p.inv[i]?{src:'inv',i}:null}
     else if(a==='seleq'){sel=p.eq[d.slot]?{src:'eq',slot:d.slot}:null}
     else if(a==='sort'){sortInv(p.inv,slotCount(s));sel=null}
+    else if(a==='best'){wearBest(s);sel=null;bus.emitEq()}
     else if(!sel)return;
     else if(a==='use'){useItem(s,sel.i);if(!p.inv[sel.i])sel=null}
     else if(a==='equip'){equip(s,sel.i,d.slot);if(!p.inv[sel.i])sel=null}
@@ -113,9 +117,9 @@ PANELS.loot={title:i=>G.Z&&G.Z.obj[i]?OBJ[G.Z.obj[i].k].n:'Container',live:true,
   },
   act(a,d){
     const s=S(),Z=G.Z,i=curLoot,o=Z.obj[i];if(!o)return;const dd=OBJ[o.k],cap=lootCap(o);
-    if(a==='take'){const it=o.inv[+d.i];if(!it)return;const left=addTo(s.p.inv,slotCount(s),it.id,it.n,it.d);if(left===it.n){UI().toast('Pack full','bad');return}s.codex.it[it.id]=1;if(left>0)it.n=left;else o.inv[+d.i]=null;sfxq('pickup')}
+    if(a==='take'){const it=o.inv[+d.i];if(!it)return;const left=addTo(s.p.inv,slotCount(s),it.id,it.n,it.d);if(left===it.n){UI().toast('Pack full','bad');return}s.codex.it[it.id]=1;if(left>0)it.n=left;else o.inv[+d.i]=null;gained(s,it.id);sfxq('pickup')}
     else if(a==='put'){const it=s.p.inv[+d.i];if(!it)return;const left=addTo(o.inv,cap,it.id,it.n,it.d);if(left===it.n){UI().toast('No room in there','bad');return}if(left>0)it.n=left;else s.p.inv[+d.i]=null;sfxq('pickup')}
-    else if(a==='all'){if(dd.store){for(let k=0;k<o.inv.length;k++){const it=o.inv[k];if(!it)continue;const left=addTo(s.p.inv,slotCount(s),it.id,it.n,it.d);if(left>0)it.n=left;else o.inv[k]=null}}else lootAll(Z,i);sfxq('pickup');
+    else if(a==='all'){if(dd.store){for(let k=0;k<o.inv.length;k++){const it=o.inv[k];if(!it)continue;const left=addTo(s.p.inv,slotCount(s),it.id,it.n,it.d);if(left<it.n)gained(s,it.id);if(left>0)it.n=left;else o.inv[k]=null}}else lootAll(Z,i);sfxq('pickup');
       const o2=Z.obj[i],rest=o2&&o2.inv?o2.inv.filter(Boolean).length:0;if(rest)UI().toast('Pack full: '+rest+' '+(rest>1?'stacks':'stack')+' still in there','bad')}
     else if(a==='stow'){for(let k=0;k<s.p.inv.length;k++){const it=s.p.inv[k];if(!it||!['mat','seed','ammo'].includes(ITEMS[it.id].t))continue;const left=addTo(o.inv,cap,it.id,it.n,it.d);if(left>0)it.n=left;else s.p.inv[k]=null}sfxq('pickup')}
     else if(a==='sortc'){sortInv(o.inv,cap)}

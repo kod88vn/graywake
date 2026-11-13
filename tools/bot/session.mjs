@@ -213,6 +213,7 @@ function describe(o){
   if(o.mode==='menu'||o.layer==='title'){L.push(`== Graywake ${o.version} · title screen`);if(o.text)L.push(o.text)}
   else{L.push(`== ${o.zone?o.zone.name+(o.zone.home?' (your homestead)':''):o.mode==='map'?'The map':'Graywake'} · ${(o.clock||'').replace(/\n/g,' · ')} · ${o.tide||''}`+(o.boss?' · BOSS '+o.boss.replace(/\n/g,' '):''));
     if(y)L.push(`You: health ${y.hp}/${y.maxHp}, food ${y.food}, water ${y.water}${y.tox?', toxin '+y.tox:''} · level ${y.level}${y.perkPoints?' ('+y.perkPoints+' perk point'+(y.perkPoints>1?'s':'')+' to spend)':''} · in hand: ${y.weapon}${y.spare?' (spare: '+y.spare+')':''} · pack holds ${y.pack} stacks`+(y.at?` · at (${y.at[0]}, ${y.at[1]}), ${y.dead?'DEAD':y.doing}${y.sneaking?', sneaking':''}`:'')+` · Auto ${y.auto?'ON':'off'}${y.build?' · BUILD MODE':''}`);
+    if(y&&y.wearing)L.push(`Wearing (armour ${y.armour}): ${y.wearing}`+(y.better&&y.better.length?`\n!! BETTER GEAR IS IN YOUR PACK: ${y.better.join('; ')}. Open the pack (key i) and tap "Wear best".`:'')+(y.canMake&&y.canMake.length?`\n!! YOU CAN MAKE BY HAND RIGHT NOW (key c): ${y.canMake.join(', ')}. Clothes go on by themselves when made.`:''));
     if(o.buffs)L.push('Effects: '+o.buffs.replace(/\n/g,', '));
     if(o.quest)L.push('Quest tracker: '+o.quest.replace(/\n+/g,' · '))}
   if(o.zone&&o.mode==='play'){
