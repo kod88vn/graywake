@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.9.1 — 2026-11-13
+
+What the bot's first hours of play turned up.
+
+- **The game says where things come from.** Wherever something is short (a craft row, a cost icon, an item's card) it now says how to get it: "Rags: made by hand · found in Crate, Abandoned Car, Locker and more · dropped by Husk". The lines are worked out from the game's own tables, nearest sources first. The bot spent whole shifts not knowing where rags, tallow, clay and nails came from.
+- **A prompt says when you lack the tool**: "Mine · Rock (needs a pickaxe)" before you press, not after.
+- **E uses what you are standing on.** Standing on tall grass beside a pine, E gathered the pine you happened to face.
+- **Build mode shows where buildable ground ends** (a faint line near the tree line), always opens on Place, and the Bedroll, Bed and Bunk are under Shelter instead of Storage.
+- **A worked-out bank, pool or rock says so**, and at home says when it comes back.
+- **Radio leads retuned**: the threat rating no longer calls a place three levels up "Deadly"; two leads can be on the map (three with a Radio Mast), so one you cannot take does not block the next; levels lean to the middle of each lead's range; the first lead you ever hear is a gentle one.
+- The "×3" button on a craft row says what it does on hover ("Make 3 at once").
+
 ## 0.9.0 — 2026-11-13
 
 Radio leads: special places to loot, with the danger told before you go.
