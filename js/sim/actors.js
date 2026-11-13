@@ -552,7 +552,9 @@ function stepEnemy(Z,e,dt,p,flow,night,sightMul){
   // lures pull everything but bosses
   if(Z.lure&&!def.boss&&def.ai!=='flee'&&dist(e.x,e.y,Z.lure.x,Z.lure.y)<Z.lure.r&&!def.human){if(dist(e.x,e.y,Z.lure.x,Z.lure.y)>1)steer(Z,e,Z.lure.x,Z.lure.y,speed*.8,dt);return}
   // fleeing animals
-  if(def.ai==='flee'){if(pd<def.sight*(p&&p.sneak?.5:1)||e.alert){e.alert=pd<def.sight*1.6;const ang=Math.atan2(e.y-p.y,e.x-p.x)+Math.sin(Z.time*2+e.id)*.6;steer(Z,e,e.x+Math.cos(ang)*3,e.y+Math.sin(ang)*3,speed,dt)}else wander(Z,e,dt,speed*.3);return}
+  if(def.ai==='flee'){if(pd<def.sight*(p&&p.sneak?.5:1)||e.alert){
+    // the first time an animal bolts from someone with nothing to shoot: say how hunting is done, once
+    if(!e.alert&&p&&G.S&&!G.S.flags.huntHint&&weaponDef(G.S).t!=='gun'){G.S.flags.huntHint=1;toast('Animals bolt before you can reach them. Hunt with a bow (Workbench), or build Snares (Farm): they catch meat and hides by themselves','info')}e.alert=pd<def.sight*1.6;const ang=Math.atan2(e.y-p.y,e.x-p.x)+Math.sin(Z.time*2+e.id)*.6;steer(Z,e,e.x+Math.cos(ang)*3,e.y+Math.sin(ang)*3,speed,dt)}else wander(Z,e,dt,speed*.3);return}
   if(!e.alert){if(!def.rooted)wander(Z,e,dt,speed*.35);return}
   const t=pickFoe(Z,e,p);
   if(!t){e.alert=false;e.st='idle';return}

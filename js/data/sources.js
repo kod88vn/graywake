@@ -26,5 +26,5 @@ function build(){
 /** A short line saying where an item comes from ("made at a Campfire · found in Cabinet, Bin · dropped by Husk"), or '' if nothing is known. */
 export function sourcesOf(id,max=3){
   if(!MAP)build();const m=MAP[id];if(!m)return'';const part=(label,a)=>a.length?label+' '+a.slice(0,max).join(', ')+(a.length>max?' and more':''):'';
-  return[part('gathered from',m.gather),part('grown from',m.grow),part('made',m.make),part('found in',m.find),part('hunted by day from',m.hunt),part('dropped by',m.drop)].filter(Boolean).join(' · ');
+  return[part('gathered from',m.gather),part('grown from',m.grow),part('made',m.make),part('found in',m.find),part('hunted by day (bow, or Snares) from',m.hunt),part('dropped by',m.drop)].filter(Boolean).join(' · ');
 }
