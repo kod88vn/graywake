@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- E next to a bed and a box opens the box: a bed is chosen only when you are standing right on it. A bedroll beside a storage box made the box impossible to open from most sides.
+
 - A survivor running a trade route shows why they have no job buttons, with a button to bring them home to work. The bot made Imre a runner by mistake and then found no way to give him a job.
 
 ## 0.10.6 — 2026-11-13
