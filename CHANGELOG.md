@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Bot sessions: Chrome is closed politely and given time to write its storage, and `ctl end` holds the world still for a few seconds first. Killed at once, it could lose the last minute of the save: a bot took in its first survivor (Ada) and found nobody there the next session.
+
 ## 0.10.4 — 2026-11-13
 
 "Each base can support maximum 3 people. Other survivors can help automate things like repair, defense, farming inside base. Player must still travel alone. On a base on base attack, player can bring their group only." And: "bots do not know how to run from danger still. Kind of just standing in 1 place to die."

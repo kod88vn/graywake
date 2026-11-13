@@ -350,7 +350,10 @@ async function shutdown(){if(closing)return;closing=true;
   // and in a shared world the bot lived (and was charged for) the same hours twice
   try{await Promise.race([ev(`(()=>{try{if(GW.UI.panel==='death')GW.UI.close();return GW.api.save()}catch(e){return String(e)}})()`),sleep(2500)])}catch(e){}try{fs.writeFileSync(path.join(SD,'meta.json'),JSON.stringify({...META,ended:new Date().toISOString(),actions:S.n,bugs:S.bugs.length,ideas:S.ideas.length,deaths:S.deaths},null,1))}catch(e){}
   try{if(!S.chromeDead)await ev(`GW.G.S&&GW.G.mode!=='menu'&&GW.api.save()`)}catch(e){}
-  try{if(chromeProc)chromeProc.kill('SIGTERM');else if(!S.chromeDead)await send('Browser.close')}catch(e){}
+  // close Chrome politely and give it time: killed at once, it lost the last moments of the browser's storage (the save), and a bot that had just taken
+  // someone in found nobody there next session
+  try{if(!S.chromeDead)await Promise.race([send('Browser.close'),sleep(4000)])}catch(e){}
+  if(chromeProc){for(let i=0;i<40&&chromeProc.exitCode===null;i++)await sleep(100);try{if(chromeProc.exitCode===null)chromeProc.kill('SIGTERM')}catch(e){}}
   try{if(POINTER)fs.unlinkSync(path.join(BOT,'current.json'))}catch(e){}
   server.close();setTimeout(()=>process.exit(0),400)}
 process.on('SIGINT',shutdown);process.on('SIGTERM',shutdown);

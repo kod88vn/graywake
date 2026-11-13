@@ -17,6 +17,9 @@ try{
   else if(['pause','resume','stop','shutdown'].includes(cmd)){await post('/api/control',{op:cmd});console.log(cmd+': ok')}
   else if(cmd==='end'){await post('/api/control',{op:'stop'});console.log('Asked the bot to stop: giving it up to a minute to save its notebook…');
     for(let i=0;i<60;i++){await new Promise(r=>setTimeout(r,1000));const s=await (await fetch(base+'/api/status')).json();if(!s.shift.total&&!s.busy)break}
+    // hold the world still and give the browser a few seconds to write its storage to disk before it is closed (sessions started before the graceful
+    // close went in kill Chrome at once, and the last minute of the save could be lost)
+    await post('/api/control',{op:'pause'}).catch(()=>{});await new Promise(r=>setTimeout(r,8000));
     await post('/api/control',{op:'shutdown'}).catch(()=>{});console.log('Session ended. Report: npm run bot:report')}
   else if(cmd==='hint'){await post('/api/control',{op:'hint',text:args.join(' ')});console.log('The bot will read that with its next move.')}
   else if(cmd==='open'){spawn('open',['-g',base+'/'],{stdio:'ignore',detached:true}).unref();console.log(base+'/')}
