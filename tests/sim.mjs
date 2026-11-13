@@ -309,10 +309,13 @@ safe('sleep death save',()=>{
 });
 // ---- catching your breath
 safe('rest',()=>{
-  const S=G.S;G.Z=null;World.arrive('home');const Z=G.Z;for(const a of Z.actors)if(a.team===1)a.dead=true;S.tide.at=S.t+9999;S.p.food=80;S.p.water=80;G.ds=derive(S);
+  const S=G.S;G.Z=null;World.arrive('home');const Z=G.Z;for(const a of Z.actors)if(a.team===1)a.dead=true;S.tide.at=S.t+9999;S.p.food=60;S.p.water=60;G.ds=derive(S);   // fed, not well fed
   S.p.hp=10;G.inp.mx=G.inp.my=0;run(3);const slow=S.p.hp;run(20);const max=derive(S).maxHp;
   T.ok(slow<12&&S.p.hp>10+20&&Z.pl.rest,'standing still out of danger brings health back fast after a few seconds ('+Math.round(slow)+' then '+Math.round(S.p.hp)+' of '+max+')');
   run(120);T.ok(S.p.hp>=max*.58&&S.p.hp<max*.75,'up to about three fifths, then the slow trickle again ('+Math.round(S.p.hp)+' of '+max+')');
+  // well fed, the trickle above three fifths is three times what it is when merely not hungry
+  {const max2=derive(S).maxHp;S.p.hp=max2*.7;S.p.food=S.p.water=60;run(20,()=>{S.p.food=S.p.water=60});const plain=S.p.hp-max2*.7;S.p.hp=max2*.7;run(20,()=>{S.p.food=S.p.water=90});const fed=S.p.hp-max2*.7;
+    T.ok(fed>plain*2.5&&Z.pl.fed,'being well fed brings health back three times as fast ('+plain.toFixed(1)+' against '+fed.toFixed(1)+' in 20 s)')}
   S.p.hp=10;const e=spawnActor(Z,'shambler',Z.pl.x+9,Z.pl.y,1);e.alert=true;e.st='idle';e.def=Object.assign({},e.def,{spd:0});run(8,()=>{e.alert=true});T.ok(S.p.hp<14&&!Z.pl.rest,'not while something is hunting you');e.dead=true;
 });
 // ---- radio leads: special places to loot, with the danger told beforehand

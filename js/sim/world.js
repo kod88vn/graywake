@@ -444,7 +444,9 @@ export function tick(dt){
   const p=S.p,ds=G.ds,pl=Z.pl;
   if(!pl.dead){
     for(let i=p.buffs.length-1;i>=0;i--){p.buffs[i].t-=dt;if(p.buffs[i].t<=0)p.buffs.splice(i,1)}
-    let regen=ds.regenBuff+(p.food>25&&p.water>25?ds.regen+.12:0);
+    // fed and watered, health trickles back; well fed (both bars above 70), three times as fast
+    pl.fed=p.food>70&&p.water>70;
+    let regen=ds.regenBuff+(p.food>25&&p.water>25?ds.regen+(pl.fed?.36:.12):0);
     // Catching your breath: stand still for a few seconds with nothing hunting you and health comes back quickly, up to three fifths of full.
     // It costs a little food and water. Without it a hurt player has nothing to do but stand about for minutes.
     {let hunted=false;for(const a of Z.actors)if(a.team===1&&!a.dead&&a.alert&&a.def.ai!=='flee'&&dist(a.x,a.y,pl.x,pl.y)<12){hunted=true;break}

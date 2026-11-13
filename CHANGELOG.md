@@ -9,6 +9,7 @@ The bot's third expedition: a Police Station rated 3 of 5, entered at full healt
 - **Leads are closer**: one and a half to two and a half hours each way, where the last was five.
 - **Fixed: quick-heal refused small remedies when you were badly hurt** ("Nothing to heal with" at 16 health with a poultice in the pack). This also stopped auto mode from healing.
 - **Catching your breath.** Stand still for a few seconds with nothing hunting you and health comes back quickly, up to three fifths of full, for a little food and water. Before, a hurt player (and the bot) stood about for minutes waiting on a trickle.
+- **Well fed.** With food and water both above 70, health trickles back three times as fast (the status line says so). Most food does not heal directly; a good meal now does, slowly.
 - **Nothing is parked in a building's entrance** any more.
 - The map card's heading uses the lead's threat word instead of a level comparison that could contradict it.
 
