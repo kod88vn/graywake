@@ -128,6 +128,12 @@ B.pulse=()=>{const S=G.S,Z=G.Z,p=Z&&Z.pl;let foe=99,alertN=0;if(Z&&p)for(const a
   return{mode:G.mode,sheet:window.GW?GW.UI.panel:null,hp:S?S.p.hp:0,max:G.ds&&G.ds.maxHp||100,x:p?p.x:0,y:p?p.y:0,dead:!!(p&&p.dead),act:p&&p.act?p.act.type:null,atk:!!(p&&p.atk),foe:r1(foe),alertN,auto:!!G.auto,exit:!!(Z&&Z.exit),home:!!(Z&&Z.home),meds:S?S.p.inv.reduce((n,s)=>n+(s&&ITEMS[s.id].t==='med'&&ITEMS[s.id].hp>0?s.n:0),0):0,t:Z?Z.time:0,zone:Z?Z.id:null,fps:window.GW?GW.View.fps:0,msgs:B.msgs.length}};
 
 // ---- walking by keys: which of the eight ways to press to get to a tile (or next to it, when something solid stands on it)
+/** What stops a step in a direction from where the player stands: a wall on a tile edge, a solid thing, water, the edge of the place. For the walk command's message. */
+B.whyBlocked=(dx,dy)=>{const Z=G.Z;if(!Z||!Z.pl)return'';const p=Z.pl,l=Math.hypot(dx,dy)||1,x1=p.x+dx/l*.75,y1=p.y+dy/l*.75,tx=Math.floor(x1),ty=Math.floor(y1);
+  if(x1<0.3||y1<0.3||x1>Z.w-.3||y1>Z.h-.3)return'the edge of this place';
+  const e=edgeCross(Z,p.x,p.y,x1,y1,true);if(e>=0&&Z.ed[e]){const d=OBJ[Z.ed[e].k];return'a '+(d?d.n.toLowerCase():'wall')+' on the edge between tiles ('+Math.floor(p.x)+', '+Math.floor(p.y)+') and ('+tx+', '+ty+'). Walls are thin and stand on tile edges: the way through is a doorway or a door'}
+  const o=Z.obj[ty*Z.w+tx];if(o&&OBJ[o.k]&&OBJ[o.k].solid)return'the '+OBJ[o.k].n+' at ('+tx+', '+ty+')';
+  return''};
 /** Where to run to: the way out of this place that is nearest by foot and farthest from whatever is hostile. Null at home (there is nowhere further to run). */
 B.fleeTo=()=>{const Z=G.Z;if(!Z||Z.home||!Z.pl)return null;const p=Z.pl,f=field(Z,Math.floor(p.x),Math.floor(p.y),true,400),foes=Z.actors.filter(a=>a.team===1&&!a.dead&&a.def.ai!=='flee');let best=null,bs=1e9;
   for(let y=0;y<Z.h;y++)for(let x=0;x<Z.w;x++){if(!atExit(Z,x,y))continue;const d=f[y*Z.w+x];if(!(d<400))continue;let near=12;for(const a of foes)near=Math.min(near,Math.hypot(a.x-x-.5,a.y-y-.5));const s=d-near*1.2;if(s<bs){bs=s;best={x,y,d:r1(d)}}}

@@ -126,7 +126,10 @@ C.look=async a=>({msg:'',full:a.includes('full')});
 C.walk=async a=>{const way=WAYS[String(a[0]||'').toLowerCase()];if(!way)return{msg:'walk needs a direction: n ne e se s sw w nw (n is up the screen), then seconds'};const secs=clamp(num(a[1],1.5),.2,8);
   await steerKeys(way[0],way[1]);let mark=null,markT=0;
   const r=await during(secs,{each:(p,p0,t)=>{if(!mark){mark=p;markT=t}else if(t-markT>.9){if(moved(p,mark)<.25)return'blocked: something is in the way';mark=p;markT=t}}});
-  await steerKeys(0,0);return{msg:`walked ${String(a[0]).toUpperCase()} ${moved(r.p,r.p0).toFixed(1)} tiles`+(r.why?' and stopped: '+r.why:'')}};
+  await steerKeys(0,0);
+  // say what is in the way, and that goto finds the way round: three reports read a wall as being stuck on nothing
+  let why=r.why||'';if(/^blocked/.test(why)){const w=await ev(`__bot.whyBlocked(${way[0]},${way[1]})`).catch(()=>'');why='blocked by '+(w||'something in the way')+'. `walk` only goes in a straight line; `goto` a tile or a named thing finds the way round'}
+  return{msg:`walked ${String(a[0]).toUpperCase()} ${moved(r.p,r.p0).toFixed(1)} tiles`+(why?' and stopped: '+why:'')}};
 C.goto=async a=>{let tx,ty,name;if(a.length>=2&&Number.isFinite(parseFloat(a[0]))&&Number.isFinite(parseFloat(a[1]))){tx=parseFloat(a[0]);ty=parseFloat(a[1]);name=`(${tx}, ${ty})`}
   else{const f=await ev(`__bot.find(${JSON.stringify(a.join(' '))})`);if(!f)return{msg:`nothing called "${a.join(' ')}" is known here; use a name from the list, or goto X Y`};tx=f.x;ty=f.y;name=f.name+` at (${Math.floor(tx)}, ${Math.floor(ty)})`}
   if(!(await ev(`__bot.navTo(${tx},${ty})`)))return{msg:'that is outside this place'};
