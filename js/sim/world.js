@@ -451,7 +451,7 @@ export function tick(dt){
     // It costs a little food and water. Without it a hurt player has nothing to do but stand about for minutes.
     {let hunted=false;for(const a of Z.actors)if(a.team===1&&!a.dead&&a.alert&&a.def.ai!=='flee'&&dist(a.x,a.y,pl.x,pl.y)<12){hunted=true;break}
       pl.restT=pl.mv<.1&&!pl.atk&&!pl.act&&!pl.roll&&!(pl.hurtT>0)&&!hunted?(pl.restT||0)+dt:0;
-      pl.rest=pl.restT>4&&p.hp<ds.maxHp*.6&&p.food>15&&p.water>15;
+      pl.rest=pl.restT>4&&p.hp<ds.maxHp*.6&&p.food>15&&p.water>15;pl.rested=pl.restT>4&&!pl.rest&&p.hp<ds.maxHp*.95;
       if(pl.rest){regen+=1.5;p.food-=.035*dt;p.water-=.045*dt;if(!S.flags.restTip){S.flags.restTip=1;toast('Standing still out of danger, you catch your breath: health comes back fast, up to three fifths','info')}}}
     if(regen>0&&p.hp<ds.maxHp)p.hp=Math.min(ds.maxHp,p.hp+regen*dt);if(p.hp>ds.maxHp)p.hp=ds.maxHp;
     advance(S,dt*MIN_PER_SEC,'live');
