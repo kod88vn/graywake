@@ -113,7 +113,9 @@ function drawHead(g,o,skin){
   const hairOn=()=>{if(hr)drawHair(g,hr,o.hairStyle||0,false)};
   if(o.helm){const c=o.helm,c2=o.helmC2||shade(c,1.25);
     if(st==='hood'){g.loft([cover(-.03,.022,-.004),cover(.02,.019,.02),cover(.07,.017,.034),cover(.12,.017,.05),cover(.148,.017,1),cover(.17,.017,1),cover(.187,.015,1),[.21,.012,.014,0,-.016]],c,14,'end');
-      g.loft([[-.045,.092,.06,0,-.012,2.2,.07],[-.012,.07,.05,0,-.014,2.2,.06]],shade(c,.85),12,'none')}
+      g.loft([[-.045,.092,.06,0,-.012,2.2,.07],[-.012,.07,.05,0,-.014,2.2,.06]],shade(c,.85),12,'none');
+      // a pale fur roll round the face opening, so the hood reads as a hood and not as a head of hair the colour of the hide
+      g.torus(.066,.011,'#d6c6a2',0,.1,.05,Math.PI/2-.12,0,0,14)}
     else if(st==='cap'){g.loft(shell(.134,.009,.004),c,14);g.ell(.05,.006,.04,shade(c,.8),0,.136,.066,.12,0,0,8,4);for(const s of[-1,1])g.ell(.008,.03,.02,shade(c,.9),s*(tab(HW,.1)+.006),.1,-.012,0,s*.3,0,6,4);if(hr)nape(g,hr)}
     else if(st==='visor'){g.loft(shell(.104,.016,.004),c,14);g.ell(.064,.04,.04,'#27343c',0,.086,.05,0,0,0,9,6);g.loft([cover(.02,.018,-.01),cover(.06,.018,-.004),cover(.104,.016,.0)],shade(c,.75),12,'none')}
     else if(st==='mask'){g.loft(HYS.map(y=>{const r=headRing(y);r[1]+=.012;r[2]+=.012;r[6]+=.012;return r}),c,14);for(const s of[-1,1]){g.sph(.02,'#1c2a30',s*.03,.1,.079,1,1,.5,7,5);g.sph(.009,'#8fc8d8',s*.034,.106,.088,1,1,.4,5,4)}g.cyl(.026,.03,.05,'#34383a',0,.04,.094,8,Math.PI/2)}

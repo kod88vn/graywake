@@ -112,7 +112,7 @@ B.observe=(full=false)=>{
     // what is worn, what in the pack would be better, and what could be made by hand this minute for a slot that is bare or poorly covered
     {const W=['head','body','legs','feet','hands'];o.you.wearing=W.map(k=>k+': '+(p.eq[k]&&ITEMS[p.eq[k].id]?ITEMS[p.eq[k].id].n:'NOTHING')).join(', ');o.you.armour=ds.arm||0;
       o.you.better=betterGear(S).map(b=>ITEMS[b.id].n+' ('+(b.slot==='w1'?'weapon in hand':b.slot==='w2'?'spare weapon':b.slot)+(b.was?', better than your '+ITEMS[b.was].n:', you have nothing there')+')');
-      o.you.canMake=RECIPE_LIST.filter(r=>r.o&&ITEMS[r.o]&&W.includes(ITEMS[r.o].t)&&r.s==='hand'&&recipeVisible(S,r)&&!canCraft(S,r,1,null)&&gearScore(S,{id:r.o})>(p.eq[ITEMS[r.o].t]?gearScore(S,p.eq[ITEMS[r.o].t]):0)&&!p.inv.some(s=>s&&s.id===r.o)).map(r=>ITEMS[r.o].n).slice(0,5)}
+      o.you.canMake=RECIPE_LIST.filter(r=>r.o&&ITEMS[r.o]&&W.includes(ITEMS[r.o].t)&&r.s==='hand'&&recipeVisible(S,r)&&!canCraft(S,r,1,null)&&gearScore(S,{id:r.o})>(p.eq[ITEMS[r.o].t]?gearScore(S,{id:p.eq[ITEMS[r.o].t].id})*1.01:0)&&!p.inv.some(s=>s&&s.id===r.o)).map(r=>ITEMS[r.o].n).slice(0,5)}
     o.clock=[...$('clock').querySelector('.t').childNodes].map(n=>n.textContent.trim()).filter(Boolean).join(' · ')||null;o.tide=txt($('tide'))||null;o.quest=vis($('quest'))?txt($('quest')):null;o.buffs=txt($('buffs'))||null;
     if(vis($('boss')))o.boss=txt($('boss'));
   }
