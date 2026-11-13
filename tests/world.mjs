@@ -20,6 +20,8 @@ try{
   const lid=r.world.leads[0].id;r=rep(b,{t:12*60+30,day:1,level:1,deeds:{leads:[lid]}});T.ok(r.took.includes(lid)&&r.you.hold===RULES.hold0+RULES.lead&&r.you.score>=RULES.score.lead,'the first to open the strongroom takes it: hold and score go up');
   r=rep(a,{t:12*60+40,day:1,level:3,deeds:{leads:[lid]}});T.ok(!r.took.length&&r.world.leads.find(l=>l.id===lid).by==='Second'&&r.you.hold===RULES.hold0,'the other is told who got there first and gains nothing');
   r=rep(a,{t:3*1440,day:3,level:4,deeds:{held:1}});T.ok(r.you.hold===RULES.hold0+RULES.tideHeld&&r.world.points>=5&&r.world.feed.some(f=>/held the tide/.test(f.text)),'a tide held raises hold, pushes the world on, and is in the news');
+  // an older save loaded: the hours lived again are not counted again
+  {const h0=r.you.hold,t0=3*1440;r=rep(a,{t:t0-600,day:3,level:4,deeds:{held:1,deaths:2}});T.ok(r.you.hold===h0,'a game that has gone back in time cannot have its tides and deaths counted twice');r=rep(a,{t:t0+5,day:3,level:4,deeds:{}})}
   // push the world along its event track
   for(let i=0;i<4;i++)r=rep(a,{t:(4+i)*1440,day:4+i,level:5,deeds:{held:1}});T.ok(r.world.stage>=1&&r.world.fx.tide>1,'deeds move the world to its next stage, and tides get heavier there ('+r.world.stageName+', ×'+r.world.fx.tide+')');
   // losing: the hold runs out, the enclave is moved to another world, and it keeps playing there

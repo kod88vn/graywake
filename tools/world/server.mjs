@@ -109,7 +109,10 @@ export function makeServer({dir=path.join(ROOT,'.out/worlds'),rnd=Math.random,no
     // the world keeps its own clock. Each enclave's clock is tied to it at the moment it first reports, so a character on its day 26 who joins a
     // world on its day 1 does not drag the world to day 26, and every enclave's "day" here means days in this world
     if(e.off===undefined){e.off=w.t-(r.t||0);e.joinT=w.t}const wt=(r.t||0)+e.off;if(wt>w.t)w.t=wt;const days=Math.floor(Math.max(0,wt-e.joinT)/1440)+1;e.day=Math.max(e.day,days);if(r.level){if(r.level>e.level)e.score+=(r.level-e.level)*RULES.score.level;e.level=Math.max(e.level,r.level)}
-    const held=Math.max(0,d.held|0),lost=Math.max(0,d.lost|0),deaths=Math.max(0,d.deaths|0),took=[];
+    // a game that has gone back in time (an older save loaded) is living hours the world has already counted: until its clock passes the latest
+    // the world has seen from it, its tides and deaths are not counted again (in either direction). Strongrooms are safe anyway: each opens once.
+    const replay=(r.t||0)<(e.maxT||0)-2;e.maxT=Math.max(e.maxT||0,r.t||0);
+    const held=replay?0:Math.max(0,d.held|0),lost=replay?0:Math.max(0,d.lost|0),deaths=replay?0:Math.max(0,d.deaths|0),took=[];
     for(const lid of d.leads||[]){const l=w.leads.find(x=>x.id===lid);if(l&&!l.by){l.by=e.name;l.byId=e.id;l.byT=w.t;took.push(l);news(w,e.name+' opened the strongroom at the '+SITES[l.kind].n+'.','good')}}
     e.deeds.held+=held;e.deeds.lost+=lost;e.deeds.deaths+=deaths;e.deeds.leads+=took.length;
     e.hold=Math.max(0,Math.min(RULES.holdMax,e.hold+held*RULES.tideHeld+lost*RULES.tideLost+deaths*RULES.death+took.length*RULES.lead));

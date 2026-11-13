@@ -386,6 +386,8 @@ function autoWeapon(S){
     if(v>bs){bs=v;best=slot}}
   return best;
 }
+/** How far from its post auto mode goes to meet something during a tide: a doorway's width or two, not the far side of the clearing. */
+const POST_REACH=5.5;
 /** Auto mode defends itself: draw the best weapon, close in (or hold and shoot), patch itself up from the pack, and go back to gathering when the place is clear. */
 function autoFight(Z,p,e,dt){
   const S=G.S,ds=G.ds;
@@ -423,10 +425,17 @@ function pathDir(Z,p,f){
 function autoStep(Z,p,dt){
   const S=G.S;
   // in a tide: meet whatever comes within reach of the middle; once the last wave is in, go and find the stragglers so the tide can end
-  const tide=Z.home&&S.tide.live,foe=autoFoe(Z,p,tide?13:0)||(tide&&!S.tide.live.q.length?autoFoe(Z,p,400):null);if(foe)return autoFight(Z,p,foe,dt);
-  if(p.fight){if(Z.time-p.fight.t<1.5&&S.p.active!==p.fight.slot){S.p.active=p.fight.slot;emit('eq')}p.fight=null;p.auto=null;toast(Z.home&&S.tide.live?'Auto: clear for now, holding the homestead':'Auto: clear, back to gathering','info')}
+  // in a tide auto mode holds a post: the spot where the player stood when the tide (or auto mode) began, which is inside their walls if they have
+  // any sense. It fights what comes within a few steps of the post and goes no further; it used to hold the middle of the map and walk out of a yard
+  // built anywhere else, straight into the tide (0.10.1). Once the last wave is in, it goes and finds the stragglers so the tide can end.
+  const tide=Z.home&&S.tide.live;if(tide){if(!p.post||p.post.n!==S.tide.n)p.post={x:p.x,y:p.y,n:S.tide.n}}else p.post=null;
+  let foe=null;
+  if(tide){let bd=POST_REACH;for(const a of Z.actors){if(a.team!==1||a.dead||!a.alert||a.def.ai==='flee')continue;const d=dist(a.x,a.y,p.post.x,p.post.y)-a.r;if(d<bd){bd=d;foe=a}}if(!foe&&!S.tide.live.q.length)foe=autoFoe(Z,p,400)}
+  else foe=autoFoe(Z,p,0);
+  if(foe)return autoFight(Z,p,foe,dt);
+  if(p.fight){if(Z.time-p.fight.t<1.5&&S.p.active!==p.fight.slot){S.p.active=p.fight.slot;emit('eq')}p.fight=null;p.auto=null;toast(Z.home&&S.tide.live?'Auto: clear for now, holding this spot':'Auto: clear, back to gathering','info')}
   // during a tide auto mode stops gathering and holds the middle of the homestead, going out only to meet what comes within reach
-  if(tide){p.act=null;p.auto=null;const hx=Z.w/2,hy=Z.h/2;if(dist(p.x,p.y,hx,hy)<2.5)return[0,0];
+  if(tide){p.act=null;p.auto=null;const hx=p.post.x,hy=p.post.y;if(dist(p.x,p.y,hx,hy)<.6)return[0,0];
     if(!p.homeF||Z.time-p.homeT>1){p.homeT=Z.time;p.homeF=field(Z,Math.floor(hx),Math.floor(hy),true,120)}return pathDir(Z,p,p.homeF)||[0,0]}
   if(freeSlots(S)===0&&!p.act){G.auto=false;p.auto=null;toast('Auto stopped: pack full','info');return[0,0]}
   if(p.act)return[0,0];

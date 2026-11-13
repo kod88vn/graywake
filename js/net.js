@@ -28,6 +28,8 @@ export const Net={url:null,name:'',kind:'human',pick:'',state:'off',err:'',world
       const r=await this.call('/api/sync',{world:S.net.world,enclave:S.net.enclave,token:S.net.token,report:{t:S.t,day:dayOf(S.t),level:S.p.lvl,deeds:sent}});
       if(r.gone){S.net.token=null;this.state='joining';return}
       d.held-=sent.held;d.lost-=sent.lost;d.deaths-=sent.deaths;d.leads=d.leads.filter(x=>!sent.leads.includes(x));
+      // what the world has been told is written down at once, so a save never holds deeds the world has already counted
+      if(sent.held||sent.lost||sent.deaths||sent.leads.length)G.ev.push(['save']);
       if(r.moved){Object.assign(S.net,{world:r.moved.world,enclave:r.moved.enclave,token:r.moved.token,name:r.moved.name,heard:{}});G.ev.push(['ui','exile',{from:r.moved.from,to:r.world.name,world:r.world,you:r.you}]);this.state='on';return}
       World.worldNews(S,r.world,r.you);this.state='on';this.err='';
     }catch(e){this.state='down';this.err=String(e&&e.message||e)}
