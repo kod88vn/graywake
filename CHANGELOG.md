@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.9.5 — 2026-11-13
+
+The bot cleared most of a Corner Grocery, could not find the last husks in the maze of rooms, and left without the prize.
+
+- **You can find who is left.** At a radio lead the guardian always shows on the minimap, and so do the last four of the garrison; anything beyond the minimap's edge is drawn on its rim, so you know which way. A barred strongroom says how many are still about.
+
 ## 0.9.4 — 2026-11-13
 
 - **Well fed.** With food and water both above 70, health trickles back three times as fast (the status line says "Well fed: healing"). Most food does not heal directly; a good meal now does, slowly. Rest takes you to three fifths, eating well the rest of the way.

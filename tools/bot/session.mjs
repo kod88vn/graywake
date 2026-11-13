@@ -136,15 +136,15 @@ C.use=async a=>{const before=await ev(`(()=>{const e=document.getElementById('pr
   const r=await during(.5);if(r.why)return{msg:`pressed E (${before||'nothing was in reach'}): ${r.why}`};
   if(r.p.act){const r2=await during(clamp(num(a[0],10),1,25),{each:p=>p.act?null:'done'});return{msg:`pressed E (${before}) and kept at it for ${(r2.secs+.5).toFixed(1)} s`+(r2.why&&r2.why!=='done'?', stopped: '+r2.why:'')}}
   return{msg:`pressed E (${before||'nothing was in reach, so nothing happened'})`}};
-C.attack=async a=>{const secs=clamp(num(a[0],3),.3,12);let quiet=0,navT=-9,walked=false,hit=false,name=null,stuck=null,mark=null,markT=0;
+C.attack=async a=>{const secs=clamp(num(a[0],3),.3,12);let quiet=0,navT=-9,walked=false,hit=false,name=null,stuck=null,mark=null,markT=0,tid=0;
   // fight like a person: nothing is swung at through a wall. Walk round to a foe that is out of reach or out of sight, then aim and hold the button.
-  const r=await during(secs,{fight:true,each:async(p,p0,t)=>{const f=await ev('__bot.fight()');
+  const r=await during(secs,{fight:true,each:async(p,p0,t)=>{const f=await ev(`__bot.fight(${tid})`);if(f)tid=f.id;
     if(!f){if(mouseDown)await mouseRelease();await steerKeys(0,0);return ++quiet>5?'nothing left to fight':null}quiet=0;name=name||f.name;
     if(f.blocked||f.d>f.reach){if(mouseDown)await mouseRelease();walked=true;if(t-navT>.5){navT=t;await ev(`__bot.navTo(${f.x},${f.y})`)}const s=await ev('__bot.steer()');
       if(s.done==='no way there'||s.done==='lost'){stuck='there is no way round to the '+f.name+' from here (it is behind a wall)';return stuck}
       if(!s.done){const l=Math.max(.01,Math.hypot(s.dx,s.dy));await steerKeys(s.dx/l,s.dy/l)}
       if(!mark){mark=p;markT=t}else if(t-markT>1.5){if(moved(p,mark)<.25){stuck='cannot get any closer to the '+f.name;return stuck}mark=p;markT=t}
-      if(moved(p,p0)>14){stuck='the '+f.name+' is leading you a long way off: stopped after 14 tiles';return stuck}return null}
+      if(moved(p,p0)>30){stuck='the way round to the '+f.name+' is long: stopped after 30 tiles, call attack again to keep going';return stuck}return null}
     await steerKeys(0,0);mark=null;const sc=await ev(`__bot.screen(${f.x},${f.y},.6)`);await mouseTo(clamp(sc.x,4,W-4),clamp(sc.y,4,H-4));if(!mouseDown)await mousePress();hit=true;return null}});
   if(mouseDown)await mouseRelease();await steerKeys(0,0);
   return{msg:(name?(hit?`fought the ${name} for ${r.secs.toFixed(1)} s`+(walked?' (closing in first)':''):`went after the ${name} for ${r.secs.toFixed(1)} s without getting a blow in`):`nothing hostile within fourteen tiles, so nothing was attacked`)+(r.why?': '+r.why:'')}};
