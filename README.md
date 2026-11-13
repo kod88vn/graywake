@@ -45,6 +45,8 @@ Needs Node 22 or newer. There is nothing to install.
 
 ## Honest limits
 
+The art is generated in code: there are no scanned textures, sculpted models or motion-captured animation. The look is stylised realism (natural proportions, smooth shading, surface grain, real lighting), not photorealism. Getting closer than this would mean bringing in authored 3D assets, which is a project decision, not a tweak.
+
 The game has been exercised by automated tests and looked at in screenshots. Nobody has played it for a hundred hours. The length of the progression is designed, not measured; see `docs/BALANCE.md` for the reasoning and the open questions. The audio is level-checked but has not been heard by its author.
 
 three.js (MIT licence) is vendored in `vendor/`.

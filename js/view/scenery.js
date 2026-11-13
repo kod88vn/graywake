@@ -1,6 +1,6 @@
 // Set dressing that is not gameplay: procedural textures (ground grain, cloud shadows, glow, water ripples),
 // ground clutter models per biome, and the wind-sway materials. Everything here is generated in code.
-import {THREE,Geo,shade} from './geo.js';
+import {THREE,Geo,shade,addDetail} from './geo.js';
 
 const lcg=seed=>{let s=seed>>>0||1;return()=>{s=(Math.imul(s,1664525)+1013904223)>>>0;return s/4294967296}};
 function canvasTex(size,draw,repeat=true){
@@ -65,6 +65,6 @@ export function windMaterial(quad,lin){
   float wb=(position.y*position.y*${quad.toFixed(4)}+position.y*${lin.toFixed(4)})*uGust;
   transformed.x+=(sin(wph)+sin(wph*2.3+1.7)*.35)*wb;transformed.z+=cos(wph*.8)*wb*.6;
 #endif`)};
-  m.customProgramCacheKey=()=>'wind'+quad+'_'+lin;return m;
+  m.customProgramCacheKey=()=>'wind'+quad+'_'+lin;return addDetail(m,{amp:.6,scale:1.7});
 }
 export const setWind=(t,gust)=>{windUniform.value=t;gustUniform.value=gust};

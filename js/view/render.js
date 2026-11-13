@@ -15,22 +15,22 @@ import {hash,clamp} from '../sim/util.js';
 const V3=THREE.Vector3,M4=THREE.Matrix4,Q=THREE.Quaternion,C=THREE.Color;
 const _m=new M4(),_q=new Q(),_p=new V3(),_s=new V3(),_c=new C(),_c2=new C(),_e=new THREE.Euler(),UP=new V3(0,1,0),ZERO=new M4().makeScale(0,0,0);
 const MARGIN=18,QUAL={low:{pr:1,shadow:0,dens:.3},med:{pr:1.5,shadow:1024,dens:.65},high:{pr:2,shadow:2048,dens:1}};
-let R,scene,cam,sun,hemi,plight,fxLight,canvas,quality='high',zoom=.94,Z=null,frame=0,time=0;
+let R,scene,cam,sun,hemi,plight,fxLight,canvas,quality='high',zoom=.88,Z=null,frame=0,time=0;
 let ground=null,water=null,borderMeshes=[],clutterMeshes=[],vehMesh=null,clouds=null;
 let matStd,matTree,matBush,matGrass,matGround,matWater,texCloud;
 const geoCache=new Map(),inst=new Map(),shown=[],shownF=[],dirty=new Set(),dyn=new Map(),wobble=[],clutterAt=new Map();
 const rigs=new Map(),lightPool=[],lightSrc=[];
-let projMesh,dropMesh,barBg,barFg,partMesh,wxMesh,decalMesh,glowMesh,hintRing,ghost=null,ghostTile,areaPool=[],arcPool=[],playerRing;
+let projMesh,dropMesh,barBg,barFg,partMesh,wxMesh,decalMesh,glowMesh,aoMesh,aoActors,hintRing,ghost=null,ghostTile,areaPool=[],arcPool=[],playerRing;
 const parts=[],wx=[],decals=[],glows=[];let decalN=0,decalDirty=true,shakeAmt=0,flashT=0,boltT=8,boltF=0,ambT=0;
 const camT=new V3(),camOff=new V3(0,13.5,9.4),basicBox=new THREE.BoxGeometry(1,1,1);
 let fps=60,fpsAcc=0,fpsN=0,lowT=0;
 
 export const View={init,setZone,frame:draw,onEvent,resize,pick,project,setGhost,setQuality,get quality(){return quality},setZoom(z){zoom=clamp(z,.6,1.5)},get zoom(){return zoom},get fps(){return fps},shot:()=>R.domElement.toDataURL()};
 
-function modelGeo(key){
-  let g=geoCache.get(key);if(g)return g;const[m,v]=key.split('|'),fn=PROPS[m];const b=new Geo();
+function modelGeo(key,lo){
+  const ck=lo?key+'~':key;let g=geoCache.get(ck);if(g)return g;const[m,v]=key.split('|'),fn=PROPS[m];const b=new Geo();Geo.DETAIL=lo?0:1;
   if(fn){try{fn(b,+v||0)}catch(e){console.error('model '+m,e);b.box(.8,.8,.8,'#ff00ff',0,.4,0)}}else{console.error('no model for '+key);b.box(.8,.8,.8,'#ff00ff',0,.4,0)}
-  g=b.build();geoCache.set(key,g);return g;
+  Geo.DETAIL=1;g=b.build();geoCache.set(ck,g);return g;
 }
 const SWAY_TREE=/^tree_/,SWAY_BUSH=/^(bush_|cactus|scarecrow|flag)/,SWAY_GRASS=/^(grass_tall|herb_patch|wild_crop|garden_[12]|bloom|flowers|mushrooms)/;
 const matFor=key=>SWAY_TREE.test(key)?matTree:SWAY_BUSH.test(key)?matBush:SWAY_GRASS.test(key)?matGrass:matStd;
@@ -50,10 +50,14 @@ function init(cv,q){
   const basic=o=>new THREE.MeshBasicMaterial(Object.assign({color:'#ffffff'},o));
   projMesh=new THREE.InstancedMesh(basicBox,basic({toneMapped:false}),256);dropMesh=new THREE.InstancedMesh(modelGeo('lootbag|0'),matStd,96);dropMesh.castShadow=true;
   const plane=new THREE.PlaneGeometry(1,1);barBg=new THREE.InstancedMesh(plane,basic({color:'#15130f',depthTest:false,transparent:true,opacity:.75,toneMapped:false}),96);barFg=new THREE.InstancedMesh(plane,basic({depthTest:false,transparent:true,toneMapped:false}),96);
-  partMesh=new THREE.InstancedMesh(basicBox,basic(),900);wxMesh=new THREE.InstancedMesh(basicBox,basic({transparent:true,opacity:.55}),500);
+  wxMesh=new THREE.InstancedMesh(basicBox,basic({transparent:true,opacity:.55}),500);
   decalMesh=new THREE.InstancedMesh(new THREE.CircleGeometry(1,12).rotateX(-Math.PI/2),basic({transparent:true,opacity:.72,depthWrite:false}),140);
-  glowMesh=new THREE.InstancedMesh(plane,basic({map:glowTex(),transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,fog:false,toneMapped:false}),90);
-  for(const m of[projMesh,dropMesh,barBg,barFg,partMesh,wxMesh,decalMesh,glowMesh]){m.count=0;m.frustumCulled=false;scene.add(m)}barBg.renderOrder=10;barFg.renderOrder=11;decalMesh.renderOrder=1;glowMesh.renderOrder=6;
+  const texGlow=glowTex(),flat=new THREE.PlaneGeometry(1,1).rotateX(-Math.PI/2),aoMat=()=>basic({map:texGlow,color:'#000000',transparent:true,opacity:.62,depthWrite:false});
+  glowMesh=new THREE.InstancedMesh(plane,basic({map:texGlow,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,fog:false,toneMapped:false}),90);
+  partMesh=new THREE.InstancedMesh(plane,basic({map:texGlow,transparent:true,depthWrite:false}),900);partMesh.renderOrder=5;
+  // soft contact shadows: a dark blob under everything that stands on the ground
+  aoMesh=new THREE.InstancedMesh(flat,aoMat(),3200);aoActors=new THREE.InstancedMesh(flat,aoMat(),110);aoMesh.renderOrder=1;aoActors.renderOrder=1;
+  for(const m of[projMesh,dropMesh,barBg,barFg,partMesh,wxMesh,decalMesh,glowMesh,aoMesh,aoActors]){m.count=0;m.frustumCulled=false;scene.add(m)}barBg.renderOrder=10;barFg.renderOrder=11;decalMesh.renderOrder=1;glowMesh.renderOrder=6;
   for(const m of[projMesh,barFg,partMesh,wxMesh,decalMesh,glowMesh]){m.setColorAt(0,_c.set('#fff'));m.instanceColor.setUsage(THREE.DynamicDrawUsage)}
   const ring=(r0,r1,col,op)=>{const m=new THREE.Mesh(new THREE.RingGeometry(r0,r1,28).rotateX(-Math.PI/2),basic({color:col,transparent:true,opacity:op,depthWrite:false,toneMapped:false}));m.visible=false;scene.add(m);return m};
   hintRing=ring(.46,.56,'#ffd870',.9);playerRing=ring(.3,.36,'#ffffff',.22);
@@ -82,7 +86,7 @@ function disposeZone(){
   for(const e of inst.values()){scene.remove(e.mesh);e.mesh.dispose()}inst.clear();shown.length=0;shownF.length=0;dirty.clear();
   for(const m of dyn.values())scene.remove(m);dyn.clear();
   for(const r of rigs.values()){scene.remove(r.root);disposeRig(r)}rigs.clear();
-  if(vehMesh){scene.remove(vehMesh);vehMesh=null}parts.length=0;wobble.length=0;decals.length=0;decalN=0;decalDirty=true;glows.length=0;
+  if(vehMesh){scene.remove(vehMesh);vehMesh=null}parts.length=0;wobble.length=0;decals.length=0;decalN=0;decalDirty=true;glows.length=0;if(aoMesh)aoMesh.count=0;
 }
 const HARD={asphalt:1,concrete:1,tile:1,boards:1,water:1};
 function buildGround(b){
@@ -140,7 +144,7 @@ function setZone(z){
   const lists={};
   for(let y=-MARGIN+2;y<H+MARGIN-2;y++)for(let x=-MARGIN+2;x<W+MARGIN-2;x++){if(x>=-1&&y>=-1&&x<=W&&y<=H)continue;const h=hash(x*3+11,y*7+5);if((h%100)>=(Z.home||Z.biome==='forest'||Z.biome==='frost'||Z.biome==='gray'?40:16))continue;
     const kind=b.border[(h>>>8)%b.border.length],key=kind+'|'+((h>>>12)%3);(lists[key]=lists[key]||[]).push([x,y,h])}
-  for(const key in lists){const L=lists[key],m=new THREE.InstancedMesh(modelGeo(key),matFor(key),L.length);m.castShadow=false;m.receiveShadow=true;m.frustumCulled=false;
+  for(const key in lists){const L=lists[key],m=new THREE.InstancedMesh(modelGeo(key,true),matFor(key),L.length);m.castShadow=false;m.receiveShadow=true;m.frustumCulled=false;
     L.forEach(([x,y,h],i)=>{const s=.9+((h>>>16)%100)/250;_q.setFromAxisAngle(UP,((h>>>4)%628)/100);_m.compose(_p.set(x+.5,0,y+.5),_q,_s.set(s,s,s));m.setMatrixAt(i,_m)});scene.add(m);borderMeshes.push(m)}
   for(let i=0;i<W*H;i++){if(Z.obj[i])syncObj(i);if(Z.fl[i])syncFloor(i)}flush();
   if(Z.home&&G.S.veh>0&&VEHICLES[G.S.veh].m)parkVehicle();
@@ -182,6 +186,9 @@ function flush(){
       _q.setFromAxisAngle(UP,rot);_m.compose(_p.set(x+.5,0,y+.5),_q,_s.set(s,s*sy,s));mesh.setMatrixAt(j,_m);mesh.setColorAt(j,_c.setRGB(Math.min(1,tint+red),tint,tint));j++}
     mesh.count=j;mesh.instanceMatrix.needsUpdate=true;if(mesh.instanceColor)mesh.instanceColor.needsUpdate=true;}
   dirty.clear();lightSrc.length=0;lightSrc.dirty=true;
+  // contact shadows follow the objects
+  let n=0;for(let i=0;i<Z.obj.length&&n<3190;i++){const o=Z.obj[i];if(!o)continue;const d=OBJ[o.k];if(!d||!d.solid)continue;const x=i%W,y=(i-x)/W,s=d.solid===1?(d.low?1.5:1.75):(d.r||.3)*3.2+.45;_m.makeScale(s,1,s);_m.setPosition(x+.5,.008,y+.5);aoMesh.setMatrixAt(n++,_m)}
+  aoMesh.count=quality==='low'?0:n;aoMesh.instanceMatrix.needsUpdate=true;
 }
 function collectLights(){
   lightSrc.length=0;lightSrc.dirty=false;const W=Z.w;
@@ -250,6 +257,7 @@ function syncActors(dt){
     }
   }
   for(const[id,r]of rigs)if(r.seen!==frame){scene.remove(r.root);disposeRig(r);rigs.delete(id)}
+  let ao=0;for(const a of Z.actors){if(ao>=108||(a.def&&a.def.rooted))continue;const s=(a.r||.3)*(a.dead?4.2:3.1)+.2;_m.makeScale(s,1,s);_m.setPosition(a.x,.01,a.y);aoActors.setMatrixAt(ao++,_m)}aoActors.count=ao;aoActors.instanceMatrix.needsUpdate=true;
   barBg.count=barFg.count=bars;barBg.instanceMatrix.needsUpdate=barFg.instanceMatrix.needsUpdate=true;if(barFg.instanceColor)barFg.instanceColor.needsUpdate=true;
   for(const m of arcPool)if(m.userData.t>0){m.userData.t-=dt||.016;m.material.opacity=Math.max(0,m.userData.t/.17)*.5;if(m.userData.t<=0)m.visible=false}
 }
@@ -279,7 +287,7 @@ function stepParts(dt){
   let n=0;
   for(let i=parts.length-1;i>=0;i--){const p=parts[i];p.life-=dt;if(p.life<=0){parts[i]=parts[parts.length-1];parts.pop();continue}
     p.vy-=p.grav*dt;if(p.w){p.vx+=Math.sin(time*2.3+p.w*40)*p.w*dt;p.vz+=Math.cos(time*1.9+p.w*70)*p.w*dt}p.x+=p.vx*dt;p.y+=p.vy*dt;p.z+=p.vz*dt;if(p.y<.03&&p.grav>0){p.y=.03;p.vy*=-.3;p.vx*=.6;p.vz*=.6}}
-  for(const p of parts){const f=p.life/p.max,s=p.size*Math.min(1,f*2.5)*(p.grow?1+p.grow*(1-f):1)*(p.pulse?.6+.4*Math.sin(time*6+p.w*90):1);_m.makeScale(s,s,s);_m.setPosition(p.x,p.y,p.z);partMesh.setMatrixAt(n,_m);partMesh.setColorAt(n,_c.setRGB(p.r,p.g,p.b));n++}
+  for(const p of parts){const f=p.life/p.max,s=p.size*Math.min(1,f*2.5)*(p.grow?1+p.grow*(1-f):1)*(p.pulse?.6+.4*Math.sin(time*6+p.w*90):1);_m.compose(_p.set(p.x,p.y,p.z),cam.quaternion,_s.set(s*2.6,s*2.6,1));partMesh.setMatrixAt(n,_m);partMesh.setColorAt(n,_c.setRGB(p.r,p.g,p.b));n++}
   partMesh.count=n;partMesh.instanceMatrix.needsUpdate=true;if(partMesh.instanceColor)partMesh.instanceColor.needsUpdate=true;
 }
 /** Smoke and embers from fires, and the drifting life of each biome: leaves, fireflies, dust, ash, spores. */
@@ -297,14 +305,14 @@ function stepAmbient(dt,dl){
     else if(b==='frost'){parts.push({x,y:.2+rnd()*2,z,vx:1.2+rnd(),vy:-.1,vz:.3,life:3,max:3,size:.04,r:.95,g:.98,b:1,grav:0,w})}
     else if(b==='gray'){parts.push({x,y:.1+rnd(),z,vx:(rnd()-.5)*.3,vy:.3+rnd()*.3,vz:(rnd()-.5)*.3,life:5,max:5,size:.06,r:.72,g:.62,b:.95,grav:0,w,pulse:1})}}
 }
-function stepWeather(dt,W){
+function stepWeather(dt,W,dl=1){
   const kind=Z.dark?null:W.rain?'rain':W.snow?'snow':W.spores?'spores':null,want=kind==='rain'?(W.rain>1?420:260):kind?200:0;
-  while(wx.length<want)wx.push({x:(Math.random()-.5)*34,y:Math.random()*14,z:(Math.random()-.5)*30,s:Math.random()});if(wx.length>want)wx.length=want;
+  while(wx.length<want)wx.push({x:(Math.random()-.5)*34,y:Math.random()*8,z:(Math.random()-.5)*30,s:Math.random()});if(wx.length>want)wx.length=want;
   const fall=kind==='rain'?22:kind==='snow'?2.4:.5;let n=0;
   for(const d of wx){d.y-=fall*dt*(.8+d.s*.4);if(kind!=='rain'){d.x+=Math.sin(time+d.s*9)*dt*.8;d.z+=Math.cos(time*.7+d.s*5)*dt*.5}
-    if(d.y<0){if(kind==='rain'&&parts.length<760&&d.s<.4)parts.push({x:camT.x+d.x,y:.04,z:camT.z+d.z,vx:(Math.random()-.5)*1.2,vy:1.1,vz:(Math.random()-.5)*1.2,life:.2,max:.2,size:.06,r:.72,g:.82,b:.92,grav:9});d.y=13+Math.random()*2;d.x=(Math.random()-.5)*34;d.z=(Math.random()-.5)*30}
-    if(kind==='rain')_s.set(.02,.5,.02);else if(kind==='snow')_s.set(.07,.07,.07);else _s.set(.06,.06,.06);
-    _m.makeScale(_s.x,_s.y,_s.z);_m.setPosition(camT.x+d.x,d.y,camT.z+d.z);wxMesh.setMatrixAt(n,_m);wxMesh.setColorAt(n,kind==='rain'?_c.set('#b8d0e8'):kind==='snow'?_c.set('#ffffff'):_c.set('#b0a0e0'));n++}
+    if(d.y<0){if(kind==='rain'&&parts.length<760&&d.s<.4)parts.push({x:camT.x+d.x,y:.04,z:camT.z+d.z,vx:(Math.random()-.5)*1.2,vy:1.1,vz:(Math.random()-.5)*1.2,life:.2,max:.2,size:.06,r:.72,g:.82,b:.92,grav:9});d.y=7+Math.random()*1.5;d.x=(Math.random()-.5)*34;d.z=(Math.random()-.5)*30}
+    if(kind==='rain')_s.set(.014,.42,.014);else if(kind==='snow')_s.set(.07,.07,.07);else _s.set(.06,.06,.06);
+    _m.makeScale(_s.x,_s.y,_s.z);_m.setPosition(camT.x+d.x,d.y,camT.z+d.z);wxMesh.setMatrixAt(n,_m);wxMesh.setColorAt(n,(kind==='rain'?_c.set('#b8d0e8'):kind==='snow'?_c.set('#ffffff'):_c.set('#b0a0e0')).multiplyScalar(.3+.7*dl));n++}
   wxMesh.count=n;if(n){wxMesh.instanceMatrix.needsUpdate=true;if(wxMesh.instanceColor)wxMesh.instanceColor.needsUpdate=true}
   // lightning in a storm
   if(W.rain>1&&!Z.dark&&dt>0){boltT-=dt;if(boltT<=0){boltT=5+Math.random()*10;boltF=.22;G.ev.push(['sfx','thunder'])}}
@@ -346,7 +354,7 @@ function draw(dt){
   const ze=zoomEff();cam.position.set(camT.x,camOff.y*ze,camT.z+camOff.z*ze);
   if(shakeAmt>0){cam.position.x+=(Math.random()-.5)*shakeAmt;cam.position.y+=(Math.random()-.5)*shakeAmt;shakeAmt=Math.max(0,shakeAmt-dt*1.6)}
   cam.lookAt(camT.x,.6,camT.z);cam.updateMatrixWorld();
-  syncActors(dt);syncProjs(dt);flush();stepAmbient(dt,dl);stepParts(dt);stepWeather(dt,W);stepLight(dt,W,dl);
+  syncActors(dt);syncProjs(dt);flush();stepAmbient(dt,dl);stepParts(dt);stepWeather(dt,W,dl);stepLight(dt,W,dl);
   const h=Z.hint;if(h&&!G.build&&!p.dead){hintRing.visible=true;hintRing.position.set(h.x,.05,h.y);hintRing.scale.setScalar(1+Math.sin(time*5)*.06)}else hintRing.visible=false;
   playerRing.visible=!p.dead;playerRing.position.set(p.x,.04,p.y);
   R.render(scene,cam);

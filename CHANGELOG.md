@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.3.0 — 2026-11-12
+
+A second graphics pass, away from the block look.
+
+- **Characters rebuilt.** People, husks and raiders are no longer made of boxes: rounded anatomy with real proportions, two-part arms and legs with elbows and knees, hands, necks, faces, three hair styles, and armour, packs, hoods, helmets and masks shaped to fit. Walk, attack, aim, crouch, crawl and fall all use the new joints. Animals have rounded bodies, necks, snouts and two-part legs.
+- **Smooth shading.** Round things (trunks, crowns, rocks, barrels, pipes, limbs) are shaded smooth instead of faceted; boxes keep their edges. Tree crowns and boulders near you use finer geometry than the distant tree line.
+- **Surface grain.** Every material carries fine grain and broad mottling, fixed to the world for objects and to the body for characters, so wood, stone, cloth and metal no longer look like flat paint.
+- **Contact shadows.** A soft dark blob under every object and creature sits them on the ground.
+- **Soft particles.** Smoke, dust, blood, sparks and embers are round soft sprites instead of cubes. Rain is finer and dims with the light.
+- The camera sits a little closer.
+
+Still generated entirely in code. This is a stylised look with natural shapes, not photorealism: see "Honest limits" in the README.
+
 ## 0.2.0 — 2026-11-12
 
 Fixes from the first play session, and a graphics pass.

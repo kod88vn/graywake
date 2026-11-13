@@ -14,7 +14,8 @@ const rot=(x,z,a)=>[x*Math.cos(a)-z*Math.sin(a),x*Math.sin(a)+z*Math.cos(a)];
 const ring=(n,r,f,a0=0)=>{for(let i=0;i<n;i++){const a=a0+i/n*T;f(Math.cos(a)*r,Math.sin(a)*r,a,i)}};
 /** Run fn, then scale / rotate (Y, then X, then Z) / move everything it drew: lets a sub-model be authored in its own frame. */
 const at=(g,x,y,z,ry,fn,s=1,rx=0,rz=0)=>{const i0=g.pos.length;fn();const p=g.pos,c=Math.cos(ry),n=Math.sin(ry),cx=Math.cos(rx),nx=Math.sin(rx),cz=Math.cos(rz),nz=Math.sin(rz);
-  for(let i=i0;i<p.length;i+=3){let X=p[i]*s,Y=p[i+1]*s,Z=p[i+2]*s,t=X*c+Z*n;Z=-X*n+Z*c;X=t;t=Y*cx-Z*nx;Z=Y*nx+Z*cx;Y=t;t=X*cz-Y*nz;Y=X*nz+Y*cz;X=t;p[i]=X+x;p[i+1]=Y+y;p[i+2]=Z+z}};
+  for(let i=i0;i<p.length;i+=3){let X=p[i]*s,Y=p[i+1]*s,Z=p[i+2]*s,t=X*c+Z*n;Z=-X*n+Z*c;X=t;t=Y*cx-Z*nx;Z=Y*nx+Z*cx;Y=t;t=X*cz-Y*nz;Y=X*nz+Y*cz;X=t;p[i]=X+x;p[i+1]=Y+y;p[i+2]=Z+z}
+  const q=g.nor;if(q)for(let i=i0;i<q.length;i+=3){let X=q[i],Y=q[i+1],Z=q[i+2],t=X*c+Z*n;Z=-X*n+Z*c;X=t;t=Y*cx-Z*nx;Z=Y*nx+Z*cx;Y=t;t=X*cz-Y*nz;Y=X*nz+Y*cz;X=t;q[i]=X;q[i+1]=Y;q[i+2]=Z}};
 /** Cylinder starting at (x,y,z), length L, leaning `tilt` from vertical toward heading `hd` (0=+X, PI/2=+Z). Returns its tip. */
 const limb=(g,rt,rb,L,c,x,y,z,tilt=0,hd=0,seg=5)=>{const sx=Math.sin(tilt)*Math.cos(hd),sz=Math.sin(tilt)*Math.sin(hd),cy=Math.cos(tilt);g.cyl(rt,rb,L,c,x+sx*L/2,y+cy*L/2,z+sz*L/2,seg,0,-hd,-tilt);return[x+sx*L,y+cy*L,z+sz*L]};
 const spike=(g,r,L,c,x,y,z,tilt=0,hd=0,seg=4)=>{const sx=Math.sin(tilt)*Math.cos(hd),sz=Math.sin(tilt)*Math.sin(hd),cy=Math.cos(tilt);g.cone(r,L,c,x+sx*L/2,y+cy*L/2,z+sz*L/2,seg,0,-hd,-tilt);return[x+sx*L,y+cy*L,z+sz*L]};
