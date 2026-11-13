@@ -334,7 +334,10 @@ const server=http.createServer(async(req,res)=>{
   }catch(e){json(res,{error:String(e.message||e)},500)}
 });
 let closing=false;
-async function shutdown(){if(closing)return;closing=true;try{fs.writeFileSync(path.join(SD,'meta.json'),JSON.stringify({...META,ended:new Date().toISOString(),actions:S.n,bugs:S.bugs.length,ideas:S.ideas.length,deaths:S.deaths},null,1))}catch(e){}
+async function shutdown(){if(closing)return;closing=true;
+  // leave the save at the moment the bot left the game: a death is woken from first, then the game is saved. A restart once loaded an older moment,
+  // and in a shared world the bot lived (and was charged for) the same hours twice
+  try{await Promise.race([ev(`(()=>{try{if(GW.UI.panel==='death')GW.UI.close();return GW.api.save()}catch(e){return String(e)}})()`),sleep(2500)])}catch(e){}try{fs.writeFileSync(path.join(SD,'meta.json'),JSON.stringify({...META,ended:new Date().toISOString(),actions:S.n,bugs:S.bugs.length,ideas:S.ideas.length,deaths:S.deaths},null,1))}catch(e){}
   try{if(!S.chromeDead)await ev(`GW.G.S&&GW.G.mode!=='menu'&&GW.api.save()`)}catch(e){}
   try{if(chromeProc)chromeProc.kill('SIGTERM');else if(!S.chromeDead)await send('Browser.close')}catch(e){}
   try{if(POINTER)fs.unlinkSync(path.join(BOT,'current.json'))}catch(e){}
