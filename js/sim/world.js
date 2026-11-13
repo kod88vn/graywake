@@ -100,7 +100,11 @@ export function arrive(dest){
   const site=S.sites.find(s=>s.id===dest);let Z;
   if(site){Z=genZone(siteDef(site,site.reg,site.lvl),hash(S.seed,site.id*7919));Z.site=site.id;Z.id='site';Z.name=SITES[site.site].n;Z.siteKind=site.site;if(site.bag&&site.bag.some(Boolean)){const x=Math.floor(Z.w/2)-2,y=Z.h-4;Z.obj[y*Z.w+x]={k:'deathbag',r:0,v:0,inv:site.bag,open:1}}if(SITES[site.site].lead&&leadInfo(S,site).skulls>=4)Z.lt=Math.min(5,Z.lt+1)}
   else{const l=LOC[dest],m=S.loc[dest]=S.loc[dest]||{n:0};Z=genZone(l,hash(S.seed+m.n*101,LOCATIONS.indexOf(l)),{lvl:locLevel(S,l)});if(!m.n)stat('locs');m.n++}
-  enterZone(Z,Z.spawn.x,Z.spawn.y);emit('save');
+  enterZone(Z,Z.spawn.x,Z.spawn.y);
+  // the player travels alone, except to attack a base (a war camp, a raider camp): then the people of the homestead who are fit come too
+  if(site&&SITES[site.site].base){const go=S.surv.filter(Community.available);for(const sv of go){const[x,y]=freeNear(Z,Z.pl.x+(rnd()-.5)*3,Z.pl.y+1.5,3),a=spawnActor(Z,'guard',x,y,Math.max(1,S.p.lvl-2),{from:'group'});a.escort=true;a.sv=sv.id;sv.away=1}
+    if(go.length)toast(go.map(s=>s.n).join(', ')+(go.length>1?' come':' comes')+' with you. They are carried home if they fall, and laid up for three days','info')}
+  emit('save');
 }
 function startAmbush(table,home){
   const S=G.S;
@@ -313,12 +317,14 @@ export function leadNote(S){const L=S.lead;if(!L.note)return null;const site=S.s
 export function leadRead(S){S.lead.note=null}
 
 // ---------------------------------------------------------------- survivors
-/** How many people can live at the homestead: one for every bed beyond your own, and one more sleeping by the fire (unhappily) until a bed is built. */
-export const survRoom=S=>survCap(S)+1;
-export function survCap(S){let beds=0;for(const o of S.home.obj)if(o&&OBJ[o.k].bed)beds+=OBJ[o.k].bed>=3?2:1;return Math.min(14,Math.max(0,beds-1)+(homeHas(S,'beacon')?2:0)+perk('surv'))}
+/** A homestead supports at most this many people besides you. The user's rule: "each base can support maximum 3 people". */
+export const BASE_PEOPLE=3;
+/** How many people can live at the homestead: one for every bed beyond your own, and one more sleeping by the fire (unhappily) until a bed is built; never more than BASE_PEOPLE. */
+export const survRoom=S=>Math.min(BASE_PEOPLE,survCap(S)+1);
+export function survCap(S){let beds=0;for(const o of S.home.obj)if(o&&OBJ[o.k].bed)beds+=OBJ[o.k].bed>=3?2:1;return Math.min(BASE_PEOPLE,Math.max(0,beds-1)+(homeHas(S,'beacon')?2:0)+perk('surv'))}
 /** Add someone to the homestead. `who` ({n, trait}) is a person who was waiting to be recruited; without it a stranger is made up. */
 export function addSurvivor(S,who){
-  if(S.surv.length>=survRoom(S)){toast('No room for another survivor: build a bed (Build, Base) for each new person','bad');return null}
+  if(S.surv.length>=survRoom(S)){toast(S.surv.length>=BASE_PEOPLE?'A homestead can support '+BASE_PEOPLE+' people besides you, and yours has that many':'No room for another survivor: build a bed (Build, Base) for each new person','bad');return null}
   const used=new Set(S.surv.map(s=>s.n)),names=SURV_NAMES.filter(n=>!used.has(n)),traits=Object.keys(SURV_TRAITS);
   const sv={id:++S.survN,n:who?who.n:names[Math.floor(rnd()*names.length)]||'Stranger',trait:who?who.trait:traits[Math.floor(rnd()*traits.length)],job:'idle',days:0,xp:0,hurt:0};
   S.surv.push(sv);statMax('survMax',S.surv.length);sfx('quest');
@@ -347,10 +353,10 @@ function dawn(S){
     const mult=.5+S.morale/100*.75,cooks=S.surv.filter(s=>s.job==='cook').length;let hungry=0,fed=0;
     for(const sv of S.surv){sv.days++;const meals=(sv.trait==='glutton'?2:1);for(let m=0;m<meals;m++){if(cooks&&rnd()<.25*cooks){fed++;continue}if(feedOne(S,'food'))fed++;else hungry++}if(!feedOne(S,'water'))hungry++}
     for(let c=0;c<cooks*JOBS.cook.cook;c++){for(const[raw,done]of[['raw_meat','cooked_meat'],['raw_fish','cooked_fish'],['potato','baked_potato'],['dirty_water','water']]){let ok=false;for(const b of homeStores(S)){if(removeFrom(b.inv,raw,1)===0){ok=true;break}}if(ok){pile(S,done,1);break}}}
-    for(const sv of S.surv){const J=JOBS[sv.job],tm=t=>sv.trait===t?1.5:1;
+    for(const sv of S.surv){const J=JOBS[sv.job]||JOBS.idle,tm=t=>sv.trait===t?1.5:1;
       if(sv.hurt>0||sv.away||Community.routeOf(S,sv.id)){if(sv.trait==='cheer')S.morale+=2;continue}
       if(sv.job!=='idle')sv.xp=(sv.xp||0)+1;
-      if(J.out){const k=(sv.job==='forage'?tm('strong'):sv.job==='medic'?tm('nurse')*1.3:1)*Community.svMult(sv);for(const[id,a,b]of J.out){const n=Math.round((a+rnd()*(b-a))*mult*k*(sv.job==='forage'||sv.job==='hunt'||sv.job==='scav'?.6+rnd()*.8:1));if(n>0&&rnd()<.85)pile(S,id,n)}
+      if(J.out){const k=(sv.job==='medic'?tm('nurse')*1.3:1)*Community.svMult(sv);for(const[id,a,b]of J.out){const n=Math.round((a+rnd()*(b-a))*mult*k*(sv.job==='forage'||sv.job==='hunt'||sv.job==='scav'?.6+rnd()*.8:1));if(n>0&&rnd()<.85)pile(S,id,n)}
         if(J.rare&&rnd()<(sv.trait==='lucky'?.8:.45)){const[id,a,b]=J.rare[Math.floor(rnd()*J.rare.length)];pile(S,id,Math.round(a+rnd()*(b-a)))}}
       if(J.repair){let f=J.repair*(sv.trait==='tinker'?2:1)*mult;for(const o of[...S.home.obj,...(S.home.ed||[])])if(o&&o.hp>0&&OBJ[o.k].cost){const mh=maxHp(o.k);if(o.hp<mh)o.hp=Math.min(mh,o.hp+mh*f)}}
       if(sv.trait==='cheer')S.morale+=2;if(J.morale)S.morale+=J.morale}

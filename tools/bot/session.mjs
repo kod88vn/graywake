@@ -159,8 +159,13 @@ C.attack=async a=>{const secs=clamp(num(a[0],3),.3,12),hunt=a.includes('hunt');l
   return{msg:(name?(hit?`fought the ${name} for ${r.secs.toFixed(1)} s`+(walked?' (closing in first)':''):`went after the ${name} for ${r.secs.toFixed(1)} s without getting a blow in`):`nothing is coming at you, so nothing was attacked`)+(r.why?': '+r.why:'')+(await ev('__bot.unaware()').then(n=>n&&!hunt?` — ${n} nearby ${n>1?'have':'has'} not noticed you; attack with hunt set goes after them, one at a time is wiser`:''))}};
 // Run for it: Auto off, straight for the way out that is nearest and farthest from them, without stopping for blows, and out through it.
 C.flee=async()=>{
-  const t=await ev('__bot.fleeTo()');if(!t)return{msg:(await pulse()).home?'this is your homestead: there is nowhere further to run. Get inside your walls (a door lets you through and closes behind you by itself; the enemy has to break it or the walls), heal (`key 1`), and switch Auto mode on (`key f`): it holds the middle of the homestead during a tide.':'there is no way out of here on foot'};
+  const t=await ev('__bot.fleeTo()');if(!t)return{msg:(await pulse()).home?'nothing hostile is close: you are safe where you are. Heal (`key 1`), eat and drink, and catch your breath':'there is no way out of here on foot'};
   let p=await pulse();if(p.auto){await press('f');S.autoOffT=Date.now()}
+  // at home: run from them, keep running for a few seconds (heal on the way), then say where things stand
+  if(t.home){const run=async()=>{const s=await ev('__bot.fleeTo()');if(!s)return null;await ev(`__bot.navTo(${s.x},${s.y})`);return s};let s=t;await ev(`__bot.navTo(${s.x},${s.y})`);let lastT=0,healed=false;
+    const r=await during(7,{fight:true,flee:true,each:async(p,p0,tt)=>{if(!healed&&p.hp<(p.max||100)*.5&&p.meds){healed=true;await press('1')}if(tt-lastT>1.2){lastT=tt;s=await run();if(!s)return'clear of them'}const st=await ev('__bot.steer()');if(st.done)return null;await steerKeys(st.dx/Math.max(.01,Math.hypot(st.dx,st.dy)),st.dy/Math.max(.01,Math.hypot(st.dx,st.dy)));return null}});
+    await steerKeys(0,0);p=r.p;if(p.dead)return{msg:'ran from them and did not make it: you died'};
+    return{msg:`ran from them for ${r.secs.toFixed(1)} s, health ${Math.round(p.hp)}${r.why==='clear of them'?': nothing is close now. Catch your breath, heal, then go back to the fight with Auto (`key f`)':'. They are still after you: call flee again to keep running, heal (`key 1`), or turn and fight with `attack` if they are few'}`}}
   await ev(`__bot.navTo(${t.x},${t.y})`);let end=null;
   const r=await during(30,{fight:true,flee:true,each:async p=>{if(p.exit){end='out';return'at the edge'}const s=await ev('__bot.steer()');if(s.done&&s.done!=='arrived'){end=s.done;return s.done}if(s.done){end='out';return'at the edge'}await steerKeys(s.dx/Math.max(.01,Math.hypot(s.dx,s.dy)),s.dy/Math.max(.01,Math.hypot(s.dx,s.dy)));return null}});
   await steerKeys(0,0);p=r.p;if(p.dead)return{msg:'ran for the edge and did not make it: you died'};
@@ -210,6 +215,8 @@ C.bug=async a=>{const sev=['minor','major','blocker'].includes(String(a[0]).toLo
 C.idea=async a=>{const t=a.join(' ').trim();if(t.length<8)return{msg:'idea needs some text'};const o={id:S.ideas.length+1,at:new Date().toISOString(),n:S.n,text:t,where:S.last&&S.last.zone?S.last.zone.name:null};S.ideas.push(o);jl('ideas.jsonl',o);return{msg:'idea '+o.id+' recorded',free:true}};
 const MOVES=new Set(['walk','goto','use','attack','dodge','flee','tile','dragtile']);
 const TIMELESS=new Set(['look','shot','note','notebook','bug','idea']);
+// writing while something is hitting you: in live pace the world does not wait, and bots died typing notes and bug reports in the middle of a tide
+const WRITING=new Set(['note','notebook','bug','idea']);
 
 // ---------------------------------------------------------------- bug reports: every one carries the evidence needed to reproduce it
 async function fileBug(source,severity,title,details){
@@ -267,6 +274,7 @@ async function exec(name,args,who){
     if(S.shift.total&&S.shift.left<=0)return{text:'SHIFT OVER. Save what you learned with `notebook` (it replaces the old one), then stop calling tools and say DONE.'};
     if(S.paused&&name!=='wait')return{text:'The person watching has paused the session. Call `wait 20` and try again; meanwhile nothing in the game moves.'};
   }
+  if(WRITING.has(name)&&who==='bot'&&PACE==='live'&&!(name==='notebook'&&!args.length)&&!S.stopping&&!(S.shift.total&&S.shift.left<=3)){const p=await pulse().catch(()=>null);if(p&&p.mode==='play'&&!p.dead&&p.alertN>0&&p.foe<7)return{text:`NOT NOW: something hostile is ${p.foe} tiles away and the world does not wait while you write. Deal with it first (\`attack\`, \`flee\`, \`key 1\` to heal, or \`key f\` for Auto), then write. Health ${Math.round(p.hp)}.`}}
   const t0=Date.now();S.busy={cmd:name+' '+args.join(' '),since:t0,who};let r;
   try{if(game)await hold(false);
     const blocked=MOVES.has(name)&&await ev(`(()=>{const s=document.getElementById('shade');return s&&!s.hidden?document.querySelector('#panel .ttl').textContent:(GW.G.mode==='map'?'the map':'')})()`);
@@ -293,7 +301,7 @@ async function guardian(){
   if(PACE!=='live'||S.busy||S.paused||S.chromeDead||Date.now()-S.guardT<8000)return;
   try{const p=await pulse();if(p.mode!=='play'||p.dead||p.sheet||p.auto)return;const hurt=S._ghp!==undefined&&p.hp<S._ghp-1.5;S._ghp=p.hp;
     // badly hurt, away from home, and nothing left to heal with: staying is dying, so the session runs for the way out and says so
-    if(!p.home&&p.alertN>0&&p.foe<9&&p.hp<(p.max||100)*.3&&!p.meds&&Date.now()-(S.fleeT||0)>20000){if(S.busy)return;S.fleeT=S.guardT=Date.now();const r=await exec('flee',[],'session');S.guardMsg='WHILE YOU WERE DECIDING your health fell under a third with no medicine left, so the session ran for it: '+((r&&r.text||'').split('\n')[0]||'').slice(0,200);return}
+    if(p.alertN>0&&p.foe<9&&p.hp<(p.max||100)*.3&&!p.meds&&Date.now()-(S.fleeT||0)>12000){if(S.busy)return;S.fleeT=S.guardT=Date.now();const r=await exec('flee',[],'session');S.guardMsg='WHILE YOU WERE DECIDING your health fell under a third with no medicine left, so the session ran for it: '+((r&&r.text||'').split('\n')[0]||'').slice(0,200);return}
     if((p.alertN>0&&p.foe<6.5)||hurt){if(S.busy)return;if(Date.now()-(S.autoOffT||0)<45000&&p.hp>=(p.max||100)*.4)return;S.guardT=Date.now();await press('f');S.guardMsg='WHILE YOU WERE DECIDING, something hostile closed in. The world does not wait, so the session pressed F: Auto mode is ON and the character is defending itself. Press F (`key f`) to take over, or leave it on and `wait`.';
       const evt={n:S.n,at:new Date().toISOString(),who:'session',cmd:'guard',args:[],ms:0,result:'threat while idle: switched Auto on',zone:null};S.events.push(evt);jl('events.jsonl',evt)}}catch(e){}}
 

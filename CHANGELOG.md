@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.10.4 — 2026-11-13
+
+"Each base can support maximum 3 people. Other survivors can help automate things like repair, defense, farming inside base. Player must still travel alone. On a base on base attack, player can bring their group only." And: "bots do not know how to run from danger still. Kind of just standing in 1 place to die."
+
+- **Three people per homestead**, besides you (`BASE_PEOPLE` in `world.js`). Beds still decide how many of the three you can house; one can sleep by the fire.
+- **Survivors work inside the base**: mechanic (repairs walls and traps every morning), guard (defends from a guard post in tides), farmer, cook, medic. Forager, hunter and scavenger, who went out into the valley, are gone; a survivor who had one of those jobs now rests until given another.
+- **You travel alone, except to attack a base.** At a Forward Camp, a Choir Pasture or a Raider Camp, the fit people of your homestead come with you as archers, keep up with you, and are carried home if they fall (laid up three days).
+- **Auto mode falls back when badly hurt.** Under three tenths of health with no medicine it runs to the reachable spot farthest from everything hostile, and comes back when health is up or medicine is found; it used to stand and fight to the death. Tide 5 with a machete and no medicine: survived 0 of 8 before, 4 of 8 now (the rest still die; the survivors take much longer, kiting).
+- **The bot can run at home**: `flee` used to answer "nowhere further to run" during a tide; it now runs from them for a few seconds and heals on the way. The session runs for it when it is badly hurt with nothing to heal with, at home too, and refuses notes and bug reports while something hostile is close (bots died typing in the middle of tides).
+
 ## 0.10.3 — 2026-11-13
 
 "What I find missing is neither bot has collected any survivor along the way to help them."

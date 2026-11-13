@@ -5,7 +5,7 @@ import {G,weaponDef,betterGear,gearScore,canCraft,recipeVisible} from '../js/sim
 import {RECIPE_LIST} from '../js/data/recipes.js';
 import {OBJ} from '../js/data/objects.js';
 import {ITEMS} from '../js/data/items.js';
-import {interactInfo} from '../js/sim/actors.js';
+import {interactInfo,retreatSpot} from '../js/sim/actors.js';
 import {field,pathAim,walkClear,los,edgeCross,atExit} from '../js/sim/zone.js';
 import {MapScreen} from '../js/ui/map.js';
 
@@ -137,7 +137,9 @@ B.whyBlocked=(dx,dy)=>{const Z=G.Z;if(!Z||!Z.pl)return'';const p=Z.pl,l=Math.hyp
   const o=Z.obj[ty*Z.w+tx];if(o&&OBJ[o.k]&&OBJ[o.k].solid)return'the '+OBJ[o.k].n+' at ('+tx+', '+ty+')';
   return''};
 /** Where to run to: the way out of this place that is nearest by foot and farthest from whatever is hostile. Null at home (there is nowhere further to run). */
-B.fleeTo=()=>{const Z=G.Z;if(!Z||Z.home||!Z.pl)return null;const p=Z.pl,f=field(Z,Math.floor(p.x),Math.floor(p.y),true,400),foes=Z.actors.filter(a=>a.team===1&&!a.dead&&a.def.ai!=='flee');let best=null,bs=1e9;
+B.fleeTo=()=>{const Z=G.Z;if(!Z||!Z.pl)return null;
+  // at home there is no edge to run off (and no leaving during a tide): run to the spot farthest from them instead
+  if(Z.home){const s=retreatSpot(Z,Z.pl);return s?{x:Math.floor(s.x),y:Math.floor(s.y),home:true,near:s.near}:null}const p=Z.pl,f=field(Z,Math.floor(p.x),Math.floor(p.y),true,400),foes=Z.actors.filter(a=>a.team===1&&!a.dead&&a.def.ai!=='flee');let best=null,bs=1e9;
   for(let y=0;y<Z.h;y++)for(let x=0;x<Z.w;x++){if(!atExit(Z,x,y))continue;const d=f[y*Z.w+x];if(!(d<400))continue;let near=12;for(const a of foes)near=Math.min(near,Math.hypot(a.x-x-.5,a.y-y-.5));const s=d-near*1.2;if(s<bs){bs=s;best={x,y,d:r1(d)}}}
   return best};
 B.navTo=(tx,ty)=>{const Z=G.Z;if(!Z||tx<0||ty<0||tx>=Z.w||ty>=Z.h)return false;B.nav={tx,ty,f:field(Z,Math.floor(tx),Math.floor(ty),true,400),t:Z.time,zone:Z.id};return true};

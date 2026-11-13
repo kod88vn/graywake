@@ -133,16 +133,15 @@ export const SURV_TRAITS={
   lucky:{n:'Lucky',d:'Sometimes comes back with something rare.'},nurse:{n:'Field nurse',d:'Heals twice as well.'},quiet:{n:'Quiet',d:'No trouble. No complaints.'},
 };
 // Jobs: what one survivor does per day (before trait and morale multipliers). `needs` = structure tag that must exist at home.
+// Jobs are all inside the homestead: the user's rule is that survivors "help automate things like repair, defense, farming inside base" and that the player
+// travels alone. (Forager, hunter and scavenger, who went out into the valley, were removed in 0.10.4; saves holding them read as resting.)
 export const JOBS={
   idle:{n:'Resting',d:'Recovers morale.',morale:1},
-  forage:{n:'Forager',d:'Brings in wood, stone, fibre and whatever they find.',out:[['log',6,10],['stone',4,8],['fiber',4,8],['stick',3,6],['berries',2,5]],rare:[['scrap',2,4],['herb',1,3],['rags',1,3],['hide',1,2],['flint',1,2]]},
   farm:{n:'Farmer',d:'Tends the beds: crops grow 30% faster and are harvested and replanted for you.',needs:'garden'},
   guard:{n:'Guard',d:'Mans a guard post during tides and shoots anything that crosses the line.',needs:'guard_post'},
   cook:{n:'Cook',d:'Turns raw food from the stores into meals and stretches rations.',needs:'campfire',cook:4},
   mech:{n:'Mechanic',d:'Repairs walls and traps every morning.',repair:.12},
   medic:{n:'Medic',d:'Makes bandages and patches you up when you sleep.',needs:'medic',out:[['bandage',1,2]]},
-  hunt:{n:'Hunter',d:'Brings in meat and hides.',out:[['raw_meat',2,4],['hide',1,2],['bone',1,2]],rare:[['feather',2,5],['fat',1,2]]},
-  scav:{n:'Scavenger',d:'Picks through the valley for parts.',out:[['scrap',3,6],['rags',2,4],['nails',4,10]],rare:[['bolts',2,5],['tape',1,1],['pipe',1,1],['wire',1,3],['canned_beans',1,2],['old_coin',1,2]]},
 };
 
 // ---------- Trade ----------

@@ -58,6 +58,7 @@ export function hurt(Z,e,dmg,o={}){
 }
 export function kill(Z,e){
   if(e.dead)return;e.dead=true;e.deadT=0;e.hp=0;const S=G.S,def=e.def;
+  if(e.sv&&S){const sv=S.surv.find(s=>s.id===e.sv);if(sv){sv.hurt=3;toast(sv.n+' is down. They will be carried home and laid up for three days','bad')}}
   if(e.team===1){
     addXp(S,e.xp);stat('kills');stat('k_'+e.kind);S.codex.en[e.kind]=(S.codex.en[e.kind]||0)+1;noteKill(e.kind);
     if(def.boss&&Z.def&&Z.def.lead){toast('The keys were on it: the strongroom is open','good');sfx('quest');stat('guardians')}
@@ -393,6 +394,15 @@ function stowTarget(Z,p){
     if(!free&&!mats.some(m=>inv.some(s=>s&&s.id===m.id&&s.n<(ITEMS[m.id].st||1))))continue;const d=dist(i%Z.w+.5,Math.floor(i/Z.w)+.5,p.x,p.y);if(d<bd){bd=d;best={i}}}
   return best;
 }
+/** Where to fall back to: the reachable spot within a short run that is farthest from everything hostile (weighed against the length of the run).
+ *  Used by auto mode when it is badly hurt, and by the bot's flee at home, where there is no edge to run off. Null if there is nothing to run from. */
+export function retreatSpot(Z,p){
+  const foes=Z.actors.filter(a=>a.team===1&&!a.dead&&a.def.ai!=='flee'&&(a.alert||dist(a.x,a.y,p.x,p.y)<6)&&dist(a.x,a.y,p.x,p.y)<14);if(!foes.length)return null;
+  const f=field(Z,Math.floor(p.x),Math.floor(p.y),true,30);let best=null,bs=-1e9;
+  for(let k=0;k<32;k++){const ang=k/32*TAU;for(const r of[3,5,7,9]){const x=Math.floor(p.x+Math.cos(ang)*r),y=Math.floor(p.y+Math.sin(ang)*r);if(x<1||y<1||x>=Z.w-1||y>=Z.h-1)continue;const c=f[y*Z.w+x];if(!(c<30))continue;
+    let near=99;for(const a of foes){const d=dist(a.x,a.y,x+.5,y+.5)*(a.def.proj?.7:1);if(d<near)near=d}const s=near*1.6-c*.35;if(s>bs){bs=s;best={x:x+.5,y:y+.5,near:+near.toFixed(1)}}}}
+  return best;
+}
 /** How far from its post auto mode goes to meet something during a tide: a doorway's width or two, not the far side of the clearing. */
 const POST_REACH=5.5;
 /** Auto mode defends itself: draw the best weapon, close in (or hold and shoot), patch itself up from the pack, and go back to gathering when the place is clear. */
@@ -400,6 +410,13 @@ function autoFight(Z,p,e,dt){
   const S=G.S,ds=G.ds;
   if(!p.fight){p.fight={slot:S.p.active,t:Z.time,heal:0,warn:false,f:null,ft:-9};p.auto=null;p.act=null;toast('Auto: defending against '+e.def.n,'bad')}
   const F=p.fight;F.t=Z.time;
+  // badly hurt with nothing left to heal with: fall back from them instead of standing to be killed, and come back when health has come up again
+  // (the bots stood still and died at home: auto mode held its ground at any health)
+  {const med=S.p.inv.some(it=>it&&(ITEMS[it.id].t==='med'?ITEMS[it.id].hp>0:ITEMS[it.id].t==='food'&&ITEMS[it.id].hp>=8));
+    if(!F.back&&S.p.hp<ds.maxHp*.3&&!med){F.back=true;toast('Auto: badly hurt and no medicine, falling back','bad')}
+    else if(F.back&&(S.p.hp>ds.maxHp*.5||med)){F.back=false;F.rs=null}
+    if(F.back){if(!F.rs||Z.time-F.rt>.6||dist(p.x,p.y,F.rs.x,F.rs.y)<.7){F.rt=Z.time;F.rs=retreatSpot(Z,p);F.rf=F.rs?field(Z,Math.floor(F.rs.x),Math.floor(F.rs.y),true,60):null}
+      if(F.rs){p.tgt=null;const d=pathDir(Z,p,F.rf);if(d)return d;const l=Math.hypot(F.rs.x-p.x,F.rs.y-p.y)||1;return[(F.rs.x-p.x)/l,(F.rs.y-p.y)/l]}}}
   if(S.p.hp<ds.maxHp*.45&&Z.time>=F.heal){F.heal=Z.time+2.5;const med=S.p.inv.some(it=>it&&(ITEMS[it.id].t==='med'?ITEMS[it.id].hp>0:ITEMS[it.id].t==='food'&&ITEMS[it.id].hp>=8));
     if(med)quickUse(S,'hp');else if(S.p.hp<ds.maxHp*.25&&!F.warn){F.warn=true;toast('Badly hurt and no medicine: auto is still fighting','bad');sfx('error')}}
   if(!p.atk){const slot=autoWeapon(S);if(slot!==S.p.active){S.p.active=slot;emit('eq')}}
@@ -629,7 +646,7 @@ function stepAlly(Z,e,dt,p){
   if(def.ai==='wander'||def.ai==='follow'){if(def.ai==='follow'&&!e.stay&&p&&dist(e.x,e.y,p.x,p.y)>3)steer(Z,e,p.x,p.y,def.spd,dt);else wander(Z,e,dt,def.spd*.3);return}
   const range=def.ai==='guard'?def.reach*(e.far?1.3:1):7;let t=null,td=range;
   for(const a of Z.actors){if(a.team!==1||a.dead||a.def.ai==='flee'||(!a.alert&&def.ai==='pet'))continue;const d=dist(a.x,a.y,e.x,e.y);if(d<td&&(def.ai==='pet'||los(Z,e.x,e.y,a.x,a.y))){td=d;t=a}}
-  if(def.ai==='guard'){if(t){e.a=Math.atan2(t.y-e.y,t.x-e.x);if(e.cd<=0){e.cd=def.cd;e.atkT=.2;fireAt(Z,e,t)}}return}
+  if(def.ai==='guard'){if(t){e.a=Math.atan2(t.y-e.y,t.x-e.x);if(e.cd<=0){e.cd=def.cd;e.atkT=.2;fireAt(Z,e,t)}}else if(e.escort&&p&&!p.dead&&dist(e.x,e.y,p.x,p.y)>2.6)steer(Z,e,p.x,p.y,def.spd*1.1,dt);return}   // the group keeps up with the player
   // pet
   if(e.st==='wind'){e.t-=dt;if(e.t<=0){e.st='idle';e.cd=def.cd;e.atkT=.3;if(t&&td<=def.reach+e.r+t.r+.4)strikeTarget(Z,e,t)}return}
   if(t&&p&&dist(t.x,t.y,p.x,p.y)<9){if(td<=def.reach+e.r+t.r){e.a=Math.atan2(t.y-e.y,t.x-e.x);if(e.cd<=0){e.st='wind';e.t=def.wind}}else steer(Z,e,t.x,t.y,def.spd,dt);return}
