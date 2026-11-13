@@ -105,9 +105,12 @@ try{
   // ---- community: someone asks to join, and the neighbours
   await ev(`GW.G.hooks.rescue();GW.G.S.scrip=200`);await page.key('l');T.ok(await until(`GW.UI.panel==='camp'`,3000),'L opens the Camp ledger');
   await click('#tabs [data-t="people"]');T.ok(await until(`!!document.querySelector('#pb [data-a="recruit"]')`,3000),'the People tab lists someone asking to join');
-  await click('#pb [data-a="recruit"]');T.ok(await ev(`GW.G.S.surv.length`)===0&&await ev(`GW.G.S.wait.length`)===1,'recruiting without a spare bed is refused and they keep waiting');
+  // (0.10.3) the first can sleep by the fire; a second needs a bed
+  await click('#pb [data-a="recruit"]');T.ok(await until(`GW.G.S.surv.length===1&&GW.G.S.wait.length===0`,3000),'with only your own bed, the first recruit still moves in (by the fire)');
+  await ev(`GW.G.hooks.rescue()`);await page.sleep(300);await click('#tabs [data-t="people"]');
+  await click('#pb [data-a="recruit"]');T.ok(await ev(`GW.G.S.surv.length`)===1&&await ev(`GW.G.S.wait.length`)===1,'a second without a spare bed is refused and keeps waiting');
   await ev(`(async()=>{const core=await import('/js/sim/core.js'),S=GW.G.S,Z=GW.G.Z,cx=Math.floor(Z.w/2),cy=Math.floor(Z.h/2);core.give(S,'fiber',30);core.give(S,'rags',9);let n=0;for(let r=3;r<14&&n<2;r++)for(let dx=-r;dx<=r&&n<2;dx++){const x=cx+dx,y=cy-r;if(core.canPlace(S,'bed_roll',x,y)===null&&core.place(S,'bed_roll',x,y))n++}window.__beds=n})()`);await until(`window.__beds>=1`,3000);
-  await click('#pb [data-a="recruit"]');T.ok(await until(`GW.G.S.surv.length===1&&GW.G.S.wait.length===0`,3000),'with a bed, clicking Recruit moves them in');
+  await click('#pb [data-a="recruit"]');T.ok(await until(`GW.G.S.surv.length===2&&GW.G.S.wait.length===0`,3000),'with a bed, clicking Recruit moves them in');
   await click('#tabs [data-t="others"]');T.ok(await until(`!!document.querySelector('#pb [data-a="gift"]')`,3000),'the Neighbours tab lists a community');
   const st0=await ev(`GW.World.Community.fac(GW.G.S,'mill').st`);await click('#pb [data-a="gift"]');T.ok(await ev(`GW.World.Community.fac(GW.G.S,'mill').st`)>st0,'clicking Gift raises standing');
   await click('#tabs [data-t="farm"]');await page.sleep(200);T.ok(await ev(`document.getElementById('pb').innerText.length>40`),'the Farm tab renders');await page.key('Escape');await ev(`GW.G.S.surv.length=0`);
