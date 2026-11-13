@@ -389,13 +389,13 @@ export function useItem(S,i){
 }
 /** Eat/drink/heal with the best thing in the pack for a need: 'food' | 'water' | 'hp' | 'tox'. */
 export function quickUse(S,need){
-  let best=-1,score=0;const p=S.p,ds=G.ds;
+  let best=-1,score=0,risky=null;const p=S.p,ds=G.ds;
   S.p.inv.forEach((s,i)=>{if(!s)return;const it=ITEMS[s.id];if(it.t!=='food'&&it.t!=='med')return;let v=0;
-    if(need==='food')v=(it.food||0)-(it.risk?it.risk[0]*40:0);else if(need==='water')v=(it.water||0)-(it.risk?it.risk[0]*40:0);
+    if(need==='food')v=(it.food||0)-(it.risk?it.risk[0]*40:0);else if(need==='water'){if((it.water||0)<10)return;v=(it.water||0)-(it.risk?it.risk[0]*40:0);if(v<=0)risky=it.n}   // a drink, not a handful of berries; and nothing that is likely to make you ill
     else if(need==='hp'){if(it.t!=='med'&&!(it.hp>=8))return;const miss=ds.maxHp-p.hp;v=it.hp>0?Math.max(1,100-Math.abs(miss-it.hp)):0}
     else if(need==='tox')v=-(it.tox||0);
     if(v>score){score=v;best=i}});
-  if(best<0){toast(need==='hp'?'Nothing to heal with':need==='tox'?'No antidote':'Nothing suitable in your pack','bad');sfx('error');return false}
+  if(best<0){toast(need==='hp'?'Nothing to heal with':need==='tox'?'No antidote':need==='water'?(risky?'Only '+risky+' to drink: boil it at a campfire first, or drink it from your pack and risk it':'Nothing to drink in your pack'):'Nothing suitable in your pack','bad');sfx('error');return false}
   // say what was used and how many are left: a quick key, the health bar or auto mode spends things the player did not pick by hand
   const id=S.p.inv[best].id,ok=useItem(S,best);if(ok){const left=count(S,id);toast('Used '+ITEMS[id].n+(left?' · '+left+' left':' · that was the last one'),left?'info':'bad')}return ok;
 }
