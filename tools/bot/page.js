@@ -120,10 +120,12 @@ B.navTo=(tx,ty)=>{const Z=G.Z;if(!Z||tx<0||ty<0||tx>=Z.w||ty>=Z.h)return false;B
 B.steer=()=>{const Z=G.Z,nv=B.nav;if(!Z||!nv||nv.zone!==Z.id)return{done:'lost'};const p=Z.pl,cx=Math.floor(nv.tx)+.5,cy=Math.floor(nv.ty)+.5,d=Math.hypot(cx-p.x,cy-p.y);
   const ti=Math.floor(nv.ty)*Z.w+Math.floor(nv.tx),o=Z.obj[ti],solid=o&&OBJ[o.k]&&OBJ[o.k].solid,usable=o&&!!interactInfo(Z,ti);
   // stop beside a solid thing, and a step short of anything else that can be used, facing it: standing on top of a plant, E picks whatever you face
-  if(d<(solid?1.28:usable?.95:.3))return{done:'arrived',d:r1(d)};
+  // ...and never count as arrived on the wrong side of a wall: next to a crate with a wall between is not next to it
+  const walled=Z.ed.length>0&&edgeCross(Z,p.x,p.y,cx,cy,true)>=0;
+  if(d<(solid?1.28:usable?.95:.3)&&!walled)return{done:'arrived',d:r1(d)};
   if(Z.time-nv.t>1.5){nv.f=field(Z,Math.floor(nv.tx),Math.floor(nv.ty),true,400);nv.t=Z.time}
   // (the player's own tile may read as unreachable when standing beside a tree trunk; what matters is whether a neighbour leads on)
-  let gx=cx,gy=cy;if(!walkClear(Z,p.x,p.y,cx,cy,p.r,true)||solid){const a=pathAim(Z,nv.f,p.x,p.y,p.r,true);if(a){gx=a[0];gy=a[1]}else if(d>1.6)return{done:'no way there'}}
+  let gx=cx,gy=cy;if(!walkClear(Z,p.x,p.y,cx,cy,p.r,true)||solid||walled){const a=pathAim(Z,nv.f,p.x,p.y,p.r,true);if(a){gx=a[0];gy=a[1]}else if(d>1.6)return{done:'no way there'}}
   return{dx:gx-p.x,dy:gy-p.y,d:r1(d)}};
 /** Page pixels of a point in the world (h metres above the ground). */
 B.screen=(x,y,h=0)=>{const s=GW.View.project(x,y,h),r=$('cv').getBoundingClientRect();return{x:s.x+r.left,y:s.y+r.top,on:s.x>=0&&s.y>=0&&s.x<=r.width&&s.y<=r.height}};
