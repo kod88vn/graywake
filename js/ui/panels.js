@@ -69,7 +69,7 @@ function recipeRow(r,at,tier){
   const ic=r.fx?gimg('cart','#8a8f6a'):img(r.o);
   // when something is short, say where it comes from
   const short=!lock&&why?Object.keys(r.i).find(k=>count(s,k,home)<r.i[k]):null,src=short?sourcesOf(short):'';
-  return`<div class="rec ${why?'off':''}">${ic}<div><b>${esc(name)}${r.q>1?' × '+r.q:''}</b> <small>${r.t?fmtMin(r.t):''}${lock?' · '+lock:''}${!r.fx&&count(s,r.o,home)?' · you have '+count(s,r.o,home):''}</small>${chips(r.i)}${src?`<small style="display:block;color:var(--dim)">${esc(ITEMS[short].n)}: ${esc(src)}</small>`:''}${r.fx?`<small>${esc(VEHICLES[r.fx.veh].d)}</small>`:it.d&&!why?'':''}</div>
+  return`<div class="rec ${why?'off':''}">${ic}<div><b>${esc(name)}${r.q>1?' × '+r.q:''}</b> <small>${r.t?fmtMin(r.t):''}${lock?' · '+lock:''}${!r.fx&&count(s,r.o,home)?' · you have '+count(s,r.o,home):''}</small>${chips(r.i)}${src?`<small style="display:block;color:var(--dim)">To get ${esc(ITEMS[short].n)}: ${esc(src)}</small>`:''}${r.fx?`<small>${esc(VEHICLES[r.fx.veh].d)}</small>`:it.d&&!why?'':''}</div>
     <div class="row" style="flex-wrap:nowrap">${why?`<small style="color:var(--dim);max-width:110px;text-align:right">${lock?'':esc(why)}</small>`:btn('Make','make',`data-r="${r.id}" data-n="1"`,'go')+(max>=2?btn('×'+Math.min(max,r.t?10:max>20?20:max),'make',`data-r="${r.id}" data-n="${Math.min(max,r.t?10:max>20?20:max)}" title="Make ${Math.min(max,r.t?10:max>20?20:max)} at once"`):'')}</div></div>`;
 }
 PANELS.craft={title:a=>a!=null&&G.Z&&G.Z.obj[a]?OBJ[G.Z.obj[a].k].n:'Crafting',live:true,
@@ -244,7 +244,9 @@ export function leadCard(s,I,full){
     <div class="kv" style="margin-top:6px"><span>Threat <small style="color:var(--dim)">for you as you stand</small></span><span class="${cls}">${skulls(I.skulls)}</span><span>Level</span><span>${I.lvl} <small style="color:var(--dim)">(you are ${s.p.lvl})</small></span>
     <span>Held by</span><span style="text-align:right;max-width:24em">${esc(I.who)}</span><span>How many</span><span>about ${I.count}${I.boss?', one of them a boss':''}</span>
     <span>Strongroom</span><span style="text-align:right;max-width:24em">${esc(I.prize)}</span><span>Gone in</span><span>${fmtMin(I.left)}</span><span>The trip</span><span>${fmtMin(ti.min)} each way</span></div>
-    <p>${I.boss?`The strongroom is locked. <b style="color:var(--ink)">${esc(I.boss)}</b> carries the keys.`:'The strongroom is barred from inside. It opens when the place is clear.'}</p></div>`}
+    <p>${I.boss?`The strongroom is locked. <b style="color:var(--ink)">${esc(I.boss)}</b> carries the keys.`:'The strongroom is barred from inside. It opens when the place is clear.'}</p>
+    ${I.tox?`<p><b style="color:var(--ink)">The air is toxic.</b> Toxin builds while you are in there, faster from what spits and bursts; past half it eats your health and it does not clear by itself until you are out. ${I.guard>0?'What you are wearing keeps out '+Math.round(I.guard*100)+'% of it.':'A Gas Mask ('+esc(sourcesOf('gas_mask',1)||'traders')+') keeps out a third.'} Charcoal Tablets or Antitoxin clear it (${esc(sourcesOf('charcoal_tabs',1)||'medicine cabinets')}).</p>`:''}
+    ${I.again&&full?'<p style="color:var(--dim)">Not the one you have been to: another place like it.</p>':''}</div>`}
 PANELS.lead={title:'On the radio',narrow:true,
   render(id){const s=S(),site=s.sites.find(x=>x.id===id),I=site&&World.leadInfo(s,site);if(!I)return'<div class="card"><p>The signal is gone.</p></div>';
     return`<div class="quote">${esc(I.radio)}</div>${leadCard(s,I,true)}<p style="color:var(--dim);font-size:13px">It is marked on your map. Walk to the edge of the homestead to set out. The threat is worked out from the weapon in your hands, your armour and the medicine in your pack against who is in there: arm better and it drops. You carry out only what your pack holds.</p><div class="row" style="justify-content:flex-end">${btn('Noted','done','','go')}</div>`},

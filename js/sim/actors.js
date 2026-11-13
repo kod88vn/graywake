@@ -93,7 +93,7 @@ export function damageObj(Z,i,dmg){
 /** Damage every wall whose middle lies within r of a blast. */
 function blastEdges(Z,x,y,r,dmg){if(!Z.ed.length)return;for(let ty=Math.floor(y-r);ty<=Math.floor(y+r)+1;ty++)for(let tx=Math.floor(x-r);tx<=Math.floor(x+r)+1;tx++){if(tx<0||ty<0||tx>=Z.w||ty>=Z.h)continue;const e=(ty*Z.w+tx)*2;if(Z.ed[e]&&dist(tx+.5,ty,x,y)<r)damageObj(Z,EREF+e,dmg);if(Z.ed[e+1]&&dist(tx,ty+.5,x,y)<r)damageObj(Z,EREF+e+1,dmg)}}
 export function explode(Z,x,y,r,dmg,team,o={}){
-  emit('fx',o.tox&&!o.fire?'toxburst':'explode',x,y,r);sfx(o.soft?'splat':'explosion',x,y);emit('shake',Math.min(.6,r*.12));noise(Z,x,y,r*5);
+  emit('fx',o.tox&&!o.fire?'toxburst':'explode',x,y,r);sfx(o.soft?'splat':'explosion',x,y);emit('shake',Math.min(.6,r*.12));noise(Z,x,y,r*(o.soft?2:5));   // a wet burst carries a couple of rooms; a blast wakes the block
   for(const a of Z.actors){if(a.dead)continue;const hostile=team===0?a.team===1:(a.team===0);if(!hostile&&!(team===1&&a.team===1&&o.src!==a.id&&a.def.explode))continue;
     const d=dist(a.x,a.y,x,y)-a.r;if(d>r)continue;const f=1-.5*clamp(d/r,0,1),ang=Math.atan2(a.y-y,a.x-x);
     hurt(Z,a,dmg*f,{kb:4,kx:Math.cos(ang),ky:Math.sin(ang),tox:o.tox,burn:o.burn,burnD:o.burnD,stun:o.stun,quiet:1})}

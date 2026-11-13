@@ -56,7 +56,7 @@ export function canVisit(S,id){
   if(id==='home')return null;const l=LOC[id];if(!l)return'Unknown';
   if(REGIONS[l.reg].veh>S.veh)return'Needs a '+VEHICLES[REGIONS[l.reg].veh].n.toLowerCase();
   if(l.flag&&!S.flags[l.flag])return'The way is not open yet';
-  const m=S.loc[id];if(m&&m.cool>S.t)return'Picked clean. Give it '+Math.ceil((m.cool-S.t)/60)+' h';
+  const m=S.loc[id];if(m&&m.cool>S.t&&!(m.bag&&m.bag.some(Boolean)))return'Picked clean. Give it '+Math.ceil((m.cool-S.t)/60)+' h';
   return null;
 }
 export const posXY=(S,id)=>{const s=S.sites.find(s=>s.id===id);if(s)return[s.x,s.y];const l=LOC[id]||LOC.home;return[l.x,l.y]};
@@ -219,7 +219,7 @@ export function leadInfo(S,site){
   const def=SITES[site.site];if(!def||!def.lead)return null;const gap=site.lvl-S.p.lvl,boss=def.boss?ENEMIES[def.boss]:null;
   let n=0;for(const t of[def.en,def.inn])for(const k in t||{})n+=t[k];
   const odds=leadOdds(S,def,site.lvl),skulls=skullsFor(odds);
-  return{id:site.id,kind:site.site,name:def.n,lvl:site.lvl,gap,odds,skulls,word:THREAT[skulls],who:def.who,prize:def.prize,boss:boss?boss.n:null,raiders:!!def.raiders,count:n+(boss?1:0),left:Math.max(0,site.until-S.t),radio:def.radio,d:def.d};
+  return{id:site.id,kind:site.site,name:def.n,lvl:site.lvl,gap,odds,skulls,word:THREAT[skulls],who:def.who,prize:def.prize,boss:boss?boss.n:null,raiders:!!def.raiders,count:n+(boss?1:0),left:Math.max(0,site.until-S.t),tox:def.tox||0,guard:derive(S).tox,again:!!site.again,radio:def.radio,d:def.d};
 }
 /** The level at which this kind of lead would be the wanted threat for this player: the highest level that is no harder than that (so the
  *  fight and the loot are as rich as the rating allows), or level 1 if even that is harder. */
@@ -231,6 +231,8 @@ export function addLead(S,kind,offset,want){
   const[a,b]=def.tier||[2,3];site.lvl=offset!==undefined?Math.max(1,S.p.lvl+offset):leadLevel(S,def,Math.min(4,want||a+Math.floor(rnd()*(b-a+1))));   // never pitched at "deadly"
   // near enough to be an expedition and not a migration: one and a half to two and a half hours each way by whatever you travel in
   if(maxRegion(S)<=1||rnd()<.6){const h=LOC.home,v=VEHICLES[S.veh||0].spd*(1+perk('travel')),ang=rnd()*TAU,r=(1.5+rnd())*v;site.x=clamp(h.x+Math.cos(ang)*r,30,970);site.y=clamp(h.y+Math.sin(ang)*r,25,615);site.reg=1}
+  // the same kind of place comes up again and again; it is never the one already emptied, and the sheet says so
+  {const seen=S.lead.seen=S.lead.seen||{};if(seen[kind])site.again=1;seen[kind]=(seen[kind]||0)+1}
   S.lead.last=kind;S.lead.n++;stat('leads');return site;
 }
 /** Leads come over the truck's radio a couple of times a day, two on the map at most; a Radio Mast at home hears them more often and keeps three. */
@@ -243,7 +245,7 @@ function leadTick(S){
   // only places that can be made a fair fight for this player; if none can, the least bad one
   const fair=kinds.filter(k=>skullsFor(leadOdds(S,SITES[k],1))<=3),pool=fair.length?fair:[kinds.slice().sort((x,y)=>leadOdds(S,SITES[x],1)-leadOdds(S,SITES[y],1))[0]];
   const site=L.n===0?addLead(S,'lead_grocery',undefined,2):addLead(S,pool[Math.floor(rnd()*pool.length)]);if(!site)return;const I=leadInfo(S,site);
-  L.note=site.id;sfx('radio');toast((mast?'Radio: ':'Truck radio: ')+I.name+' · '+I.word+' (threat '+I.skulls+' of 5)','info');
+  L.note=site.id;sfx('radio');toast((mast?'Radio: ':'Truck radio: ')+(I.again?'another ':'')+I.name+' · '+I.word+' (threat '+I.skulls+' of 5)','info');
 }
 /** The radio note waiting to be read, shown as a sheet when the player is home and nothing else is going on. */
 export function leadNote(S){const L=S.lead;if(!L.note)return null;const site=S.sites.find(s=>s.id===L.note);if(!site){L.note=null;return null}return site}

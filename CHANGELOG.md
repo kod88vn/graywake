@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.9.7 — 2026-11-13
+
+The bot went to the Pharmacy twice at two and three skulls and died both times with the whole building on top of it.
+
+- **Fixed: the Pharmacy was far deadlier than its rating.** A Bloater's burst was as loud as a grenade and woke every creature in the building, so eight to ten came at once where the rating counts on two or three. A wet burst now carries a couple of rooms (a real blast still wakes the block). Measured with the bot's own character, 20 runs each (`node tools/leadbot.mjs`): at two skulls it lived 10 of 20 before and 20 of 20 after; the other leads were already in line (two skulls 19 to 20 of 20, four skulls 11 of 20, five skulls none).
+- **Toxic air is explained before you go.** The lead's sheet says what toxin does, how much of it your clothes keep out, where a Gas Mask is made and what clears it.
+- **Fixed: a dropped pack could leave a copy of itself behind.** Taking it in two goes (Take all with a full pack, then the remainder one by one) left the remainder at the place for the next visit, and an emptied pack could reappear empty. Found while reading the bot's report on the sheet.
+- **The dropped pack's sheet is readable.** It is called Dropped Pack (both halves used to be titled Your Pack), a container away from home always keeps a free slot so a full pack can swap one thing for another, and Take all says how many stacks did not fit.
+- **A place that holds your dropped pack is never "picked clean"**: you can always go back for it.
+- **A missing tool says where it comes from**: "Needs a wrench: made at a Workbench · found in Tool Chest".
+- **Recipes say how short you are**: "Missing Stick: need 4, have 2", and the line under it reads "To get Stick: ...".
+- **Leads before the Radio Mast come over the truck radio**, and a second lead of the same kind is announced as another place, not the one already emptied.
+- Pack: the single-item drop button says Drop one.
+
 ## 0.9.6 — 2026-11-13
 
 - **Nothing is spent behind your back.** Quick-heal, the health bar and auto mode now say what they used and how many are left ("Used Bandage · 5 left"). The bot lost six bandages in one fight to auto mode's healing and reported them as vanished.

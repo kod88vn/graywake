@@ -17,7 +17,10 @@ const nearest=kinds=>J(`(()=>{const Z=GW.G.Z,p=Z.pl;let b=null,bd=1e9;Z.obj.forE
 /** Walk next to the nearest object of a kind and press E. */
 async function use(kinds,holdMs=0){const t=await nearest(kinds);if(!t)return false;await walkTo(t[0],t[1],1.25);await page.sleep(200);
   for(const[ox,oy]of[[0,0],[-.9,0],[.9,0],[0,.9],[0,-.9]]){if(await ev(`!!GW.G.Z.hint&&GW.G.Z.hint.i===${t[2]}`))break;await walkTo(t[0]+ox,t[1]+oy,.4);await page.sleep(250)}
+  // when E is pressed on something else (or nothing), keep what was in reach for the failure message: this step has failed about one run in six without a known cause
+  if(!(await ev(`!!GW.G.Z.hint&&GW.G.Z.hint.i===${t[2]}`)))misses.push(await J(`(()=>{const Z=GW.G.Z,h=Z.hint,p=Z.pl,o=h&&h.i!==undefined?Z.obj[h.i]:null;return{want:${JSON.stringify(kinds)},at:[+p.x.toFixed(2),+p.y.toFixed(2)],target:[${t[0]},${t[1]}],hint:h?(o?o.k:h.type):null}})()`));
   if(holdMs)await page.sleep(50);await page.key('e');return t}
+const misses=[];
 const click=async sel=>{await page.tap(sel);await page.sleep(160)};
 const tileXY=async(tx,ty)=>J(`(()=>{const s=GW.View.project(${tx}+.5,${ty}+.5,0),r=document.getElementById('cv').getBoundingClientRect();return[s.x+r.left,s.y+r.top]})()`);
 try{
@@ -25,8 +28,9 @@ try{
   T.ok(await until(`GW.G.mode==='play'&&!!GW.G.Z&&!document.getElementById('fade').classList.contains('on')`),'New game button starts the game');
   await ev(`GW.G.S.lead.next=1e12`);   // radio leads are tested on their own at the end; none may interrupt the scripted path
   // ---- gather by hand
-  for(const[kind,item]of[[['stone_pile'],'stone'],[['log_pile'],'stick'],[['grass_tall'],'fiber'],[['stone_pile'],'stone'],[['log_pile'],'stick'],[['grass_tall'],'fiber']]){const before=await count(item);await use(kind);await until(`GW.G.S.p.inv.reduce((n,s)=>n+(s&&s.id==='${item}'?s.n:0),0)>${before}`,4000)}
-  T.ok(await count('stone')>=4&&await count('stick')>=3&&await count('fiber')>=4,'E gathers stones, sticks and fibre by hand ('+await count('stone')+' stone, '+await count('stick')+' stick, '+await count('fiber')+' fibre)');
+  for(const[kind,item]of[[['stone_pile'],'stone'],[['log_pile'],'stick'],[['grass_tall'],'fiber'],[['stone_pile'],'stone'],[['log_pile'],'stick'],[['grass_tall'],'fiber']]){const before=await count(item),t=await use(kind),got=await until(`GW.G.S.p.inv.reduce((n,s)=>n+(s&&s.id==='${item}'?s.n:0),0)>${before}`,4000);
+    if(!got)misses.push(await J(`(()=>{const Z=GW.G.Z,p=Z.pl,h=Z.hint,o=Z.obj[${t?t[2]:-1}];return{nothingFrom:${JSON.stringify(kind[0])},at:[+p.x.toFixed(2),+p.y.toFixed(2)],target:${JSON.stringify(t)},obj:o?{k:o.k,empty:o.empty,hits:o.hits,n:o.n}:null,act:p.act?p.act.type:null,hint:h?h.label:null,auto:GW.G.auto,paused:GW.G.paused,panel:GW.UI.panel,free:GW.G.S.p.inv.filter(x=>!x).length,len:GW.G.S.p.inv.length}})()`))}
+  T.ok(await count('stone')>=4&&await count('stick')>=3&&await count('fiber')>=4,'E gathers stones, sticks and fibre by hand ('+await count('stone')+' stone, '+await count('stick')+' stick, '+await count('fiber')+' fibre)'+(misses.length?' misses: '+JSON.stringify(misses):''));
   // ---- the starter crate: search, take, put back
   await use(['crate']);T.ok(await until(`GW.UI.panel==='loot'`,5000),'E on the crate opens it');
   const c0=await ev(`document.querySelectorAll('#pb [data-a=take][title]').length`);await click('#pb [data-a="take"][title]');

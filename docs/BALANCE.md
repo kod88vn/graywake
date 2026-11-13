@@ -42,6 +42,22 @@ Rerun on 0.8.1 (2026-11-13) after the combat pass (aim assist, step-in, hit-stop
 
 Reading: the first three tides can be won by someone who has done little more than follow the opening quests. From the fifth on, standing in the open with a blade is not enough, which is the intent: walls with a door, traps on the announced trail, a bolt thrower and a guard are all available by then. Whether that step is fair to a real player has not been tested by a real player.
 
+### Radio leads, measured: `node tools/leadbot.mjs`
+
+A lead's skulls come from `leadOdds()` in `world.js`, which assumes the garrison comes two or three at a time. Anything that wakes a whole building at once breaks that promise, so check with the bot after touching noise, sight ranges, summons or a lead's garrison. The bot walks at the nearest creature and lets Auto mode fight: no sneaking, no retreat. The Haiku play bot's level 10 character (flint spear, hide vest, one bandage and one poultice, full health), 20 runs each, 2026-11-13:
+
+| Lead | Level | Skulls promised | Cleared and lived | Most coming at once |
+|---|---|---|---|---|
+| Corner Grocery | 3 | 2 | 19/20 | 4 |
+| Hardware Store | 1 | 2 | 20/20 | 3 |
+| Pharmacy | 1 | 2 | 20/20 (10/20 before 0.9.7: a Bloater's burst woke all ten) | 3 |
+| Fire Station | 1 | 3 | 20/20 | 2 |
+| Police Station | 1 | 4 | 11/20 | 2 |
+| Gun Shop | 1 | 5 | 0/20 | 9 |
+| Army Checkpoint | 1 | 5 | 0/20 | 4 |
+
+The Fire Station reads harder than it plays for this character; left alone, since a rating that errs toward caution keeps the promise.
+
 ## Community
 
 Numbers are in `COMM` and `FACTIONS` (`js/data/community.js`). None of this has been played by a person; the simulation test only shows the rules work.

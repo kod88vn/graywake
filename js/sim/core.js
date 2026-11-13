@@ -6,7 +6,7 @@ import {RECIPES,VEHICLES} from '../data/recipes.js';
 import {PERK,xpFor,MAX_LEVEL} from '../data/progress.js';
 import {clamp,rnd} from './util.js';
 
-export const VERSION='0.9.6';
+export const VERSION='0.9.7';
 export const SAVE_V=2;
 export const HOME_W=46,HOME_H=46,EXIT_RING=2,NO_BUILD=4;
 export const MIN_PER_SEC=1.5;            // game minutes per real second: a day is 16 real minutes
@@ -174,7 +174,7 @@ export function stationOk(r,at){
 export function recipeCost(r){return r.i}
 export function canCraft(S,r,n=1,at){
   if(!recipeVisible(S,r))return'Locked';if(!stationOk(r,at))return'Wrong station';
-  const home=!!(G.Z&&G.Z.home);for(const k in r.i)if(count(S,k,home)<r.i[k]*n)return'Missing '+ITEMS[k].n;
+  const home=!!(G.Z&&G.Z.home);for(const k in r.i)if(count(S,k,home)<r.i[k]*n)return'Missing '+ITEMS[k].n+': need '+r.i[k]*n+', have '+count(S,k,home);
   if(r.fx&&r.fx.veh&&S.veh>=r.fx.veh)return'Already built';
   if(!r.fx&&!(r.t>0&&at!=null)&&!roomFor(S,r.o,r.q*n)){let frees=false;for(const k in r.i){let c=0;for(const s of S.p.inv)if(s&&s.id===k)c+=s.n;if(c>0&&c<=r.i[k]*n)frees=true}if(!frees)return'Pack full: make room first'}
   return null;
