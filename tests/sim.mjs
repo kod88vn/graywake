@@ -401,6 +401,7 @@ safe('gear',()=>{
   const b=betterGear(S).map(x=>x.id).sort().join(',');T.ok(b==='bat,leather_jacket','the pack knows what in it is better than what is on ('+b+')');
   const names=wearBest(S);T.ok(p.eq.body.id==='leather_jacket'&&(p.eq.w1.id==='bat'||p.eq.w2.id==='bat')&&count(S,'hide_vest')===1&&betterGear(S).length===0,'Wear best puts on the jacket and takes up the bat ('+names.join(', ')+')');
   unequip(S,'head');T.ok(!p.eq.head&&count(S,'leather_cap')===1,'what is taken off stays off');
+  {const k=p.eq.w1.id==='bat'?'w1':'w2';p.eq[k].d=8;p.inv.push({id:'bat',n:1,d:18});wearBest(S);T.ok(p.eq.w1.id==='bat'&&p.eq.w1.d===18,'of two alike, Wear best takes the fresher one in hand')}
   give(S,'revolver',1);T.ok(!betterGear(S).some(x=>x.id==='revolver'),'a gun with no ammunition is not called better');give(S,'ammo_9',30);
   T.ok(betterGear(S).some(x=>x.id==='revolver'),'with ammunition it is');
   // every weapon and wearable that is not made from a schematic can be found somewhere
