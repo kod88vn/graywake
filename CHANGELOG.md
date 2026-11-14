@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.10.59 — 2026-11-14
+
+- **You cannot cut your own furniture off.** Placing something solid that would leave a workbench, fire, box or bed with no free side you can walk to from outside the yard (through its door) is refused: "That would cut the Workbench off: you could not walk to it". A bed, a campfire and two boxes had split a yard in two, and the workbench could not be reached from the corner by the bedroll.
+
 ## 0.10.58 — 2026-11-14
 
 - **Every attacker beats on the wall in its way.** Only the ones built for smashing used to; the rest (crawlers, stalkers and the like) stood at the wall facing you through it until you went out to them. Measured at tide 5, a yard with 20 traps and two of your people: survived 14 times in 16 against 10.
