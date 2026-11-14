@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.10.22 — 2026-11-14
+
+- **Your dropped pack comes with you when the enclave falls.** A death at home drops your pack by the fence, and when that death is what ended the enclave, the move to a new valley left the pack behind for good. It now comes over the pass: into your pack, and what does not fit lies beside you at the new homestead.
+
 ## 0.10.21 — 2026-11-14
 
 - **A fallen enclave arrives in its new valley clean.** A tide that finished while the move was still waiting (it had been fought in the old valley) was reported to the new world and cost 25 hold the moment the enclave arrived. Nothing done before the move reaches the new world now.

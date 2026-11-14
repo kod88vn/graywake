@@ -313,10 +313,16 @@ export function worldNews(S,W,you){
 /** The enclave has fallen and its people move to another valley: the character keeps what they wear, carry and know; the homestead, its
  *  stores, its people and the map of the old valley are gone. A new homestead is laid out and the tides start over. */
 export function exile(S){
+  // a pack dropped at the old homestead (the death that ended the enclave drops one by the fence) goes with them over the pass
+  const bag=[];{const Z=G.Z;const objs=Z&&Z.home?Z.obj:(S.home&&S.home.obj)||[];for(const o of objs)if(o&&OBJ[o.k]&&OBJ[o.k].special==='deathbag'&&o.inv)bag.push(...o.inv.filter(Boolean))}
   S.seed=(S.seed*1103515245+12345)>>>0;S.home={obj:[],fl:[],ed:[],regrow:[],pile:{},report:null};S.loc={};S.sites=[];S.lead={next:0,note:null,last:'',n:0};
   S.surv=[];S.wait=[];S.morale=60;S.fac={};S.clog=[];S.trader=null;S.tide={n:0,at:0,kind:'shamble',dir:0,weak:0,warned:0,live:null};S.deeds={held:0,lost:0,deaths:0,leads:[]};S.world=null;if(S.net)S.net.heard={};
   S.p.bed=null;S.p.hp=Math.max(S.p.hp,derive(S).maxHp*.6);S.p.food=Math.max(S.p.food,50);S.p.water=Math.max(S.p.water,50);
-  G.Z=null;G.pending=null;genHome(S);scheduleTide(S,true);S.nextEv=S.t+600;S.pos='home';goHome(false);emit('save');
+  G.Z=null;G.pending=null;genHome(S);scheduleTide(S,true);S.nextEv=S.t+600;S.pos='home';goHome(false);
+  if(bag.length&&G.Z&&G.Z.home){const Z=G.Z,left=[];for(const s of bag){const n=addTo(S.p.inv,slotCount(S),s.id,s.n,s.d);if(n>0)left.push({id:s.id,n,d:s.d})}
+    if(left.length){const[x,y]=freeNear(Z,Z.pl.x,Z.pl.y,3),i=Math.floor(y)*Z.w+Math.floor(x);if(!Z.obj[i]){Z.obj[i]={k:'deathbag',r:0,v:0,inv:left};Z.touch&&Z.touch(i)}}
+    toast('You carried your dropped pack over the pass'+(left.length?': what did not fit lies beside you':''),'good')}
+  emit('save');
 }
 export function leadNote(S){const L=S.lead;if(!L.note)return null;const site=S.sites.find(s=>s.id===L.note);if(!site){L.note=null;return null}return site}
 export function leadRead(S){S.lead.note=null}

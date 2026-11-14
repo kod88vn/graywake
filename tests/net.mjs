@@ -34,9 +34,12 @@ try{
   T.ok(await ev(`!!GW.G.S.net.exile`),'the fall is written into the save until the move is made');await page.shot('world-exile');
   // a tide that ends while the move waits was fought in the old valley: the new world does not hear of it
   await ev(`GW.G.S.deeds.lost=1`);await page.sleep(6000);
+  // the death that ended the enclave dropped a pack by the fence
+  await ev(`(()=>{const Z=GW.G.Z,p=Z.pl,i=Math.floor(p.y)*Z.w+Math.floor(p.x)+2;Z.obj[i]={k:'deathbag',r:0,v:0,inv:[{id:'old_coin',n:7}]};GW.G.S.p.inv=GW.G.S.p.inv.map(s=>s&&s.id==='old_coin'?null:s)})()`);
   await page.tap('#pb .btn.go');await page.sleep(900);
   const after=JSON.parse(await ev(`JSON.stringify({seed:GW.G.S.seed,lvl:GW.G.S.p.lvl,home:!!(GW.G.Z&&GW.G.Z.home),world:GW.G.S.world&&GW.G.S.world.name,hold:GW.G.S.world&&GW.G.S.world.you&&GW.G.S.world.you.hold,tide:GW.G.S.tide.n,net:GW.G.S.net.world})`));
   T.ok(after.seed!==home0&&after.lvl===7&&after.home&&after.world&&after.world!==w.name&&after.hold===RULES.hold0&&after.tide===0,'the character starts again in another world with a new homestead, keeping its level ('+w.name+' → '+after.world+')');
+  T.ok(await ev(`GW.G.S.p.inv.some(s=>s&&s.id==='old_coin'&&s.n===7)`),'the pack dropped at the fallen homestead comes over the pass');
   T.ok(S.DB().worlds.length===2&&S.DB().worlds.find(x=>x.id===after.net).enclaves.some(e=>e.name==='Tester'&&e.status==='holding'),'and the server has it holding ground there');
   await page.sleep(6000);{const e=S.DB().worlds.find(x=>x.id===after.net).enclaves.find(e=>e.name==='Tester');T.ok(e.hold===RULES.hold0&&e.deeds.lost===0,'a tide lost while the move waited is not charged to the new world (hold '+e.hold+')')}
   const errs=await ev(`(window.__errors||[]).length`);T.ok(!errs,'no page errors');
