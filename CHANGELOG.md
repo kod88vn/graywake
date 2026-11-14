@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.10.48 — 2026-11-14
+
+- Choosing who runs a trade route, each name says what job they would leave ("Yusuf (leaves guard)"), and the first choice is someone resting, or anyone but a guard.
+
 ## 0.10.47 — 2026-11-14
 
 - Among weapons about to break (under 15%), the one with more left is preferred: Wear best put a 3% machete in hand over a 14% bat.
