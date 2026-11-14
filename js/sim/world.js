@@ -8,7 +8,7 @@ import {EVENTS,WEATHER,WEATHER_BY_REG,TIDE_KINDS,TIDE_COST} from '../data/events
 import {SURV_NAMES,SURV_TRAITS,JOBS,TRADE,TRADE_BP} from '../data/progress.js';
 import {ENEMIES,scale} from '../data/enemies.js';
 import {FACTIONS} from '../data/community.js';
-import {G,FIST,emit,toast,sfx,stat,statMax,blankState,derive,perk,count,take,give,addTo,removeFrom,slotCount,homeStores,addXp,addBuff,produce,maxHp,hasBuilt,countBuilt,compact,dropAt,SAVE_V,edgeIdx,MIN_PER_SEC,HOME_W,HOME_H} from './core.js';
+import {G,FIST,roomFor,emit,toast,sfx,stat,statMax,blankState,derive,perk,count,take,give,addTo,removeFrom,slotCount,homeStores,addXp,addBuff,produce,maxHp,hasBuilt,countBuilt,compact,dropAt,SAVE_V,edgeIdx,MIN_PER_SEC,HOME_W,HOME_H} from './core.js';
 import {genHome,homeZone,genZone,siteDef,freeNear,rollLoot,playerField} from './zone.js';
 import {spawnActor,spawnPlayer,populate,enemiesAlive,step,alertActor,harvest,plant} from './actors.js';
 import {startQuest,checkStory,checkAch,fillContracts,noteClear,maxRegion} from './quests.js';
@@ -630,6 +630,7 @@ export function openTrader(S,fresh){
 export const sellPrice=id=>Math.max(ITEMS[id].v>0?1:0,Math.floor(ITEMS[id].v*.5*(1+perk('haggle')*1.6)));
 export function buy(S,si,n=1){
   const T=S.trader,s=T&&T.stock[si];if(!s||s.n<n)return false;const cost=s.p*n;if(S.scrip<cost){toast('Not enough scrip','bad');sfx('error');return false}
+  if(!roomFor(S,s.id,n)){toast('Your pack is full: make room before you buy (it would have been dropped on the ground)','bad');sfx('error');return false}
   S.scrip-=cost;s.n-=n;give(S,s.id,n);if(s.n<=0)T.stock.splice(si,1);sfx('coin');return true;
 }
 export function sell(S,i,n){

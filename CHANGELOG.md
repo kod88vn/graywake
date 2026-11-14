@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.10.29 — 2026-11-14
+
+- The caravan will not sell you something your pack has no room for: it took the scrip and dropped the thing on the ground, where it was easy to walk away from. It now says to make room first.
+
 ## 0.10.28 — 2026-11-14
 
 - **What you drop stays dropped.** Auto mode picked up every loose pile it passed, including the junk you had just put down to make room, and walking over it picked it up again. A pile you drop yourself is now left alone by both (press E on it to take it back).
