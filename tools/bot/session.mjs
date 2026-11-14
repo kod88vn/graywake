@@ -124,6 +124,8 @@ const moved=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 // ---------------------------------------------------------------- commands
 const num=(v,d)=>{const n=parseFloat(v);return Number.isFinite(n)?n:d};
 const C={};
+// English plurals for the names of things: Branches, Boxes, Bushes, Grass (not Grasss), Birches
+const plural=n=>{const w=n.split(' '),l=w.pop();let p;if(/grass$/i.test(l)||(/s$/i.test(l)&&!/ss$/i.test(l)))p=l;else if(/(ss|x|z|ch|sh)$/i.test(l))p=l+'es';else if(/[^aeiou]y$/i.test(l))p=l.slice(0,-1)+'ies';else p=l+'s';return[...w,p].join(' ')};
 C.look=async a=>({msg:'',full:a.includes('full')});
 C.walk=async a=>{const way=WAYS[String(a[0]||'').toLowerCase()];if(!way)return{msg:'walk needs a direction: n ne e se s sw w nw (n is up the screen), then seconds'};const secs=clamp(num(a[1],1.5),.2,8);
   await steerKeys(way[0],way[1]);let mark=null,markT=0;
@@ -278,7 +280,7 @@ function describe(o){
     if(o.foes&&o.foes.length)L.push('HOSTILE: '+o.foes.map(f=>`${f.boss?'BOSS ':''}${f.name} ${f.dist} tiles ${f.dir} at (${f.x}, ${f.y}), health ${f.hp}%, ${f.state}`).join(' | '));
     if(o.others&&o.others.length)L.push('Also here: '+o.others.map(f=>`${f.name} (${f.kind}) ${f.dist} ${f.dir}`).join(' | '));
     if(o.drops&&o.drops.length)L.push('Loose on the ground: '+o.drops.map(d=>`${d.what||'loot'} ${d.dist} ${d.dir} at (${d.x}, ${d.y})`).join(' | '));
-    if(o.things&&o.things.length){L.push('Around you (tile x,y; N is up the screen). One line per kind of thing: the NEAREST one, and how many more of that kind are about:');for(const t of o.things)L.push(`  ${t.name} — ${t.dist} tiles ${t.dir} at (${t.x}, ${t.y})${t.act?' — '+t.act:''}${t.yours?' (you built it)':''}${t.n>1?` [${t.n-1} more ${t.name}${t.n>2?'s':''} elsewhere in this place]`:''}`)}
+    if(o.things&&o.things.length){L.push('Around you (tile x,y; N is up the screen). One line per kind of thing: the NEAREST one, and how many more of that kind are about:');for(const t of o.things)L.push(`  ${t.name} — ${t.dist} tiles ${t.dir} at (${t.x}, ${t.y})${t.act?' — '+t.act:''}${t.yours?' (you built it)':''}${t.n>1?` [${t.n-1} more ${t.n>2?plural(t.name):t.name} elsewhere in this place]`:''}`)}
     else L.push('Nothing to use, search or gather within ten tiles.');
     if(o.doorways&&o.doorways.length)L.push((o.zone.home?'Your doors: ':'Doorways into buildings: ')+o.doorways.map(d=>`${d.dist} tiles ${d.dir}, between (${d.side==='N'?d.x+', '+(d.y-1):(d.x-1)+', '+d.y}) and (${d.x}, ${d.y})`).join(' | '));
     if(o.yours&&o.yours.length)L.push('Where your wall and door pieces stand (a piece on the south side of a cell is listed as the north side of the cell below it, east as the west side of the next column): '+o.yours.join(' · '));
