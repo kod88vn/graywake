@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.10.32 — 2026-11-14
+
+- Event choices say how long they take ("Sweat it out (takes 10h)"): the time was only told after choosing.
+
 ## 0.10.31 — 2026-11-14
 
 - A wall or door that breaks in a tide says so at once, with where ("Plank Wall broken at (23, 18)"), at most every few seconds: the list at the end came too late to stand in the gap.
