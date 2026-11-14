@@ -38,12 +38,13 @@ A bot plays a frozen copy of the game taken when its session started (`.out/bot/
 
 | | |
 |---|---|
-| Game | version **0.10.78**, git `main`, no remote, about 200 commits. Published to the private artifact `https://claude.ai/artifact/NM8HYatScUazqswpDnonAM` as artifact **version 103** (every game version this session was published, in order). |
+| Game | version **0.10.79**, git `main`, no remote, about 200 commits, tree clean at the end. Published to the private artifact `https://claude.ai/artifact/NM8HYatScUazqswpDnonAM` as artifact **version 104** (every game version this session was published, in order). |
+| Running at the end | **The bots were stopped on the user's word** ("stop the bots now, we're good"); no bot process or Chrome of theirs is left. The world server was left running on :8795 and dies with the coding session; `.out/worlds/state.json` keeps the worlds. Nothing needs stopping; to resume, section 1. |
 | Content | 263 items, 195 recipes, 199 objects (89 buildable), 39 creatures, 34 locations, 20 sites, 48 events, 33 quests, 32 perks, 38 achievements (from `npm run check`). |
 | World server | `node tools/world/server.mjs --port 8795`; two worlds on file: **Pinewatch** and **Low Water**, both at stage "The Signal" (tides ×1.7). |
 | Pinewatch | Haiku One (hold 40: two more lost tides and it falls), Haiku Two (100), settlements The Granary and Brackwater. |
 | Low Water | no bots; settlements Saltmarsh Chapel and Hollow Bridge (the server keeps worlds while any enclave holds ground). |
-| Bot one | profile `haiku`, port 8777, name "Haiku One". Level ~27, Riot armour. |
+| Bot one | profile `haiku`, port 8777, name "Haiku One". Level ~27, Riot armour. Last seen at hold 40 in Pinewatch with Wren (cook) and Yusuf (guard). |
 | Bot two | profile `haiku2`, port 8778, name "Haiku Two". Level ~29. It has a Vehicle Bay at (29, 19) and is on the Wheels quest. |
 | History | Both bots fell and moved at least once. Haiku One started in Low Water, fell in tide 13 and restarted in Pinewatch; Haiku Two started in Pinewatch (Cinder Yard and Tollhouse Six, since fallen), fell, spent time in Low Water, fell again, and is back in Pinewatch. Settlements fall to the late tides and are replaced two world days later. |
 
