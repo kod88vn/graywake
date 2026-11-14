@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- The fire axe fells trees like an iron hatchet.
+
 ## 0.10.15 — 2026-11-14
 
 "They could also be sleeping especially at night." "So survivors participate in base defense? They should."
