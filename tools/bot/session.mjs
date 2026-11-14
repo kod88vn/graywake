@@ -160,6 +160,8 @@ C.attack=async a=>{
       if(s.done==='no way there'||s.done==='lost'){stuck='there is no way round to the '+f.name+' from here (it is behind a wall)';return stuck}
       if(!s.done){const l=Math.max(.01,Math.hypot(s.dx,s.dy));await steerKeys(s.dx/l,s.dy/l)}
       if(!mark){mark=p;markT=t}else if(t-markT>1.5){if(moved(p,mark)<.25){stuck='cannot get any closer to the '+f.name;return stuck}mark=p;markT=t}
+      // at home in a tide, the walls are the defence: no chasing more than a few steps from where the fight began (a bot followed a gunman out of its yard into the tide)
+      if(p.home&&p.tide&&moved(p,p0)>4){stuck='the '+f.name+' is drawing you away from your walls in a tide: stopped after 4 tiles. Let it come to you, or `attack` again only if you mean to leave the yard';return stuck}
       if(moved(p,p0)>30){stuck='the way round to the '+f.name+' is long: stopped after 30 tiles, call attack again to keep going';return stuck}return null}
     await steerKeys(0,0);mark=null;const sc=await ev(`__bot.screen(${f.x},${f.y},.6)`);await mouseTo(clamp(sc.x,4,W-4),clamp(sc.y,4,H-4));if(!mouseDown)await mousePress();hit=true;return null}});
   if(mouseDown)await mouseRelease();await steerKeys(0,0);
