@@ -639,7 +639,7 @@ function stepEnemy(Z,e,dt,p,flow,night,sightMul){
   // the blow goes where it was aimed when the wind-up began: step out of its line, or out of reach, and it misses
   if(e.st==='wind'){e.t-=dt;if(e.t<=0){e.st='chase';e.cd=def.cd;e.atkT=def.proj?.2:.3;if(def.proj){if(los(Z,e.x,e.y,t.x,t.y))fireAt(Z,e,t)}
     else if(d<=reach+.4&&(d<e.r+.55||Math.abs(angDiff(Math.atan2(t.y-e.y,t.x-e.x),e.a))<1.15)&&!(t.pl&&t.iframe>0)&&edgeCross(Z,e.x,e.y,t.x,t.y)<0)strikeTarget(Z,e,t)}return}
-  if(e.st==='windS'){e.t-=dt;if(e.t<=0){e.st='chase';e.cd=def.cd;e.atkT=.3;if(structAt(Z,e.sT)){damageObj(Z,e.sT,e.dmg*(def.sd||0));sfx('hit_wood',e.x,e.y,{vol:.5})}}return}
+  if(e.st==='windS'){e.t-=dt;if(e.t<=0){e.st='chase';e.cd=def.cd;e.atkT=.3;if(structAt(Z,e.sT)){damageObj(Z,e.sT,e.dmg*(def.sd||1));sfx('hit_wood',e.x,e.y,{vol:.5})}}return}
   if(e.st==='cast'){e.t-=dt;if(e.t<=0){e.st='chase';e.atkT=.3;if(e.cast){e.cast();e.cast=null}}return}
   if(e.st==='fuse'){e.t-=dt;e.flash=.1;if(e.t<=0)kill(Z,e);return}
   if(e.st==='cwind'){e.t-=dt;e.flash=.08;if(e.t<=0){e.st='charge';e.t=1.1;e.chHit=false}return}
@@ -667,7 +667,9 @@ function stepEnemy(Z,e,dt,p,flow,night,sightMul){
   const wc=d<=reach+.6?edgeCross(Z,e.x,e.y,t.x,t.y):-1;
   if(d<=reach&&wc<0){e.a=Math.atan2(t.y-e.y,t.x-e.x);if(e.cd<=0&&(d<1.2||los(Z,e.x,e.y,t.x,t.y))){e.st='wind';e.t=def.wind}return}
   const s=wc>=0&&Z.home?EREF+wc:approach(Z,e,t.x,t.y,speed,dt,t.pl?flow:null);
-  if(s>=0){const[sx,sy]=structXY(Z,s);e.a=Math.atan2(sy-e.y,sx-e.x);if(def.sd&&e.cd<=0){e.st='windS';e.t=def.wind;e.sT=s}}
+  // every attacker beats on what is in its way, not only the ones built for it (a crawler and a stalker stood at a yard's wall for eight minutes, facing
+  // the player through it); those without a smash hit it with their ordinary blow
+  if(s>=0){const[sx,sy]=structXY(Z,s);e.a=Math.atan2(sy-e.y,sx-e.x);if(e.cd<=0){e.st='windS';e.t=def.wind||.3;e.sT=s}}
 }
 function wander(Z,e,dt,speed){
   e.t-=dt;if(e.t<=0){e.t=2+rnd()*5;if(rnd()<.6){const ang=rnd()*TAU,r=1+rnd()*3;e.wx=clamp(e.hx+Math.cos(ang)*r,2,Z.w-2);e.wy=clamp(e.hy+Math.sin(ang)*r,2,Z.h-2)}else e.wx=undefined}
@@ -699,7 +701,7 @@ function survivorWork(Z,e,dt){
   const S=G.S,sv=S&&S.surv.find(s=>s.id===e.sv);if(!sv){wander(Z,e,dt,e.def.spd*.3);return}
   // at night everyone off duty sleeps, in a bed if there is one (the user: "they could also be sleeping especially at night"); anything hostile close wakes them
   const h=hourOf(S.t),night=(h>=22||h<6)&&!S.tide.live&&!threatNear(Z,8);
-  const job=night?'sleep':sv.hurt>0?'idle':sv.job;e.jt=(e.jt||0)-dt;
+  const job=night||sv.hurt>0?'sleep':sv.job;e.jt=(e.jt||0)-dt;   /* laid up: in bed all day, where you can see it (one looked as if she was still at the fire) */
   if(!e.task||e.task.job!==job||(e.jt<=0&&(job!=='sleep'||e.stuck>4))){e.task=workTask(Z,e,job);if(e.task){e.task.job=job;e.task.f=field(Z,Math.floor(e.task.x),Math.floor(e.task.y),true,160);
       // a place they cannot get to (behind walls with no door): they do it where they stand instead of circling
       if(!(e.task.f[Math.floor(e.y)*Z.w+Math.floor(e.x)]<1e9))e.task={k:job==='sleep'?'sleep':'rest',job,x:e.x,y:e.y,fx:e.x+1,fy:e.y,r:9}}e.jt=9+rnd()*9;e.stuck=0}

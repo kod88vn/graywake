@@ -183,7 +183,7 @@ export function dawn(S){
   for(let i=S.wait.length-1;i>=0;i--)if(S.wait[i].until<=S.t){const c=S.wait.splice(i,1)[0];note(S,c.n+' gave up waiting at your fence and moved on','info')}
   const medics=S.surv.filter(s=>s.job==='medic'&&available(s)).length;
   for(const sv of S.surv){sv.away=0;if(sv.hurt>0){sv.hurt=Math.max(0,sv.hurt-1-(medics?1:0));if(!sv.hurt)toast(sv.n+' is back on their feet','good')}}
-  const ids=known(S),wars=ids.filter(id=>atWar(fac(S,id))).length,guards=S.surv.filter(s=>s.job==='guard').length;
+  const ids=known(S),wars=ids.filter(id=>atWar(fac(S,id))).length,guards=S.surv.filter(s=>s.job==='guard'&&available(s)).length;
   for(const id of ids){const F=FACTIONS[id],fs=fac(S,id);
     if(!fs.met){fs.met=true;S.clog.unshift({d:day,x:'Word reaches you of '+F.n+'. '+F.d,k:'info'});toast('You hear of '+F.n+': see the Camp ledger, Neighbours','info')}
     if(fs.dead)continue;

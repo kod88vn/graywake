@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.10.58 — 2026-11-14
+
+- **Every attacker beats on the wall in its way.** Only the ones built for smashing used to; the rest (crawlers, stalkers and the like) stood at the wall facing you through it until you went out to them. Measured at tide 5, a yard with 20 traps and two of your people: survived 14 times in 16 against 10.
+- **Someone laid up stays in bed** where you can see it, and does not count at their job (cooking, farming, guarding, mending) until they are back on their feet.
+
 ## 0.10.57 — 2026-11-14
 
 - **Windows.** Build, Base now has a Plank Window and a Stone Window: wall pieces nothing can walk through but anything can see and shoot through, both ways. Walls block arrows again (the shooting over walls in 0.10.52 is gone): in a tide your people take up bows and go to the windows nearest you, and shoot what they can see from there. With no windows they say so. Measured at tide 10, a walled yard, three survivors, the player standing still: 6 to 26 killed with a window in each side against 9 to 14 with none.

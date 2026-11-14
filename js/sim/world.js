@@ -408,7 +408,7 @@ function dawn(S){
   const day=dayOf(S.t);statMax('days',day);
   // people
   if(S.surv.length){
-    const mult=.5+S.morale/100*.75,cooks=S.surv.filter(s=>s.job==='cook').length;let hungry=0,fed=0;
+    const mult=.5+S.morale/100*.75,cooks=S.surv.filter(s=>s.job==='cook'&&Community.available(s)).length;let hungry=0,fed=0;
     for(const sv of S.surv){sv.days++;const meals=(sv.trait==='glutton'?2:1);for(let m=0;m<meals;m++){if(cooks&&rnd()<.25*cooks){fed++;continue}if(feedOne(S,'food'))fed++;else hungry++}if(!feedOne(S,'water'))hungry++}
     for(let c=0;c<cooks*JOBS.cook.cook;c++){for(const[raw,done]of[['raw_meat','cooked_meat'],['raw_fish','cooked_fish'],['potato','baked_potato'],['dirty_water','water']]){let ok=false;for(const b of homeStores(S)){if(removeFrom(b.inv,raw,1)===0){ok=true;break}}if(ok){pile(S,done,1);break}}}
     for(const sv of S.surv){const J=JOBS[sv.job]||JOBS.idle,tm=t=>sv.trait===t?1.5:1;
@@ -479,7 +479,7 @@ function runJobs(S,o,i,m,atHome){
 /** Keep one station working while its sheet is open and the rest of the world is paused. */
 export function benchTick(i,dt){const S=G.S,Z=G.Z,o=Z&&Z.obj[i];if(o&&o.q&&o.q.length)runJobs(S,o,i,dt*MIN_PER_SEC,true)}
 function processHome(S,m){
-  const H=S.home,obj=H.obj,Wd=weather(S),atHome=G.Z&&G.Z.home,farmers=S.surv.filter(s=>s.job==='farm').reduce((a,s)=>a+(s.trait==='green'?1.5:1),0);
+  const H=S.home,obj=H.obj,Wd=weather(S),atHome=G.Z&&G.Z.home,farmers=S.surv.filter(s=>s.job==='farm'&&Community.available(s)).reduce((a,s)=>a+(s.trait==='green'?1.5:1),0);
   let scare=null;
   for(let i=0;i<obj.length;i++){const o=obj[i];if(!o)continue;const d=OBJ[o.k];if(!d)continue;
     if(o.q&&o.q.length)runJobs(S,o,i,m,atHome);
@@ -579,7 +579,7 @@ function defenceScore(S){
   for(const o of S.home.obj){if(!o)continue;const k=OBJ[o.k];if(!k||!k.cost)continue;
     if(k.wall||k.door||(k.low&&k.cat==='defense'))d+=o.hp/50;else if(k.trap)d+=Math.max(0,(k.trap.dmg+(k.trap.slow?30:0))*(k.trap.uses-(o.uses||0))/90);
     else if(k.turret){const t=k.turret,shots=t.power?200:Math.floor((o.ammo||0)/(t.per||1));d+=Math.min(shots,150)*t.dmg/90}}
-  d+=S.surv.filter(s=>s.job==='guard').length*(30+n*6);return d*(1+perk('turret')*.5);
+  d+=S.surv.filter(s=>s.job==='guard'&&Community.available(s)).length*(30+n*6);return d*(1+perk('turret')*.5);
 }
 /** A tide arrived while you were away: work out what it did without simulating it. */
 function resolveAway(S){
@@ -653,7 +653,7 @@ const wakeTime=S=>{const h=hourOf(S.t),day=Math.floor(S.t/1440);return(h>=12?day
 export function sleep(i){
   const S=G.S,why=canSleep(S);if(why){toast(why,'bad');sfx('error');return false}
   const o=G.Z.obj[i],tier=o?OBJ[o.k].bed||1:1,m=wakeTime(S)-S.t;S.p.bed=i;
-  advance(S,m,'sleep');const ds=G.ds,medic=S.surv.some(s=>s.job==='medic');
+  advance(S,m,'sleep');const ds=G.ds,medic=S.surv.some(s=>s.job==='medic'&&Community.available(s));
   S.p.hp=Math.min(ds.maxHp,S.p.hp+ds.maxHp*([0,.35,.6,1][tier]+(medic?.25:0)));S.p.tox=Math.max(0,S.p.tox-25);S.p.buffs=[];
   sfx('sleep');emit('ui','wake',dayOf(S.t));emit('save');return true;
 }
