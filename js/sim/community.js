@@ -47,7 +47,7 @@ export function dismiss(S,id){
   const i=S.surv.findIndex(s=>s.id===id);if(i<0)return false;const sv=S.surv.splice(i,1)[0];endRouteOf(S,sv.id);S.morale=clamp(S.morale-3,0,100);note(S,sv.n+' packs up and leaves at your asking','info');
   if(G.Z&&G.Z.home)for(const a of G.Z.actors)if(a.sv===sv.id)a.dead=true;return true;
 }
-function endRouteOf(S,svId){for(const id in S.fac){const r=S.fac[id].route;if(r&&r.sv===svId){S.fac[id].route=null;note(S,'The trade route to '+FACTIONS[id].n+' has no runner and closes','bad')}}}
+export function endRouteOf(S,svId){for(const id in S.fac){const r=S.fac[id].route;if(r&&r.sv===svId){S.fac[id].route=null;note(S,'The trade route to '+FACTIONS[id].n+' has no runner and closes','bad')}}}
 /** A survivor is lost for good (killed on a raid). */
 function lose(S,sv){const i=S.surv.indexOf(sv);if(i>=0)S.surv.splice(i,1);endRouteOf(S,sv.id);S.morale=clamp(S.morale-8,0,100);stat('survLost')}
 

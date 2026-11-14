@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.10.77 — 2026-11-14
+
+- **Someone leaving over low morale goes into the community log**, with the morale and what raises it ("Juno has had enough and leaves: morale is 2"). It was a passing toast, so a survivor who joined could be gone with nothing in the log but the line saying she joined.
+
 ## 0.10.76 — 2026-11-14
 
 - **Toxin clears by itself much faster at home.** It fell by 0.03 a game minute everywhere, so from 100 it took 28 game hours to get under 50, with no healing in between (a bot sat at 100 for an hour and a half with nothing to cure it). At home it is now 0.25 (about two real minutes, 3.3 game hours); away from home 0.04. The "No antidote" message says to rest at home.

@@ -424,7 +424,7 @@ function dawn(S){
     let comfort=0;for(const o of S.home.obj)if(o&&OBJ[o.k].comfort)comfort+=OBJ[o.k].comfort;
     S.morale+=Math.min(8,comfort*.5)-hungry*5+(hungry?0:1)+(60-S.morale)*.05-(S.surv.length>survCap(S)?4:0);S.morale=clamp(Math.round(S.morale),0,100);
     if(hungry)toast(hungry>1?'Your people went hungry or thirsty last night':'Someone went without last night','bad');
-    if(S.morale<15&&rnd()<.35){const sv=S.surv.splice(Math.floor(rnd()*S.surv.length),1)[0];toast(sv.n+' has had enough and leaves','bad')}
+    if(S.morale<15&&rnd()<.35){const sv=S.surv.splice(Math.floor(rnd()*S.surv.length),1)[0];Community.note(S,sv.n+' has had enough and leaves: morale is '+Math.round(S.morale)+' (food, drink, and a safe bed keep it up)','bad');Community.endRouteOf(S,sv.id)}
     if(Object.keys(S.home.pile).length)toast('Your people brought things in. Collect them from the camp ledger.','info');
     if(G.Z&&G.Z.home)emit('zoneDirty');
   }
