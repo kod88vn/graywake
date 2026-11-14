@@ -32,10 +32,13 @@ try{
   {const ok=await until(`GW.UI.panel==='exile'`,20000);T.ok(ok,'when the hold runs out the game says the enclave has fallen'+(ok?'':' '+await ev(`JSON.stringify({panel:GW.UI.panel,mode:GW.G.mode,exile:!!(GW.G.S.net&&GW.G.S.net.exile),dead:GW.G.Z&&GW.G.Z.pl&&GW.G.Z.pl.dead})`)))}
   // (it is in the save, so a reload before the move is made still makes it)
   T.ok(await ev(`!!GW.G.S.net.exile`),'the fall is written into the save until the move is made');await page.shot('world-exile');
+  // a tide that ends while the move waits was fought in the old valley: the new world does not hear of it
+  await ev(`GW.G.S.deeds.lost=1`);await page.sleep(6000);
   await page.tap('#pb .btn.go');await page.sleep(900);
   const after=JSON.parse(await ev(`JSON.stringify({seed:GW.G.S.seed,lvl:GW.G.S.p.lvl,home:!!(GW.G.Z&&GW.G.Z.home),world:GW.G.S.world&&GW.G.S.world.name,hold:GW.G.S.world&&GW.G.S.world.you&&GW.G.S.world.you.hold,tide:GW.G.S.tide.n,net:GW.G.S.net.world})`));
   T.ok(after.seed!==home0&&after.lvl===7&&after.home&&after.world&&after.world!==w.name&&after.hold===RULES.hold0&&after.tide===0,'the character starts again in another world with a new homestead, keeping its level ('+w.name+' → '+after.world+')');
   T.ok(S.DB().worlds.length===2&&S.DB().worlds.find(x=>x.id===after.net).enclaves.some(e=>e.name==='Tester'&&e.status==='holding'),'and the server has it holding ground there');
+  await page.sleep(6000);{const e=S.DB().worlds.find(x=>x.id===after.net).enclaves.find(e=>e.name==='Tester');T.ok(e.hold===RULES.hold0&&e.deeds.lost===0,'a tide lost while the move waited is not charged to the new world (hold '+e.hold+')')}
   const errs=await ev(`(window.__errors||[]).length`);T.ok(!errs,'no page errors');
 }catch(e){T.ok(false,'error: '+(e.stack||e).split('\n').slice(0,3).join(' | '))}
 finally{await page.close();await S.close();fs.rmSync(dir,{recursive:true,force:true})}

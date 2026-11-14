@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.10.21 — 2026-11-14
+
+- **A fallen enclave arrives in its new valley clean.** A tide that finished while the move was still waiting (it had been fought in the old valley) was reported to the new world and cost 25 hold the moment the enclave arrived. Nothing done before the move reaches the new world now.
+
 ## 0.10.20 — 2026-11-14
 
 - Building on a taken spot says what is there ("Occupied by Wooden Spikes"), not just "Occupied": a low trap is easy to miss under the cursor.

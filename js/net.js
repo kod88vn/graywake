@@ -26,6 +26,9 @@ export const Net={url:null,name:'',kind:'human',pick:'',state:'off',err:'',world
         const j=await this.call('/api/join',{world:wid||undefined,name:this.name||(this.kind==='bot'?'Bot camp':'Your enclave'),kind:this.kind});
         S.net={url:this.url,world:j.world.id,enclave:j.enclave,token:j.token,name:j.name,kind:this.kind,heard:(S.net&&S.net.heard)||{}};S.deeds={held:0,lost:0,deaths:0,leads:[]};
         World.worldNews(S,j.world,{name:j.name,hold:60,score:0,rank:j.world.enclaves.length,of:j.world.enclaves.length});toast('You are in '+j.world.name+', with '+(j.world.enclaves.length-1)+' other enclaves. O shows the world','info');G.ev.push(['save'])}
+      // nothing goes to the new world until the move has been made, and nothing done before it ever does: a tide that ends while the move
+      // waits was fought in the old valley (one once cost a fallen enclave 25 hold the moment it arrived somewhere new)
+      if(S.net.exile){S.deeds={held:0,lost:0,deaths:0,leads:[]};this.state='on';return}
       const d=S.deeds,sent={held:d.held,lost:d.lost,deaths:d.deaths,leads:d.leads.slice()};
       const r=await this.call('/api/sync',{world:S.net.world,enclave:S.net.enclave,token:S.net.token,report:{t:S.t,day:dayOf(S.t),level:S.p.lvl,deeds:sent}});
       if(r.gone){S.net.token=null;this.state='joining';return}
@@ -33,8 +36,8 @@ export const Net={url:null,name:'',kind:'human',pick:'',state:'off',err:'',world
       // what the world has been told is written down at once, so a save never holds deeds the world has already counted
       if(sent.held||sent.lost||sent.deaths||sent.leads.length)G.ev.push(['save']);
       // the fall is written into the save at once and shown as soon as nothing else is on screen (it once arrived under a death sheet and was never applied)
-      if(r.moved){Object.assign(S.net,{world:r.moved.world,enclave:r.moved.enclave,token:r.moved.token,name:r.moved.name,heard:{},exile:{from:r.moved.from,to:r.world.name,world:r.world,you:r.you}});G.ev.push(['save']);this.state='on';return}
-      if(S.net.exile)return;   // nothing more from the new world until the move has been made
+      if(r.moved){Object.assign(S.net,{world:r.moved.world,enclave:r.moved.enclave,token:r.moved.token,name:r.moved.name,heard:{},exile:{from:r.moved.from,to:r.world.name,world:r.world,you:r.you}});S.deeds={held:0,lost:0,deaths:0,leads:[]};G.ev.push(['save']);this.state='on';return}
+      if(S.net.exile)return;
       World.worldNews(S,r.world,r.you);this.state='on';this.err='';
     }catch(e){this.state='down';this.err=String(e&&e.message||e)}
     finally{this.busy=false}},
