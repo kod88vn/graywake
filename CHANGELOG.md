@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.10.53 — 2026-11-14
+
+- A full box says how to get more room: "No room in there: upgrade it to a Chest (20 slots, Build, Upgrade) or build another".
+
 ## 0.10.52 — 2026-11-14
 
 - **Your people defend the homestead properly.** In a tide your survivors take up bows, and now they shoot over your own walls and doors: from inside a closed yard they could not see, let alone hit, what was battering it, so they stood idle until the walls broke. Measured with the player standing still at tide 10 in a walled yard, three survivors now kill twice as many attackers (17 to 23 against 4 to 12) and the yard loses fewer pieces (8 to 10 against 12 to 19).

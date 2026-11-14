@@ -120,7 +120,7 @@ PANELS.loot={title:i=>G.Z&&G.Z.obj[i]?OBJ[G.Z.obj[i].k].n:'Container',live:true,
   act(a,d){
     const s=S(),Z=G.Z,i=curLoot,o=Z.obj[i];if(!o)return;const dd=OBJ[o.k],cap=lootCap(o);
     if(a==='take'){const it=o.inv[+d.i];if(!it)return;const left=addTo(s.p.inv,slotCount(s),it.id,it.n,it.d);if(left===it.n){UI().toast('Pack full','bad');return}s.codex.it[it.id]=1;if(left>0)it.n=left;else o.inv[+d.i]=null;gained(s,it.id);sfxq('pickup')}
-    else if(a==='put'){const it=s.p.inv[+d.i];if(!it)return;const left=addTo(o.inv,cap,it.id,it.n,it.d);if(left===it.n){UI().toast('No room in there','bad');return}if(left>0)it.n=left;else s.p.inv[+d.i]=null;o.kept=1;sfxq('pickup')}
+    else if(a==='put'){const it=s.p.inv[+d.i];if(!it)return;const left=addTo(o.inv,cap,it.id,it.n,it.d);if(left===it.n){const up=OBJ[o.k]&&OBJ[o.k].up&&OBJ[OBJ[o.k].up];UI().toast('No room in there'+(up&&up.store?': upgrade it to a '+up.n+' ('+up.store+' slots, Build, Upgrade) or build another':''),'bad');return}if(left>0)it.n=left;else s.p.inv[+d.i]=null;o.kept=1;sfxq('pickup')}
     else if(a==='all'){if(dd.store){for(let k=0;k<o.inv.length;k++){const it=o.inv[k];if(!it)continue;const left=addTo(s.p.inv,slotCount(s),it.id,it.n,it.d);if(left<it.n)gained(s,it.id);if(left>0)it.n=left;else o.inv[k]=null}}else lootAll(Z,i);sfxq('pickup');
       const o2=Z.obj[i],rest=o2&&o2.inv?o2.inv.filter(Boolean).length:0;if(rest)UI().toast('Pack full: '+rest+' '+(rest>1?'stacks':'stack')+' still in there','bad')}
     else if(a==='stow'){for(let k=0;k<s.p.inv.length;k++){const it=s.p.inv[k];if(!it||!['mat','seed','ammo'].includes(ITEMS[it.id].t))continue;const left=addTo(o.inv,cap,it.id,it.n,it.d);if(left>0)it.n=left;else s.p.inv[k]=null}sfxq('pickup')}
