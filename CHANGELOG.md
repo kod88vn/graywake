@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.10.72 — 2026-11-14
+
+- **A rival taking your lead while you are inside it now says so.** When someone opened a strongroom first while you were already in the place, the game said nothing: only the world feed mentioned it, and a bot searched a cleared Hardware Store without knowing. It now reads "Hollow Bridge opened the Hardware Store strongroom first. You are still inside, so what is in it is yours to take, but the hold goes to them."
+
 ## 0.10.71 — 2026-11-14
 
 - **Auto no longer charges out of the yard the moment the last wave arrives.** Its "go and finish the stragglers" rule started when the last attacker had spawned, not when few were left, so with twenty alive outside it opened the door and walked into them (found by logging every exit in a simulated tide: it left at the instant the queue ran out, with the nearest attackers two tiles from the door). It now hunts them when three or fewer remain. Tide 5, a yard with 20 traps and two of your people, Auto fighting: survived 12 times in 16 against 9.

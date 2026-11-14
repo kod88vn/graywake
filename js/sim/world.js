@@ -319,7 +319,9 @@ export function worldNews(S,W,you){
   // leads heard before joining belong to no world: they are struck off, so the same place is never on the map twice (one being stood in, or holding a dropped pack, stays)
   S.sites=S.sites.filter(s=>!(SITES[s.site]&&SITES[s.site].lead&&!s.wid&&!(G.Z&&G.Z.site===s.id)&&!(s.bag&&s.bag.some(Boolean))));if(S.lead.note&&!S.sites.some(s=>s.id===S.lead.note))S.lead.note=null;
   for(const l of W.leads||[]){const site=S.sites.find(s=>s.wid===l.id);
-    if(l.by&&l.by!==me){if(site&&!(G.Z&&G.Z.site===site.id)){const going=G.pending&&G.pending.dest===site.id;S.sites=S.sites.filter(s=>s!==site);if(S.lead.note===site.id)S.lead.note=null;S.lead.lostTo={id:site.id,by:l.by,name:SITES[l.kind].n};toast('Radio: '+l.by+' reached the '+SITES[l.kind].n+' first'+(going?', while you were on the road to it':''),'bad');sfx('radio')}net.heard[l.id]=1;continue}
+    if(l.by&&l.by!==me){if(site&&!(G.Z&&G.Z.site===site.id)){const going=G.pending&&G.pending.dest===site.id;S.sites=S.sites.filter(s=>s!==site);if(S.lead.note===site.id)S.lead.note=null;S.lead.lostTo={id:site.id,by:l.by,name:SITES[l.kind].n};toast('Radio: '+l.by+' reached the '+SITES[l.kind].n+' first'+(going?', while you were on the road to it':''),'bad');sfx('radio')}
+      else if(site&&!net.heard[l.id]){toast('Radio: '+l.by+' opened the '+SITES[l.kind].n+' strongroom first. You are still inside, so what is in it is yours to take, but the hold goes to them','bad');sfx('radio')}
+      net.heard[l.id]=1;continue}
     if(site||l.by||net.heard[l.id]||!SITES[l.kind]||S.tide.live)continue;
     const st=addLead(S,l.kind,undefined,S.lead.n===0?2:undefined);if(!st)continue;net.heard[l.id]=1;st.wid=l.id;st.until=S.t+Math.max(120,l.until-W.t);
     // the same place for everyone: a bearing and a distance from the world, turned into a spot one and a half to two and a half hours from this home
