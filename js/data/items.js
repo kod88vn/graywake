@@ -167,7 +167,7 @@ wrench:{n:'Wrench',t:'tool',ic:['wrench','#9aa1a8'],v:30,tool:'wrench',tier:1,du
 // ---- melee ----
 club:{n:'Wooden Club',t:'melee',ic:['club','#8a5a2b'],v:5,dmg:11,spd:.7,rng:1.3,arc:90,kb:2,dur:80,mdl:'club'},
 spear:{n:'Flint Spear',t:'melee',ic:['spear','#9b7a4a'],v:10,dmg:15,spd:.75,rng:2.0,arc:36,kb:2,dur:100,mdl:'spear'},
-bone_knife:{n:'Bone Knife',t:'melee',ic:['knife','#e4dcc6'],v:12,dmg:10,spd:.38,rng:1.1,arc:70,dur:100,fx:{sneak:1.5},mdl:'knife',d:'Fast. Deadly from behind.'},
+bone_knife:{n:'Bone Knife',t:'melee',ic:['knife','#e4dcc6'],v:12,dmg:10,spd:.38,rng:1.1,arc:70,dur:200,fx:{sneak:1.5},mdl:'knife',d:'Fast. Deadly from behind.'},
 bat:{n:'Baseball Bat',t:'melee',ic:['bat','#c49a5a'],v:20,dmg:20,spd:.68,rng:1.4,arc:100,kb:4,dur:110,mdl:'bat'},
 machete:{n:'Machete',t:'melee',ic:['sword','#a7adb3'],v:44,dmg:25,spd:.55,rng:1.4,arc:100,dur:160,fx:{bleed:3},mdl:'machete'},
 nail_bat:{n:'Nail Bat',t:'melee',ic:['bat','#c49a5a','#9aa1a8'],v:38,dmg:30,spd:.7,rng:1.4,arc:100,kb:4,dur:120,fx:{bleed:2},mdl:'nailbat'},

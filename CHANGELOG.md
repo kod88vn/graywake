@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- The bone knife lasts 200 blows (was 100): it swings more than twice as fast as a spear, so by blows it wore out in a single outing.
+- Quick drink skips meals with a little water in them (a Field Ration).
+
 ## 0.10.8 — 2026-11-13
 
 - **Fixed: the Radio Mast quest could not be finished early.** It needs a battery and says the Route 9 fuel stop has one, but batteries only turned up in the second region and beyond. Abandoned cars anywhere can now hold one.
