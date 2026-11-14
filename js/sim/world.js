@@ -346,7 +346,11 @@ export function setJob(S,id,job){
   sv.job=job;sfx('ui_tap');return true;
 }
 function pile(S,id,n){S.home.pile[id]=(S.home.pile[id]||0)+n}
-export function collectPile(S){let any=false;for(const id in S.home.pile){const n=S.home.pile[id],left=addTo(S.p.inv,slotCount(S),id,n);if(n-left>0){emit('loot',id,n-left);any=true}if(left>0)S.home.pile[id]=left;else delete S.home.pile[id]}if(any)sfx('pickup');return any}
+/** What your people brought in goes into the storage boxes first (where crafting and the people's meals draw from), then into the pack; whatever fits nowhere stays in the pile and is said. */
+export function collectPile(S){let any=false,stored=0,carried=0;const boxes=homeStores(S);
+  for(const id in S.home.pile){let n=S.home.pile[id];for(const b of boxes){if(n<=0)break;const l=addTo(b.inv,OBJ[b.k].store,id,n);stored+=n-l;n=l}
+    const l2=n>0?addTo(S.p.inv,slotCount(S),id,n):0;carried+=n-l2;if(n-l2>0)emit('loot',id,n-l2);n=l2;if(S.home.pile[id]!==n)any=true;if(n>0)S.home.pile[id]=n;else delete S.home.pile[id]}
+  if(any){sfx('pickup');toast('Put away: '+stored+' into storage'+(carried?', '+carried+' into your pack':'')+(Object.keys(S.home.pile).length?'. Some is still waiting: no room left anywhere':''),'good')}else if(Object.keys(S.home.pile).length)toast('No room in the storage boxes or your pack: build another box','bad');return any}
 function feedOne(S,key){ // key: 'food' | 'water'
   let best=null;for(const b of homeStores(S))b.inv.forEach((s,i)=>{if(!s)return;const it=ITEMS[s.id];if(it.t!=='food'||it.risk||(it[key]||0)<8||it.buff)return;if(!best||it.v<ITEMS[best.b.inv[best.i].id].v)best={b,i}});
   if(!best)return false;const s=best.b.inv[best.i];s.n--;if(s.n<=0)best.b.inv[best.i]=null;return true;
