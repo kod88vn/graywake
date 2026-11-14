@@ -548,7 +548,7 @@ function windowSpots(Z){
     if(best&&bc<1e9)out.push(best)});
   return out.sort((a,b)=>a.c-b.c);
 }
-const TIDE_CALM=40;
+const TIDE_CALM=40,TIDE_STALL=90;   // (no one hurt for 40 s, or nothing killed for 90 s, once every wave is in)
 function tickTide(S,Z,dt){
   // animals that only run away never count as attackers: a herd that wandered in must not keep a tide from ending
   const L=S.tide.live;L.t+=dt;let alive=0;for(const a of Z.actors)if(a.team===1&&!a.dead&&a.tide&&a.def.ai!=='flee'){alive++;
@@ -562,7 +562,7 @@ function tickTide(S,Z,dt){
   // TIDE_CALM seconds, what is left withdraws and the tide is held. Spitters standing off outside a yard kept a tide hanging for good, and auto
   // mode walked out of the walls to hunt them so it could end (0.10.52).
   if(!L.q.length&&alive>0){if(L.prevAlive===undefined||alive<L.prevAlive)L.prog=Z.time;L.prevAlive=alive;
-    if(Z.time-Math.max(L.prog||0,Z.lastHarm||0)>TIDE_CALM){for(let i=Z.actors.length-1;i>=0;i--){const a=Z.actors[i];if(a.team===1&&!a.dead&&a.tide&&a.def.ai!=='flee')Z.actors.splice(i,1)}
+    if(Z.time-Math.max(L.prog||0,Z.lastHarm||0)>TIDE_CALM||Z.time-(L.prog||0)>TIDE_STALL){for(let i=Z.actors.length-1;i>=0;i--){const a=Z.actors[i];if(a.team===1&&!a.dead&&a.tide&&a.def.ai!=='flee')Z.actors.splice(i,1)}
       toast('The last of them fall back into the dark','good');alive=0}}
   if(!L.q.length&&alive===0)endTide(S,Z,true);
 }

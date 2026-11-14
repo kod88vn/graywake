@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.10.75 — 2026-11-14
+
+- **A tide that has stalled ends.** Once every wave is in, if nothing has been killed for 90 seconds (as well as the 40 seconds of no one being hurt from 0.10.52) the last attackers fall back and the tide is held. Spitters standing off and spitting could keep a tide going for good, which showed up as the tide-15 test failing about one run in four. Auto also hunts the last attackers whenever every one of them is a ranged one, not only when three or fewer are left. Twelve runs of the sim tests in a row pass; tide 5 survival is unchanged.
+
+## 0.10.74 — 2026-11-14
+
+- The Mending Bench says what mending armour does: worn armour protects as well as new until it breaks, so repairing it does not change the armour number (a bot repaired to 100% and the total stayed at 79, and thought the repair had not worked).
+
 ## 0.10.73 — 2026-11-14
 
 - **A plain wall no longer replaces a window.** Dragging a Stick Wall line over a row of windows turned them all back into stick walls without a word (0.10.65 let a wall swap back over a window). A window still goes into a plain wall; to undo one, remove it first.
