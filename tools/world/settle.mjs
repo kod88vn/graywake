@@ -46,13 +46,21 @@ const count=o=>Object.values(o).reduce((a,b)=>a+b,0);
 /** One game day of a settlement's life. `ctx`: {day, stage, tideMult, leads:[{id,kind,age}]} (leads still open, with their age in minutes).
  *  Returns what happened that the world should know: [{k:'held'|'lost'|'death'|'take', lead?, text}]. */
 export function settlementDay(st,ctx){
-  const r=rng(st.seed+ctx.day*7919),T=TRAITS[st.trait],out=[];st.days++;
+  const r=rng(st.seed+ctx.day*7919),out=[];st.days++;
+  // each settlement has its own knack, so two of the same kind do not live the same life: how hard they work, and a lean of their own in
+  // what they put first (settlements from before this get theirs from their seed, the same every time)
+  if(!st.knack){const q=rng(st.seed^0x9e3779b9);st.knack={work:.82+q()*.36,lean:['walls','traps','gear','grow'][Math.floor(q()*4)]}}
+  const T0=TRAITS[st.trait],T=Object.assign({},T0);T[st.knack.lean]+=.1;
   // ---- growing with the world: experience from the day's work, quicker when behind the world's pace and slower when ahead of it
   const pace=1+(ctx.day-1)*.55+ctx.stage*1.5;st.xp+=(34+st.people*5+ctx.stage*8)*(st.lvl<pace-2?1.6:st.lvl>pace+3?.5:1);
   while(st.xp>=50+st.lvl*40){st.xp-=50+st.lvl*40;st.lvl++}
   // ---- the day's work, shared out the way these people do things
   // (a pair of hands raises two or three stick walls a day, as a player's do)
-  const work=st.people*(6.5+st.lvl*.45);for(const k in st.pts)st.pts[k]+=work*T[k];
+  // a good day and a bad one: the weather, the sick, a find
+  const work=st.people*(6.5+st.lvl*.45)*st.knack.work*(.8+r()*.4);
+  // after the tide has broken the walls, everyone digs out: most hands go to the walls until the ring is mostly whole again
+  {const ring=Math.min(40,14+st.people*2),have=count(st.walls);if(have<ring*.8){const rest=1-T.walls,want=Math.max(T.walls,.65);for(const k of['traps','gear','grow'])T[k]*=(1-want)/rest;T.walls=want}}
+  {const sum=T.walls+T.traps+T.gear+T.grow;for(const k of['walls','traps','gear','grow'])st.pts[k]+=work*T[k]/sum}
   let did='gathering';
   // walls: build out to a ring, then replace the weakest with the best this level can make
   {const best=WALLS.filter(k=>OBJ[k].lv<=st.lvl).pop(),ring=Math.min(40,14+st.people*2),cost=k=>3+WALLS.indexOf(k)*5;
