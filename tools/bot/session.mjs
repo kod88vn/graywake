@@ -145,7 +145,7 @@ C.goto=async a=>{let tx,ty,name;if(a.length>=2&&Number.isFinite(parseFloat(a[0])
   // end facing the thing walked to, with a nudge of the keys, so that E means it and not a neighbour
   if(end==='arrived'&&face){const l=Math.max(.01,Math.hypot(face[0],face[1]));await steerKeys(face[0]/l,face[1]/l);await sleep(70);await steerKeys(0,0);await sleep(60)}
   return{msg:end==='arrived'?`walked to ${name}`:`heading for ${name}, stopped after ${moved(r.p,r.p0).toFixed(1)} tiles: ${r.why||'ran out of time, call goto again'}`}};
-C.leave=async a=>{const e=await ev('__bot.exitSpot()');if(!e)return{msg:(await ev('!!(GW.G.Z&&GW.G.Z.home)'))?'you are at home: walk to the edge of the homestead or press M':'no way out found from here (walled in?)'};
+C.leave=async a=>{const e=await ev('__bot.exitSpot()');if(!e)return{msg:'no way out found from here (walled in?)'};
   if(!(await ev(`__bot.navTo(${e.x},${e.y})`)))return{msg:'no way out found'};let mark=null,markT=0,end=null;
   const r=await during(25,{each:async(p,p0,t)=>{if(p.exit){end='edge';return'at the edge'}const s=await ev('__bot.steer()');if(s.done){end=s.done;return s.done}await steerKeys(s.dx/Math.max(.01,Math.hypot(s.dx,s.dy)),s.dy/Math.max(.01,Math.hypot(s.dx,s.dy)));
     if(!mark){mark=p;markT=t}else if(t-markT>1.2){if(moved(p,mark)<.25){end='stuck';return'stuck'}mark=p;markT=t}}});
