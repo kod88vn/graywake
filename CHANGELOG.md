@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.10.47 — 2026-11-14
+
+- Among weapons about to break (under 15%), the one with more left is preferred: Wear best put a 3% machete in hand over a 14% bat.
+
 ## 0.10.46 — 2026-11-14
 
 - Standing on a bedroll beside a box, E opens the box: the bed took E whenever you stood on it, and the box could not be opened. The bed still answers E when nothing else is in reach.

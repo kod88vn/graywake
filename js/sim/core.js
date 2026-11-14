@@ -7,7 +7,7 @@ import {PERK,xpFor,MAX_LEVEL} from '../data/progress.js';
 import {clamp,rnd} from './util.js';
 import {sourcesOf} from '../data/sources.js';
 
-export const VERSION='0.10.46';
+export const VERSION='0.10.47';
 export const SAVE_V=2;
 export const HOME_W=46,HOME_H=46,EXIT_RING=2,NO_BUILD=4;
 export const MIN_PER_SEC=1.5;            // game minutes per real second: a day is 16 real minutes
@@ -98,7 +98,7 @@ export function gained(S,id,quiet){
  *  slots for a pack, damage a second for a weapon (a gun without a dozen shots is worth nothing; a weapon about to break very little). */
 export function gearScore(S,s){
   const it=s&&ITEMS[s.id];if(!it)return 0;if(it.dur&&s.d!==undefined&&s.d<=0)return 0;   // broken: worth nothing until it is mended (a fire axe at 0% was offered by Wear best)
-  const cond=it.dur&&s.d!==undefined?Math.max(0,Math.min(1,s.d/it.dur)):1,weapon=it.t==='melee'||it.t==='gun',frail=weapon?(cond<.15?.2:1)*(.9+.1*cond):(.97+.03*cond);   // clothes give their full armour until the moment they fall apart, so a worn pair still beats a weaker fresh one   // under 15% it is about to break (the line the lead rating draws); above that, condition only decides between near-equals: the fresher of two alike wins
+  const cond=it.dur&&s.d!==undefined?Math.max(0,Math.min(1,s.d/it.dur)):1,weapon=it.t==='melee'||it.t==='gun',frail=weapon?(cond<.15?.2*cond/.15:1)*(.9+.1*cond):(.97+.03*cond);   // clothes give their full armour until the moment they fall apart, so a worn pair still beats a weaker fresh one   // under 15% it is about to break (the line the lead rating draws); above that, condition only decides between near-equals: the fresher of two alike wins
   if(WEAR.includes(it.t))return((it.arm||0)+(it.cold||0)*6+(it.tox||0)*6+(it.spd||0)*20+.1)*frail;
   if(it.t==='pack')return it.slots||0;
   if(it.t==='gun')return count(S,it.ammo)>=(it.ammoPer||1)*12?it.dmg*(it.pellets||1)/it.spd*frail:0;
