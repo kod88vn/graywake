@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.10.41 — 2026-11-14
+
+- A trade on the road (the trapper's hides for jerky and the like) waits until your pack has room for what you would get, instead of taking your side and leaving theirs on the ground.
+
 ## 0.10.40 — 2026-11-14
 
 - Opening a trade route says what the runner stops doing ("Ada starts the daily run to Millrace, and is no longer your guard…"): a guard sent on a route left the tide post empty without a word.

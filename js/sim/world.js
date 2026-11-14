@@ -189,6 +189,11 @@ export const getEvent=id=>EVENTS.find(e=>e.id===id);
 export function optionBlocked(S,o){
   if(o.tool&&!['w1','w2'].map(s=>S.p.eq[s]).concat(S.p.inv).some(s=>s&&ITEMS[s.id].tool===o.tool))return'Needs '+{pry:'a crowbar',axe:'a hatchet',wrench:'a wrench',pick:'a pickaxe'}[o.tool];
   for(const k in o.need||{}){if(k==='scrip'){if(S.scrip<o.need[k])return'Needs '+o.need[k]+' scrip'}else if(count(S,k)<o.need[k])return'Needs '+o.need[k]+' '+ITEMS[k].n}
+  // a trade (it asks for something and is sure to hand things back): it waits for room in the pack, worked out after what it takes is gone.
+  // A trapper took the hides and left the jerky on the ground of a road the player was about to walk away from.
+  if(o.need&&o.r&&o.r.length===1&&!(G.Z&&G.Z.home)){const fx=o.r[0][2]||[],gets=fx.filter(f=>f[0]==='item'&&ITEMS[f[1]]);if(gets.length){
+    const inv=S.p.inv.map(s=>s&&{...s});for(const f of fx)if(f[0]==='take')removeFrom(inv,f[1],f[2]);
+    for(const f of gets)if(addTo(inv,slotCount(S),f[1],f[2],ITEMS[f[1]].dur)>0)return'No room in your pack for what you would get';}}
   return null;
 }
 export function chooseOption(evId,oi){
