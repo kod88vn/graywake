@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.10.10 — 2026-11-14
+
+- **Arriving where the story sent you says where to look**: "The Transmitter Coil should be in a Locker to the north, inside one of the buildings".
+- **A weak cure for a heavy dose says what would work**: after a Herb Poultice at toxin 94, "Charcoal Tablets (−25) or Antitoxin (−70) clear it properly. A gas mask keeps it out".
+- Bot tools: your own survivors are listed by name and job; a wall-side click with nothing there is refused; `auto on` says why the game switched it straight back off.
+
 ## 0.10.9 — 2026-11-13
 
 - **Worlds turn more slowly.** The event track's stages now need 12, 30, 60, 100 and 160 points (were 8, 20, 40, 70, 110), and settlements' deeds count half. Three settlements holding a tide every third day pushed Low Water to tides ×1.2 by its fifth day, and Pinewatch to ×1.5 by its fortieth; both bots fell to those tides. Worlds keep the stage they have reached.
