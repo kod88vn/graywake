@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.10.55 — 2026-11-14
+
+- When Auto empties a full pack into your storage boxes, it keeps the ammunition for any gun you carry: pistol rounds were stowed with the nails and planks, and the gun went into the next tide empty.
+
 ## 0.10.54 — 2026-11-14
 
 - An upgrade that cannot be paid for says which step it is ("Plank Wall to Stone Wall: missing Brick"): dragging over walls that were already plank asked for brick, and it read as if the Stick-to-Plank upgrade wanted brick.

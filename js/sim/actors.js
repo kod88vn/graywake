@@ -402,7 +402,7 @@ function autoWeapon(S){
 }
 /** The nearest storage box at home that would take at least one stack of what auto mode carries as materials, or null. */
 function stowTarget(Z,p){
-  const mats=G.S.p.inv.filter(it=>it&&['mat','seed','ammo'].includes(ITEMS[it.id].t));if(!mats.length)return null;let best=null,bd=1e9;
+  const mats=G.S.p.inv.filter(it=>it&&stowable(G.S,it.id));if(!mats.length)return null;let best=null,bd=1e9;
   for(let i=0;i<Z.obj.length;i++){const o=Z.obj[i];if(!o||!OBJ[o.k]||!OBJ[o.k].store)continue;const cap=OBJ[o.k].store,inv=o.inv||[];let free=0;for(let k=0;k<cap;k++)if(!inv[k])free++;
     if(!free&&!mats.some(m=>inv.some(s=>s&&s.id===m.id&&s.n<(ITEMS[m.id].st||1))))continue;const d=dist(i%Z.w+.5,Math.floor(i/Z.w)+.5,p.x,p.y);if(d<bd){bd=d;best={i}}}
   return best;
@@ -410,6 +410,10 @@ function stowTarget(Z,p){
 /** Where to fall back to: the reachable spot within a short run that is farthest from everything hostile (weighed against the length of the run).
  *  Used by auto mode when it is badly hurt, and by the bot's flee at home, where there is no edge to run off. Null if there is nothing to run from. */
 /** Is the post inside walls (a yard)? Worked out once per post: a flood from it that crosses no wall or door and does not reach the edge of the homestead. */
+/** What auto mode carries to the storage boxes when the pack fills: materials, seeds, and ammunition for nothing you carry. The rounds for a gun
+ *  you hold stay in the pack (they were stowed with the nails, and the gun went into the next tide empty). */
+const stowable=(S,id)=>{const t=ITEMS[id].t;if(t==='mat'||t==='seed')return true;if(t!=='ammo')return false;
+  for(const s of['w1','w2']){const e=S.p.eq[s],w=e&&ITEMS[e.id];if(w&&w.ammo===id)return false}for(const it of S.p.inv){const w=it&&ITEMS[it.id];if(w&&w.t==='gun'&&w.ammo===id)return false}return true};
 function postEnclosed(Z,post){
   if(post.enc!==undefined)return post.enc;const W=Z.w,H=Z.h,s=Math.floor(post.y)*W+Math.floor(post.x),seen=new Uint8Array(W*H),q=[s];seen[s]=1;let n=0;
   while(q.length){const c=q.pop(),x=c%W,y=(c-x)/W;if(x<3||y<3||x>=W-3||y>=H-3||++n>900)return post.enc=false;
@@ -494,7 +498,7 @@ function autoStep(Z,p,dt){
     if(Z.home){let s=p.stow;if(!s||!Z.obj[s.i]||Z.time-s.t>25){s=p.stow=stowTarget(Z,p);if(s){s.t=Z.time;s.f=field(Z,s.i%Z.w,Math.floor(s.i/Z.w),true,160)}}
       if(s){const tx=s.i%Z.w+.5,ty=Math.floor(s.i/Z.w)+.5;p.auto=null;
         if(dist(p.x,p.y,tx,ty)<1.45&&!walled(Z,p.x,p.y,tx,ty)){const o=Z.obj[s.i],cap=OBJ[o.k].store;let n=0;o.inv=o.inv||[];
-          for(let k=0;k<S.p.inv.length;k++){const it=S.p.inv[k];if(!it||!['mat','seed','ammo'].includes(ITEMS[it.id].t))continue;const left=addTo(o.inv,cap,it.id,it.n,it.d);if(left<it.n)n++;if(left>0)it.n=left;else S.p.inv[k]=null}
+          for(let k=0;k<S.p.inv.length;k++){const it=S.p.inv[k];if(!it||!stowable(S,it.id))continue;const left=addTo(o.inv,cap,it.id,it.n,it.d);if(left<it.n)n++;if(left>0)it.n=left;else S.p.inv[k]=null}
           p.stow=null;if(n){toast('Auto: put '+n+' stack'+(n>1?'s':'')+' of materials in the '+OBJ[o.k].n,'info');sfx('pickup');return[0,0]}}
         else{const dir=pathDir(Z,p,s.f);if(dir)return dir;const l=Math.hypot(tx-p.x,ty-p.y)||1;return[(tx-p.x)/l,(ty-p.y)/l]}}}
     // a full pack ends the gathering, not the defending: auto mode stays on and fights whatever comes, and says so once
