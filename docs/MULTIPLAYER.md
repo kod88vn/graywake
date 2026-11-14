@@ -39,7 +39,7 @@ The address is remembered in the browser; `?world=off` forgets it. `&enclave=Nam
 
 When a settlement falls, a new one takes its place two world days later (one at a time, up to the world's three), seeded from the world and already grown to the world's pace, with a name from `NPC_NAMES` that is not in use. A fallen or departed enclave's name can be taken again. In a tide, every person in a settlement fights from its windows (it puts one in every sixth piece of its wall), not only its guards; a settlement leader is always counted at full health. Measured over 160 settlements for 60 world days: 46% fall instead of all of them (`tools/measure/settlements.mjs`); farmers never fell.
 
-In the live worlds at the late stages (tides ×1.5 and ×1.7) most settlements still fall within a few tides; the replacements keep the valley populated. Whether to ease those stages is an open decision (`docs/OPERATIONS.md`).
+In the live worlds at the late stages (tides ×1.5 and ×1.7) most settlements still fall within a few tides; the replacements keep the valley populated. That is intended: the user has decided the late stages are not to be made easy (`docs/OPERATIONS.md`, section 10).
 
 ## Not built yet
 
