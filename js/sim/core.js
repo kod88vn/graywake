@@ -5,8 +5,9 @@ import {OBJ} from '../data/objects.js';
 import {RECIPES,VEHICLES} from '../data/recipes.js';
 import {PERK,xpFor,MAX_LEVEL} from '../data/progress.js';
 import {clamp,rnd} from './util.js';
+import {sourcesOf} from '../data/sources.js';
 
-export const VERSION='0.10.18';
+export const VERSION='0.10.19';
 export const SAVE_V=2;
 export const HOME_W=46,HOME_H=46,EXIT_RING=2,NO_BUILD=4;
 export const MIN_PER_SEC=1.5;            // game minutes per real second: a day is 16 real minutes
@@ -267,7 +268,7 @@ export const maxHp=k=>Math.round((OBJ[k].hp||0)*(1+(OBJ[k].cost?perk('wallhp'):0
 export function buildCost(k){const c=OBJ[k].cost||{},m=1-perk('cheap'),out={};for(const i in c)out[i]=Math.max(1,Math.round(c[i]*m));return out}
 export function buildUnlocked(S,k){const d=OBJ[k];if(!d.cost)return false;if(d.bp)return!!S.p.known[d.bp];return S.p.lvl>=d.lv}
 /** What is short for a cost, said so a player can act on it ("Log: need 4, have 1"), or null when it can be paid. */
-const afford=(S,cost)=>{for(const i in cost){const have=count(S,i,true);if(have<cost[i])return`${ITEMS[i].n}: need ${cost[i]}, have ${have}`}return null};
+const afford=(S,cost)=>{for(const i in cost){const have=count(S,i,true);if(have<cost[i]){const src=sourcesOf(i,2);return`${ITEMS[i].n}: need ${cost[i]}, have ${have}${src?' ('+src+')':''}`}}return null};
 const pay=(S,cost)=>{for(const i in cost)take(S,i,cost[i],true)};
 export function inBuildArea(Z,x,y){return x>=NO_BUILD&&y>=NO_BUILD&&x<Z.w-NO_BUILD&&y<Z.h-NO_BUILD}
 // ---- walls stand on the edges between cells

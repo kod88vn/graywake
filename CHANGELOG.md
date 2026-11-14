@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.10.19 — 2026-11-14
+
+- **"Missing" says where to get it.** Building, upgrading or repairing without enough of something now names where it comes from in the message itself ("Missing Nails: need 4, have 0 (made at a Workbench from Scrap Metal…)"); before, that was only in a tooltip that touch screens never show.
+
 ## 0.10.18 — 2026-11-14
 
 - **Auto no longer takes back what you stored.** Out in the valley Auto loots every chest it passes, and that included a chest you had just put things into: stash raw hides in a Tool Chest, switch Auto on, and the hides came back to your pack as if they had been copied. A container you have put something into is now yours, and Auto leaves it alone (chests the game filled are looted as before).
