@@ -261,6 +261,8 @@ const WRITING=new Set(['note','notebook','bug','idea']);
 
 // ---------------------------------------------------------------- bug reports: every one carries the evidence needed to reproduce it
 async function fileBug(source,severity,title,details){
+  // a report sent without a title gets the start of what it says (one arrived titled "undefined")
+  if(!title||title==='undefined'){const d=String(details||'').trim();title=(d.split(/[.:\n]/)[0]||'Untitled report').slice(0,110)}
   const id=S.bugs.length+1,dir=path.join('bugs',String(id).padStart(3,'0'));fs.mkdirSync(path.join(SD,dir),{recursive:true});
   const b={id,at:new Date().toISOString(),n:S.n,source,severity,title:title.slice(0,200),details:(details||'').slice(0,3000),dir};S.bugs.push(b);
   try{fs.writeFileSync(path.join(SD,dir,'shot.jpg'),await shot(1,70))}catch(e){}
