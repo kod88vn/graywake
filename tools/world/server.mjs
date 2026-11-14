@@ -26,12 +26,15 @@ export const RULES={
   stale:36*3600e3,               // a world nobody has played in for this long (real time) is deleted
   score:{held:10,lead:15,day:2,level:3},
   // the world's event track: every deed pushes it on (a tide held 2, a strongroom 3), and each stage makes the tides heavier for everyone in it
+  // (thresholds raised and settlements count half, 0.10.9: three settlements holding a tide every third day pushed a world to tides x1.2 by its fifth day
+  // and x1.5 by its fortieth, and both bots fell to those tides)
+  npcPoints:.5,
   stages:[{n:'The Quiet',need:0,tide:1,d:'The valley is still working out who is left.'},
-    {n:'First Blood',need:8,tide:1.1,d:'The husks have learned where the fires are.'},
-    {n:'The Tide Turns',need:20,tide:1.2,d:'They come in numbers now, and on a schedule.'},
-    {n:'The Bloom Spreads',need:40,tide:1.35,d:'Gray growth on the ridge lines. The air tastes of it.'},
-    {n:'The Long Night',need:70,tide:1.5,d:'Nobody remembers the last quiet week.'},
-    {n:'The Signal',need:110,tide:1.7,d:'Something is calling them all to the same place.'}],
+    {n:'First Blood',need:12,tide:1.1,d:'The husks have learned where the fires are.'},
+    {n:'The Tide Turns',need:30,tide:1.2,d:'They come in numbers now, and on a schedule.'},
+    {n:'The Bloom Spreads',need:60,tide:1.35,d:'Gray growth on the ridge lines. The air tastes of it.'},
+    {n:'The Long Night',need:100,tide:1.5,d:'Nobody remembers the last quiet week.'},
+    {n:'The Signal',need:160,tide:1.7,d:'Something is calling them all to the same place.'}],
 };
 // (none of these may echo a region of the map: a world called Pinewatch made the map's "Pinewatch Valley" read as the old world after a move)
 const WORLD_NAMES=['Low Water','Greywell','Emberfield','Stonecross','Marrow Lake','Thornreach','Coldharbour','Ashlow','Wickerfen','Dunmere','Haldane Gap'];
@@ -74,10 +77,10 @@ export function makeServer({dir=path.join(ROOT,'.out/worlds'),rnd=Math.random,no
       const leads=w.leads.filter(l=>!l.by).map(l=>({id:l.id,kind:l.kind,age:w.t-l.born})),ev=settlementDay(e.st,{day:w.npcDay,stage:st,tideMult,leads,headStart:RULES.headStart});
       e.day++;e.level=e.st.lvl;
       for(const x of ev){
-        if(x.k==='held'){e.hold=Math.min(RULES.holdMax,e.hold+RULES.tideHeld);e.deeds.held++;e.score+=RULES.score.held;w.points+=2;news(w,e.name+' held the tide.','good')}
+        if(x.k==='held'){e.hold=Math.min(RULES.holdMax,e.hold+RULES.tideHeld);e.deeds.held++;e.score+=RULES.score.held;w.points+=2*RULES.npcPoints;news(w,e.name+' held the tide.','good')}
         else if(x.k==='lost'){e.hold+=RULES.tideLost;e.deeds.lost++;news(w,'The tide went through '+e.name+'.','bad')}
         else if(x.k==='death'){e.hold+=RULES.death;e.deeds.deaths++;news(w,e.name+' were '+x.text+'.','bad')}
-        else if(x.k==='take'){const l=w.leads.find(l=>l.id===x.lead);if(l&&!l.by){l.by=e.name;l.byId=e.id;l.byT=w.t;e.hold=Math.min(RULES.holdMax,e.hold+RULES.lead);e.deeds.leads++;e.score+=RULES.score.lead;w.points+=3;news(w,e.name+' reached the '+SITES[l.kind].n+' first.','bad')}}}
+        else if(x.k==='take'){const l=w.leads.find(l=>l.id===x.lead);if(l&&!l.by){l.by=e.name;l.byId=e.id;l.byT=w.t;e.hold=Math.min(RULES.holdMax,e.hold+RULES.lead);e.deeds.leads++;e.score+=RULES.score.lead;w.points+=3*RULES.npcPoints;news(w,e.name+' reached the '+SITES[l.kind].n+' first.','bad')}}}
       e.score+=RULES.score.day;if(e.hold<=0)fall(w,e)}
   }
   function fall(w,e){e.status='fallen';e.hold=0;w.gone.push({name:e.name,kind:e.kind,day:Math.floor(w.t/1440)+1,score:e.score});news(w,e.name+' has fallen. '+(e.kind==='npc'?'Nobody is left there.':'Its people are on the road, looking for another valley.'),'bad')}

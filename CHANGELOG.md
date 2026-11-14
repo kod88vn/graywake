@@ -2,6 +2,8 @@
 
 ## 0.10.9 — 2026-11-13
 
+- **Worlds turn more slowly.** The event track's stages now need 12, 30, 60, 100 and 160 points (were 8, 20, 40, 70, 110), and settlements' deeds count half. Three settlements holding a tide every third day pushed Low Water to tides ×1.2 by its fifth day, and Pinewatch to ×1.5 by its fortieth; both bots fell to those tides. Worlds keep the stage they have reached.
+
 - **Fixed: Auto mode wandered out of the yard just before a tide.** In the last 45 minutes before one it went on gathering, walked out to chop a tree, and was caught outside the walls when the tide came (Haiku Two died and lost tide 5 that way). It now stops gathering and keeps to the spot where it was switched on.
 
 - The bone knife lasts 200 blows (was 100): it swings more than twice as fast as a spear, so by blows it wore out in a single outing.
