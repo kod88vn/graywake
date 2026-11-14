@@ -101,7 +101,7 @@ export function callCaravan(S,id){
   if(fs.carAt===dayOf(S.t)){toast('Their caravan has already been today','info');return false}fs.carAt=dayOf(S.t);
   const k=(1.2-fs.st/250)*(1-perk('haggle')),pool=F.stock.filter(x=>ITEMS[x]),stock=[];
   for(const x of pool){if(stock.length>=8)break;if(rnd()<.85){const v=ITEMS[x].v;stock.push({id:x,n:Math.max(1,Math.round((v<4?14:v<12?6:v<40?3:1)*(.6+rnd()*.8))),p:Math.max(1,Math.ceil(v*2.2*k))})}}
-  S.trader={until:S.t+6*60,stock,fac:id};sfx('door');return true;
+  S.trader={until:S.t+6*60,stock,fac:id};sfx('door');toast(F.n+"'s caravan is at your gate for 6 hours: trade from this sheet, or from their line in the Camp ledger",'good');return true;
 }
 /** Start a standing trade run to a friendly community. One survivor walks it every day and brings back goods and scrip. */
 export function openRoute(S,id,svId){

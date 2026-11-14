@@ -195,7 +195,7 @@ PANELS.camp={title:'Camp ledger',live:true,tab:a=>a||'camp',
         if(s.sites.some(x=>x.fac===id))tags.push('<span>forward camp marked on the map</span>');
         const A=[];
         A.push(btn('Gift 25 scrip','gift',`data-id="${id}"`+(s.scrip<25?' disabled':'')),btn(campSel.gift===id?'Close gifts':'Gift from pack','giftopen',`data-id="${id}"`));
-        if(fs.st>=-15&&F.stock.length)A.push(btn('Call their caravan','caravan',`data-id="${id}"`));
+        if(fs.st>=-15&&F.stock.length)A.push(s.trader&&s.trader.fac===id&&s.trader.until>s.t?btn('Trade at their caravan (here '+fmtMin(s.trader.until-s.t)+' more)','caravanopen','','go'):btn('Call their caravan','caravan',`data-id="${id}"`));
         if(F.route.length){if(fs.route)A.push(btn('Close trade route','routeoff',`data-id="${id}"`));else if(fs.st>=COMM.routeAt){if(!free.find(v=>v.id===campSel.runner[id]))campSel.runner[id]=free[0]?free[0].id:null;A.push(free.length?`<select class="sel2" data-c="runner" data-id="${id}" id="run${id}">${free.map(v=>`<option value="${v.id}" ${campSel.runner[id]===v.id?'selected':''}>${esc(v.n)}</option>`).join('')}</select>`+btn('Open trade route · '+COMM.routeCost+' scrip','route',`data-id="${id}"`+(s.scrip<COMM.routeCost?' disabled':''),'go'):'<small>Trade route: nobody free to walk it</small>')}}
         if(!fs.pact&&fs.st>=COMM.pactAt)A.push(btn('Stand together (pact)','pact',`data-id="${id}"`,'go'));
         if(fs.pact)A.push(btn('Ask for a volunteer · '+COMM.volunteerCost+' scrip','vol',`data-id="${id}"`+(s.scrip<COMM.volunteerCost||s.t<fs.volAt?' disabled':'')));
@@ -223,6 +223,7 @@ PANELS.camp={title:'Camp ledger',live:true,tab:a=>a||'camp',
     else if(a==='replant'){s.set.replant=!s.set.replant}
     else if(a==='gift')C.gift(s,id,25);else if(a==='giftopen')campSel.gift=campSel.gift===id?null:id;else if(a==='giftit')C.gift(s,id,{i:+d.i});
     else if(a==='caravan'){if(C.callCaravan(s,id)){UI().open('trade');return false}}
+    else if(a==='caravanopen'){UI().open('trade');return false}
     else if(a==='route')C.openRoute(s,id,campSel.runner[id]);else if(a==='routeoff')C.closeRoute(s,id);
     else if(a==='pact')C.pact(s,id);else if(a==='vol')C.askVolunteer(s,id);else if(a==='tribute')C.tribute(s,id);
     else if(a==='war')C.warParty(s,id,campSel.party[id]||1);else if(a==='camp')C.markCamp(s,id);

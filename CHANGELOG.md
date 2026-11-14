@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.10.43 — 2026-11-14
+
+- A caravan you call can be found again: while it is at your gate its line in the Camp ledger reads "Trade at their caravan (here 5h more)" instead of "already been today", and calling it says it has arrived and for how long. Closing the trade sheet used to lose it.
+
 ## 0.10.42 — 2026-11-14
 
 - Anything of yours broken at the homestead says so as it breaks, in a tide or out of one (a raid, an animal): a wall piece that went between tides vanished without a word.
