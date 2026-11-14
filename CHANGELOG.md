@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.10.38 — 2026-11-14
+
+- The toxin warnings say where the cures come from: Herbal Tea from the campfire, Charcoal Tablets and Antitoxin from a Herbalist Table.
+
 ## 0.10.37 — 2026-11-14
 
 - **The Camp ledger says whether your yard is closed.** Under the next tide it now reads "Your yard is closed all round (25 tiles inside)", or names the gap: "nothing stands on the north side of tile (23, 18). Wall it or put a door there." A one-tile gap is easy to miss by eye.

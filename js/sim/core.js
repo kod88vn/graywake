@@ -7,7 +7,7 @@ import {PERK,xpFor,MAX_LEVEL} from '../data/progress.js';
 import {clamp,rnd} from './util.js';
 import {sourcesOf} from '../data/sources.js';
 
-export const VERSION='0.10.37';
+export const VERSION='0.10.38';
 export const SAVE_V=2;
 export const HOME_W=46,HOME_H=46,EXIT_RING=2,NO_BUILD=4;
 export const MIN_PER_SEC=1.5;            // game minutes per real second: a day is 16 real minutes
@@ -424,11 +424,11 @@ export function quickUse(S,need){
     else if(need==='hp'){if(it.t!=='med'&&!(it.hp>=8))return;const miss=ds.maxHp-p.hp;v=it.hp>0?Math.max(1,100-Math.abs(miss-it.hp)):0}
     else if(need==='tox')v=-(it.tox||0);
     if(v>score){score=v;best=i}});
-  if(best<0){toast(need==='hp'?'Nothing to heal with':need==='tox'?'No antidote':need==='water'?(risky?'Only '+risky+' to drink: boil it at a campfire first, or drink it from your pack and risk it':'Nothing to drink in your pack'):'Nothing suitable in your pack','bad');sfx('error');return false}
+  if(best<0){toast(need==='hp'?'Nothing to heal with':need==='tox'?'No antidote. Herbal Tea is brewed at a campfire (2 herbs, clean water); Charcoal Tablets and Antitoxin are made at a Herbalist Table':need==='water'?(risky?'Only '+risky+' to drink: boil it at a campfire first, or drink it from your pack and risk it':'Nothing to drink in your pack'):'Nothing suitable in your pack','bad');sfx('error');return false}
   // say what was used and how many are left: a quick key, the health bar or auto mode spends things the player did not pick by hand
   const id=S.p.inv[best].id,ok=useItem(S,best);if(ok){const left=count(S,id);toast('Used '+ITEMS[id].n+(left?' · '+left+' left':' · that was the last one'),left?'info':'bad');
     // a weak cure for a heavy dose: say what would actually clear it
-    if(need==='tox'&&S.p.tox>=40)toast('Toxin still '+Math.round(S.p.tox)+': Charcoal Tablets (-25) or Antitoxin (-70) clear it properly. A gas mask keeps it out','bad')}return ok;
+    if(need==='tox'&&S.p.tox>=40)toast('Toxin still '+Math.round(S.p.tox)+': Charcoal Tablets (-25) or Antitoxin (-70), made at a Herbalist Table, clear it properly; Herbal Tea from the campfire takes off 10. A gas mask keeps it out','bad')}return ok;
 }
 export function repairWithKit(S,slot){
   const e=S.p.eq[slot];if(!e||e.d===undefined)return false;const it=ITEMS[e.id];if(e.d>=it.dur){toast('Not worn','info');return false}
