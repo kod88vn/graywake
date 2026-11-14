@@ -3,6 +3,7 @@
 // goes through real key and mouse events sent by the session.
 import {G,weaponDef,betterGear,gearScore,canCraft,recipeVisible} from '../js/sim/core.js';
 import {RECIPE_LIST} from '../js/data/recipes.js';
+import {JOBS} from '../js/data/progress.js';
 import {OBJ} from '../js/data/objects.js';
 import {ITEMS} from '../js/data/items.js';
 import {interactInfo,retreatSpot} from '../js/sim/actors.js';
@@ -113,7 +114,7 @@ B.observe=(full=false)=>{
       spare:sp&&ITEMS[sp.id]?ITEMS[sp.id].n:null,auto:!!G.auto,build:!!G.build};
     o.you.pack=(p.inv||[]).filter(Boolean).length;
     // people: who lives here and what they do, who waits at the fence, and room
-    {const beds=GW.World.survCap?GW.World.survCap(S):0;o.people={surv:S.surv.map(s=>s.n+' ('+s.job+')'),idle:S.surv.filter(s=>s.job==='idle').length,wait:S.wait.map(c=>c.n),beds,room:GW.World.survRoom?GW.World.survRoom(S):beds+1}}
+    {const beds=GW.World.survCap?GW.World.survCap(S):0;o.people={surv:S.surv.map(s=>s.n+' ('+((JOBS[s.job]||JOBS.idle).n)+(s.job==='idle'?', no job':', job set')+')'),idle:S.surv.filter(s=>s.job==='idle').length,wait:S.wait.map(c=>c.n),beds,room:GW.World.survRoom?GW.World.survRoom(S):beds+1}}
     // the shared world, if this game is in one: where this enclave stands and who else holds ground
     if(S.world){const w=S.world,y=w.you||{};o.world={name:w.name,stage:w.stageName,tide:w.fx&&w.fx.tide||1,hold:y.hold,rank:y.rank,of:y.of,score:y.score,rivals:w.enclaves.filter(e=>e.name!==y.name).map(e=>e.name+' ('+(e.kind==='npc'?'settlement':e.kind)+', hold '+e.hold+', score '+e.score+')'),leads:S.sites.filter(s=>s.wid).length,news:w.feed.slice(-3).map(f=>f.text)}}
     // what is worn, what in the pack would be better, and what could be made by hand this minute for a slot that is bare or poorly covered
