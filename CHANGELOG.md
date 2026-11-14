@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.10.37 — 2026-11-14
+
+- **The Camp ledger says whether your yard is closed.** Under the next tide it now reads "Your yard is closed all round (25 tiles inside)", or names the gap: "nothing stands on the north side of tile (23, 18). Wall it or put a door there." A one-tile gap is easy to miss by eye.
+
 ## 0.10.36 — 2026-11-14
 
 - Broken gear (0% condition) is never "better gear": Wear best offered a broken fire axe. It counts again once it is mended.

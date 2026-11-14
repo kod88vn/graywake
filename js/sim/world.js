@@ -339,6 +339,30 @@ export function leadRead(S){S.lead.note=null}
 export const BASE_PEOPLE=3;
 /** How many people can live at the homestead: one for every bed beyond your own, and one more sleeping by the fire (unhappily) until a bed is built; never more than BASE_PEOPLE. */
 export const survRoom=S=>Math.min(BASE_PEOPLE,survCap(S)+1);
+/** Is the yard closed? A flood from your bed (or fire) that crosses no wall or door. Returns null when there is nothing to check (no walls, no bed),
+ *  {closed:true,tiles}, or {closed:false,gap:[x,y,side]}: the first unwalled crossing out of the walled area. A bot walked its yard looking for
+ *  the gap it could not see, and walled an edge outside it (0.10.37). */
+export function yardCheck(S){
+  const H=S.home,W=HOME_W,Hh=HOME_H;if(!H.ed||!H.ed.some(Boolean))return null;
+  const starts=[];for(let i=0;i<H.obj.length;i++){const o=H.obj[i],d=o&&OBJ[o.k];if(d&&(d.bed||d.station==='campfire'||d.store))starts.push(i)}if(!starts.length)return null;
+  let x0=W,y0=Hh,x1=0,y1=0;H.ed.forEach((e,j)=>{if(!e)return;const t=j>>1,x=t%W,y=(t-x)/W;x0=Math.min(x0,x-1);y0=Math.min(y0,y-1);x1=Math.max(x1,x);y1=Math.max(y1,y)});
+  const SIDES=[[1,0,1],[-1,0,3],[0,1,2],[0,-1,0]],wall=(x,y,side)=>x>=0&&y>=0&&x<W&&y<Hh&&!!H.ed[edgeIdx(W,x,y,side)];
+  const flood=start=>{const par=new Int32Array(W*Hh).fill(-2),ps=new Int8Array(W*Hh),q=[start];par[start]=-1;let n=0;
+    while(q.length){const c=q.shift(),x=c%W,y=(c-x)/W;n++;
+      for(const[dx,dy,side]of SIDES){const nx=x+dx,ny=y+dy;if(wall(x,y,side))continue;
+        if(nx<x0||ny<y0||nx>x1||ny>y1||nx<0||ny<0||nx>=W||ny>=Hh){
+          // the way out, walked back from where it left: the gap is the step through a line of wall (a wall on the next edge along, either way)
+          const steps=[[c,side]];for(let t=c;par[t]>=0;t=par[t])steps.push([par[t],ps[t]]);steps.reverse();
+          for(const[t,sd]of steps){const tx=t%W,ty=(t-tx)/W,along=sd===0||sd===2?[[tx-1,ty],[tx+1,ty]]:[[tx,ty-1],[tx,ty+1]];if(along.some(([ax,ay])=>wall(ax,ay,sd)))return{closed:false,n,gap:[tx,ty,['north','east','south','west'][sd]]}}
+          return{closed:false,n,gap:[x,y,['north','east','south','west'][side]]}}
+        const j=ny*W+nx;if(par[j]===-2){par[j]=c;ps[j]=side;q.push(j)}}}
+    return{closed:true,tiles:n}};
+  // the yard is closed if any bed, fire or box is walled in (a bedroll outside the walls is not a hole in them); when none is, the gap is looked for
+  // from the one with the most wall around it, which is the one inside what is meant to be the yard
+  const rs=starts.map(st=>({st,r:flood(st)})),shut=rs.filter(x=>x.r.closed).sort((a,b)=>b.r.tiles-a.r.tiles)[0];if(shut)return shut.r;
+  const near=st=>{const sx=st%W,sy=(st-sx)/W;let n=0;for(let y=sy-4;y<=sy+4;y++)for(let x=sx-4;x<=sx+4;x++)for(const sd of[0,3])if(wall(x,y,sd))n++;return n};
+  return rs.sort((a,b)=>near(b.st)-near(a.st))[0].r;
+}
 export function survCap(S){let beds=0;for(const o of S.home.obj)if(o&&OBJ[o.k].bed)beds+=OBJ[o.k].bed>=3?2:1;return Math.min(BASE_PEOPLE,Math.max(0,beds-1)+(homeHas(S,'beacon')?2:0)+perk('surv'))}
 /** Add someone to the homestead. `who` ({n, trait}) is a person who was waiting to be recruited; without it a stranger is made up. */
 export function addSurvivor(S,who){
