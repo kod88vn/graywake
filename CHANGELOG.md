@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.10.14 — 2026-11-14
+
+- **Fixed: collecting from a rain catcher or snare with a full pack duplicated the catch.** It fell on the ground and also stayed in the catcher. It now goes into the pack, then the storage boxes; what fits nowhere stays in the catcher, with a message.
+
 ## 0.10.13 — 2026-11-14
 
 - **Collecting what your people brought in fills the storage boxes first**, then your pack, and says what went where. It used to go into the pack only, so with a full pack nineteen corn sat uncollected.

@@ -5,7 +5,7 @@ import {OBJ} from '../data/objects.js';
 import {sourcesOf} from '../data/sources.js';
 import {FIND} from '../data/world.js';
 import {ENEMIES,scale} from '../data/enemies.js';
-import {G,gained,emit,toast,sfx,stat,statMax,derive,perk,weaponDef,weaponItem,count,take,give,addTo,slotCount,freeSlots,roomFor,wear,findTool,wearTool,dropAt,addXp,maxHp,FIST,quickUse,EREF,edgeIdx,structAt,structXY} from './core.js';
+import {G,gained,homeStores,emit,toast,sfx,stat,statMax,derive,perk,weaponDef,weaponItem,count,take,give,addTo,slotCount,freeSlots,roomFor,wear,findTool,wearTool,dropAt,addXp,maxHp,FIST,quickUse,EREF,edgeIdx,structAt,structXY} from './core.js';
 import {collide,los,shotBlock,blockAt,playerField,field,stepOn,rollLoot,freeNear,atExit,edgeCross,edgeBetween,walkClear,pathAim} from './zone.js';
 import {noteKill} from './quests.js';
 import {clamp,dist,angDiff,rnd,TAU} from './util.js';
@@ -346,8 +346,12 @@ export function plant(Z,i,seedId){
   const S=G.S,o=Z.obj[i];if(!o||o.seed||!ITEMS[seedId]||!take(S,seedId,1))return false;o.seed=seedId;o.t0=S.t;o.ripe=S.t+ITEMS[seedId].grow;o.wet=0;o.fert=0;stat('planted');Z.touch(i);sfx('rustle');return true;
 }
 function collectProd(Z,i){
-  const S=G.S,o=Z.obj[i],d=OBJ[o.k].prod;const n=Math.floor(o.stock);if(n<=0)return;const got=give(S,d.item,n);o.stock-=got;
-  if(o.extra>0){give(S,d.extra[0],o.extra);o.extra=0}sfx('pickup');Z.touch(i);
+  // into the pack, and what does not fit into the storage boxes at home; what fits nowhere stays where it is (it used to fall on the ground and stay in
+  // the producer as well, so a full pack collected the same water twice)
+  const S=G.S,o=Z.obj[i],d=OBJ[o.k].prod;const put=(id,n)=>{let left=addTo(S.p.inv,slotCount(S),id,n);if(left<n){emit('loot',id,n-left);S.codex.it[id]=1}if(left>0&&Z.home)for(const b of homeStores(S)){left=addTo(b.inv,OBJ[b.k].store,id,left);if(!left)break}return n-left};
+  const n=Math.floor(o.stock);if(n<=0)return;const got=put(d.item,n);o.stock-=got;
+  if(o.extra>0){const ge=put(d.extra[0],o.extra);o.extra-=ge}
+  if(!got)toast('No room in your pack or the storage boxes: '+OBJ[o.k].n+' keeps it for now','bad');else sfx('pickup');Z.touch(i);
 }
 
 // ---------------------------------------------------------------- player: auto-gather
