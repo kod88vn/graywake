@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.10.71 — 2026-11-14
+
+- **Auto no longer charges out of the yard the moment the last wave arrives.** Its "go and finish the stragglers" rule started when the last attacker had spawned, not when few were left, so with twenty alive outside it opened the door and walked into them (found by logging every exit in a simulated tide: it left at the instant the queue ran out, with the nearest attackers two tiles from the door). It now hunts them when three or fewer remain. Tide 5, a yard with 20 traps and two of your people, Auto fighting: survived 12 times in 16 against 9.
+
 ## 0.10.70 — 2026-11-14
 
 - A lead's threat counts the health you have now. "For you as you stand" used your most possible health, so a hurt character was told what a fresh one would be (a little: with medicine in the pack the change is small, 1.22 at full health against 1.30 at 60). Settlements' leaders are always counted at full health.

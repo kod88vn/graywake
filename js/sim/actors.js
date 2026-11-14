@@ -499,7 +499,7 @@ function autoStep(Z,p,dt){
   let foe=null;
   // (what is on the far side of a wall from the post is left to the wall: auto mode used to walk out through the yard's door to meet raiders gathering
   // in the trap field, and died there twice)
-  if(tide){let bd=POST_REACH;for(const a of Z.actors){if(a.team!==1||a.dead||!a.alert||a.def.ai==='flee')continue;const d=dist(a.x,a.y,p.post.x,p.post.y)-a.r;if(d<bd&&!(Z.ed.length&&edgeCross(Z,p.post.x,p.post.y,a.x,a.y,false)>=0)){bd=d;foe=a}}if(!foe&&S.tide.live&&!S.tide.live.q.length)foe=autoFoe(Z,p,400)}   // (a door counts as a wall here)
+  if(tide){let bd=POST_REACH;for(const a of Z.actors){if(a.team!==1||a.dead||!a.alert||a.def.ai==='flee')continue;const d=dist(a.x,a.y,p.post.x,p.post.y)-a.r;if(d<bd&&!(Z.ed.length&&edgeCross(Z,p.post.x,p.post.y,a.x,a.y,false)>=0)){bd=d;foe=a}}if(!foe&&S.tide.live&&!S.tide.live.q.length&&S.tide.live.alive<=3)foe=autoFoe(Z,p,400)}   /* stragglers are hunted when three or fewer are left, not the moment the last wave spawns: Auto walked out into twenty */   // (a door counts as a wall here)
   else foe=autoFoe(Z,p,0);
   if(foe)return autoFight(Z,p,foe,dt);
   if(p.fight){if(Z.time-p.fight.t<1.5&&S.p.active!==p.fight.slot){S.p.active=p.fight.slot;emit('eq')}p.fight=null;p.auto=null;toast(Z.home&&S.tide.live?'Auto: clear for now, holding this spot':'Auto: clear, back to gathering','info')}
