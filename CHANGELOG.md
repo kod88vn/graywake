@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.10.63 — 2026-11-14
+
+- **The build toolbar no longer hides the ground you build on.** In build mode the view moves three tiles south, so a wall five tiles south of you is above the toolbar instead of under it (the toolbar is 156 pixels tall: only two tiles south were reachable, and a bot could not target its own south wall).
+
 ## 0.10.62 — 2026-11-14
 
 - At home, a full pack no longer blocks crafting: what you make that does not fit goes into your storage boxes, and "Pack full: make room first" only shows when the boxes are full too.

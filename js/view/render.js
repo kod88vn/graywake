@@ -380,7 +380,7 @@ const zoomEff=()=>zoom*(cam.aspect<1?1.12:1);
 function draw(dt){
   if(!Z||!R)return;time+=dt;const p=Z.pl,W=WEATHER[G.S.weather.id]||WEATHER.clear,dl=Z.dark?.1:daylight(G.S.t);
   setWind(time,W.rain>1?2.6:W.rain||W.snow?1.6:1);
-  const lead=G.inp.aim&&!G.build?.12:0,tx=p.x+(lead?(G.inp.aim.x-p.x)*lead:0),tz=p.y+(lead?(G.inp.aim.y-p.y)*lead:0);
+  const lead=G.inp.aim&&!G.build?.12:0,tx=p.x+(lead?(G.inp.aim.x-p.x)*lead:0),tz=p.y+(lead?(G.inp.aim.y-p.y)*lead:0)+(G.build?3:0);   /* building: the view moves south, so the ground under the toolbar can be reached */
   camT.x+=(tx-camT.x)*Math.min(1,dt*7);camT.z+=(tz-camT.z)*Math.min(1,dt*7);
   const ze=zoomEff();cam.position.set(camT.x,camOff.y*ze,camT.z+camOff.z*ze);
   if(shakeAmt>0){cam.position.x+=(Math.random()-.5)*shakeAmt;cam.position.y+=(Math.random()-.5)*shakeAmt;shakeAmt=Math.max(0,shakeAmt-dt*1.6)}
