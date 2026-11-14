@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.10.67 — 2026-11-14
+
+- A refused placement on a taken tile names the tile as well as the thing ("Occupied by Bedroll at (22, 21)"), so a click that landed on a different tile than the one aimed at can be seen for what it was.
+
 ## 0.10.66 — 2026-11-14
 
 - **Someone at your fence is warned of before they go.** They leave at dawn after three days; at the dawn before, you now get "Greta will give up waiting at your fence and leave tomorrow morning", and what to do (build a bed, or your homestead is full). Three people left a bot's fence with no word.

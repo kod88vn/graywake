@@ -7,7 +7,7 @@ import {PERK,xpFor,MAX_LEVEL} from '../data/progress.js';
 import {clamp,rnd} from './util.js';
 import {sourcesOf} from '../data/sources.js';
 
-export const VERSION='0.10.66';
+export const VERSION='0.10.67';
 export const SAVE_V=2;
 export const HOME_W=46,HOME_H=46,EXIT_RING=2,NO_BUILD=4;
 export const MIN_PER_SEC=1.5;            // game minutes per real second: a day is 16 real minutes
@@ -347,7 +347,7 @@ export function canPlace(S,k,x,y,side=0){
   if(isEdgeKind(k)){if(Z.g[idx(Z,x,y)]===6)return'Water';{const old=Z.ed[edgeIdx(Z.w,x,y,side&3)];if(old&&!swaps(old.k,k))return'There is already a wall on that side'+(OBJ[old.k]&&OBJ[old.k].window?' (a window)':'')}const miss=afford(S,buildCost(k));return miss?'Missing '+miss:null}
   const i=idx(Z,x,y);if(Z.g[i]===6)return'Water';
   if(d.floor){if(Z.fl[i])return'Already floored'}
-  else{if(Z.obj[i])return'Occupied by '+(OBJ[Z.obj[i].k]?OBJ[Z.obj[i].k].n:'something');if(d.solid)for(const a of Z.actors)if(!a.dead&&Math.floor(a.x)===x&&Math.floor(a.y)===y)return'Something is standing there';
+  else{if(Z.obj[i])return'Occupied by '+(OBJ[Z.obj[i].k]?OBJ[Z.obj[i].k].n:'something')+' at ('+x+', '+y+')';if(d.solid)for(const a of Z.actors)if(!a.dead&&Math.floor(a.x)===x&&Math.floor(a.y)===y)return'Something is standing there';
     if(d.solid&&!d.door&&Z.pl&&sealsIn(Z,i))return'That would shut you in: leave yourself a way out';
     if(d.solid&&!d.door){const b=boxesIn(Z,i);if(b)return'That would leave the '+b+' with no side to stand at'}
     if(d.solid&&!d.door&&Z.home){const c=cutsOff(Z,i);if(c)return'That would cut the '+c+' off: you could not walk to it'}}
@@ -380,7 +380,7 @@ export function canMove(S,i,x,y,side=0){
     const j=edgeIdx(Z.w,x,y,side&3);return j!==i-EREF&&Z.ed[j]?'There is already a wall on that side':null}
   const o=Z.obj[i];if(!o||!OBJ[o.k]||!OBJ[o.k].cost)return'Nothing of yours to move';
   if(x<0||y<0||x>=Z.w||y>=Z.h||!inBuildArea(Z,x,y))return'Too close to the tree line';const j=idx(Z,x,y);if(j===i)return null;
-  if(Z.g[j]===6)return'Water';if(Z.obj[j])return'Occupied by '+(OBJ[Z.obj[j].k]?OBJ[Z.obj[j].k].n:'something');
+  if(Z.g[j]===6)return'Water';if(Z.obj[j])return'Occupied by '+(OBJ[Z.obj[j].k]?OBJ[Z.obj[j].k].n:'something')+' at ('+x+', '+y+')';
   if(OBJ[o.k].solid)for(const a of Z.actors)if(!a.dead&&Math.floor(a.x)===x&&Math.floor(a.y)===y)return'Something is standing there';
   return null;
 }
