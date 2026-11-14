@@ -37,6 +37,7 @@ for(let r=0;r<+runs;r++){
     if(process.env.NOTOX)S.p.tox=0;World.tick(dt);G.ev.length=0;t+=dt;const al=Z.actors.filter(a=>a.team===1&&!a.dead&&a.alert).length;if(al>most)most=al;if(al&&first===null)first=t;tox=Math.max(tox,S.p.tox);
     if(!Z.actors.some(a=>a.team===1&&!a.dead&&a.def.ai!=='flee')&&Z.spawns.every(s=>s.done))break}
   out.push({alive:!Z.pl.dead&&G.Z===Z,hp:Math.round(S.p.hp),hp0:Math.round(hp0),t:Math.round(t),most,tox:Math.round(tox),left:Z.actors.filter(a=>a.team===1&&!a.dead&&a.def.ai!=='flee').length+Z.spawns.filter(s=>!s.done).length})}
+if(process.env.DETAIL)for(const o of out)console.log('  run:',JSON.stringify(o));
 const win=out.filter(o=>o.alive&&!o.left),avg=k=>Math.round(out.reduce((a,o)=>a+o[k],0)/out.length);
 console.log(`${info.name} · level ${info.lvl} · promised ${info.skulls} of 5 skulls ("${info.word}") · started on ${out[0].hp0} health`);
 console.log(`cleared and lived ${win.length}/${out.length}; died ${out.filter(o=>!o.alive).length}; health left when it lived ${win.length?Math.round(win.reduce((a,o)=>a+o.hp,0)/win.length):0}; most coming at once avg ${avg('most')} (max ${Math.max(...out.map(o=>o.most))}); toxin peak avg ${avg('tox')}; seconds avg ${avg('t')}`);

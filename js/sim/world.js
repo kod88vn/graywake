@@ -235,7 +235,8 @@ export function leadOdds(S,def,lvl){
     if(e.call&&ENEMIES[e.call.kind]&&!ENEMIES[e.call.kind].call)add(e.call.kind,c*e.call.n)};   // one that calls others in gets a call off before it dies
   for(const t of[def.en,def.inn])for(const k in t||{})add(k,t[k]);if(def.boss)add(def.boss,1);if(!n)return 0;
   let heal=0;for(const it of p.inv)if(it&&ITEMS[it.id]&&ITEMS[it.id].t==='med'&&ITEMS[it.id].hp>0)heal+=ITEMS[it.id].hp*it.n;
-  const mine=(ds.maxHp+Math.min(heal,ds.maxHp))/(1-Math.min(.8,ds.armRed||0));
+  // as you stand includes the health you have now, not the most you could have: the same lead is harder from 136 of 220 than from full
+  const mine=(Math.min(ds.maxHp,Math.max(1,p.hp))+Math.min(heal,ds.maxHp))/(1-Math.min(.8,ds.armRed||0));
   // in a building they come two or three at a time, and about a third of their blows land on someone who keeps moving;
   // in the open (an ambush on the road) they all come at once, up to as many as can get round one person, and more of their blows land
   // toxic air eats health for as long as the fight lasts, and what lives in it spits more of the same: without a mask the place is that much worse

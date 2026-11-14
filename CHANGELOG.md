@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.10.70 — 2026-11-14
+
+- A lead's threat counts the health you have now. "For you as you stand" used your most possible health, so a hurt character was told what a fresh one would be (a little: with medicine in the pack the change is small, 1.22 at full health against 1.30 at 60). Settlements' leaders are always counted at full health.
+
 ## 0.10.69 — 2026-11-14
 
 - **The antidote key only takes a real cure.** It used a Herb Poultice (takes off 6 toxin) when nothing better was carried, spending it and leaving the toxin high; now it says there is no antidote and keeps the poultice. Herbal Tea, Charcoal Tablets and Antitoxin count.

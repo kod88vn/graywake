@@ -35,6 +35,7 @@ export function seedSettlement(worldSeed,i){
 export function leader(st,tideMult=1){
   const S=blankState(st.seed);S.p.lvl=st.lvl;S.p.eq.w1={id:WEAPONS[st.wpn][0],d:ITEMS[WEAPONS[st.wpn][0]].dur};
   if(st.set>=0)for(const[slot,id]of Object.entries(SETS[st.set][2]))if(ITEMS[id])S.p.eq[slot]={id,d:ITEMS[id].dur||1};
+  S.p.hp=1e6;   // a settlement's leader is always counted at full health
   if(st.meds>0)S.p.inv=[{id:'bandage',n:st.meds}];S.tide.n=st.tideN;S.world={fx:{tide:tideMult}};return S;
 }
 /** Defence, counted as the game counts a homestead when the player is away: wall health, what the traps can still do, and the guards. */
