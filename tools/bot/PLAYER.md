@@ -46,7 +46,7 @@ When a result has a line beginning "World", you are not alone: your enclave shar
 
 **A full pack.** Open the pack (key i), tap a slot, then DROP (one) or DROP ALL; SORT tidies it. What you drop stays where you put it. At home, put things in a storage box instead (open the box, tap the item on your pack side).
 
-**Windows.** Build, Base has a Plank Window (and a Stone Window): a wall piece nothing walks through but you and your people can see and shoot through. Walls block arrows; in a tide your people take up bows and stand at the windows nearest you. Put a window or two in each side of the yard, facing where tides come from.
+**Windows.** Build, Base has a Plank Window (and a Stone Window): a wall piece nothing walks through but you and your people can see and shoot through. Walls block arrows; in a tide your people take up bows and stand at the windows nearest you. Put a window or two in each side of the yard, facing where tides come from; place a window straight onto a plain wall to swap it in (half the old wall's cost comes back).
 
 A death costs the pack, half a day and half your health, and the developers count every one against the run. A playtester who dies learns nothing about what lies beyond. Getting out alive with nothing is a better result than dying with a full pack. So:
 

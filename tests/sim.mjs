@@ -453,5 +453,14 @@ safe('misc',()=>{
   sortInv(S.p.inv,slotCount(S));T.ok(S.p.inv.length===slotCount(S),'sorting keeps the pack size');
   give(S,'fire_axe',1);const ai=S.p.inv.findIndex(s=>s&&s.id==='fire_axe');const n0=S.p.inv.filter(Boolean).length;World.recycle(S,ai);T.ok(count(S,'steel_bar')>0||S.p.inv.filter(Boolean).length>=n0,'recycling returns materials');
 });
+// windows: sight and shots pass, people do not; a window goes into a plain wall and back
+{G.Z=null;World.arrive('home');const S=G.S,Zh=G.Z;if(Zh&&Zh.home){const cx=Math.floor(Zh.w/2)+6,cy=Math.floor(Zh.h/2)+6;S.p.lvl=40;for(const m of['brick','stone','plank','nails','log','stick'])give(S,m,80);G.ds=derive(S);
+  place(S,'wall_stone',cx,cy,0);place(S,'wall_stone',cx+1,cy,0);const here=x=>[x+.5,cy+.6,x+.5,cy-.6];
+  T.ok(los(Zh,...here(cx))===false&&edgeCross(Zh,...here(cx))>=0,'a stone wall blocks sight and movement');
+  T.ok(place(S,'window_stone',cx,cy,0)&&Zh.ed[edgeIdx(Zh.w,cx,cy,0)].k==='window_stone','a window goes into a plain wall');
+  T.ok(los(Zh,...here(cx))===true,'you can see through a window');T.ok(edgeCross(Zh,...here(cx),true)>=0,'but you cannot walk through it, nor can they');
+  T.ok(los(Zh,...here(cx+1))===false,'the wall beside it still blocks sight');T.ok(canPlace(S,'window_stone',cx,cy,0)&&true,'a second window on the same side is refused');
+  T.ok(place(S,'wall_stone',cx,cy,0)&&Zh.ed[edgeIdx(Zh.w,cx,cy,0)].k==='wall_stone','and a plain wall goes back over a window');
+  place(S,'door_plank',cx+2,cy,0);T.ok(!!canPlace(S,'window_plank',cx+2,cy,0),'a window cannot replace a door')}}
 T.info('level '+G.S.p.lvl+', day '+dayOf(G.S.t)+', kills '+(G.S.stats.kills||0)+', tides '+G.S.tide.n);
 process.exitCode=T.end()?1:0;

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.10.65 — 2026-11-14
+
+- **A window goes into a wall you already have.** Placing a Plank or Stone Window on a plain wall takes the wall out and puts the window in its place (half the old piece's cost comes back, as when you remove one), and a plain wall goes back over a window the same way. A door cannot be swapped. Before, a yard that was already walled had to be torn down to get windows into it, and the refusal for a taken side did not say what stood there.
+
 ## 0.10.64 — 2026-11-14
 
 - **The Camp ledger names furniture you cannot walk to.** A bed, fire and boxes could wall in the cell behind the door of a yard built before 0.10.59, and nothing said so: it now reads "Cannot be walked to from the door: Workbench at (24, 24)… Move a bed, fire or box (Build, Move) to open a path."

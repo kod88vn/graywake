@@ -7,7 +7,7 @@ import {PERK,xpFor,MAX_LEVEL} from '../data/progress.js';
 import {clamp,rnd} from './util.js';
 import {sourcesOf} from '../data/sources.js';
 
-export const VERSION='0.10.64';
+export const VERSION='0.10.65';
 export const SAVE_V=2;
 export const HOME_W=46,HOME_H=46,EXIT_RING=2,NO_BUILD=4;
 export const MIN_PER_SEC=1.5;            // game minutes per real second: a day is 16 real minutes
@@ -338,11 +338,13 @@ function sealsIn(Z,i){
     for(const[dx,dy,side]of[[1,0,1],[-1,0,3],[0,1,2],[0,-1,0]]){const nx=x+dx,ny=y+dy,n=ny*W+nx;if(nx<0||ny<0||nx>=W||ny>=H||seen[n])continue;if(wallOn(edgeIdx(W,x,y,side)))continue;if(!open(n))continue;seen[n]=1;q.push(n)}}
   return true;
 }
+/** A window goes into a plain wall and a plain wall back over a window (not over a door): the old piece is taken out and half its worth comes back. */
+const swaps=(oldK,newK)=>{const a=OBJ[oldK],b=OBJ[newK];return!!(a&&b&&a.wall&&b.wall&&!a.door&&!b.door&&!!a.window!==!!b.window)};
 export function canPlace(S,k,x,y,side=0){
   const Z=G.Z,d=OBJ[k];if(!Z||!Z.home)return'Only at home';if(!d||!d.cost)return'Cannot build that';
   if(!buildUnlocked(S,k))return d.bp?'Needs a schematic':'Needs level '+d.lv;
   if(!inBuildArea(Z,x,y))return'Too close to the tree line';
-  if(isEdgeKind(k)){if(Z.g[idx(Z,x,y)]===6)return'Water';if(Z.ed[edgeIdx(Z.w,x,y,side&3)])return'There is already a wall on that side';const miss=afford(S,buildCost(k));return miss?'Missing '+miss:null}
+  if(isEdgeKind(k)){if(Z.g[idx(Z,x,y)]===6)return'Water';{const old=Z.ed[edgeIdx(Z.w,x,y,side&3)];if(old&&!swaps(old.k,k))return'There is already a wall on that side'+(OBJ[old.k]&&OBJ[old.k].window?' (a window)':'')}const miss=afford(S,buildCost(k));return miss?'Missing '+miss:null}
   const i=idx(Z,x,y);if(Z.g[i]===6)return'Water';
   if(d.floor){if(Z.fl[i])return'Already floored'}
   else{if(Z.obj[i])return'Occupied by '+(OBJ[Z.obj[i].k]?OBJ[Z.obj[i].k].n:'something');if(d.solid)for(const a of Z.actors)if(!a.dead&&Math.floor(a.x)===x&&Math.floor(a.y)===y)return'Something is standing there';
@@ -355,7 +357,7 @@ export function canPlace(S,k,x,y,side=0){
 export function place(S,k,x,y,rot=0){
   const why=canPlace(S,k,x,y,rot);if(why){toast(why,'bad');sfx('error');return false}
   const Z=G.Z,d=OBJ[k],i=idx(Z,x,y);pay(S,buildCost(k));
-  if(isEdgeKind(k)){const e=edgeIdx(Z.w,x,y,rot&3);Z.ed[e]={k,hp:maxHp(k)};Z.touchEdge(e);const[mx,my]=structXY(Z,EREF+e);stat('built');if(!S.flags['built_'+k]){S.flags['built_'+k]=1;addXp(S,10+d.lv*4)}else addXp(S,2);sfx('build',mx,my);emit('fx','dust',mx,my);return true}
+  if(isEdgeKind(k)){const e=edgeIdx(Z.w,x,y,rot&3),was=Z.ed[e];if(was&&swaps(was.k,k)){const c=OBJ[was.k].cost;for(const m in c)give(S,m,Math.floor(c[m]*.5*(was.hp/maxHp(was.k))),undefined,true);toast(OBJ[was.k].n+' replaced by '+d.n,'info')}Z.ed[e]={k,hp:maxHp(k)};Z.touchEdge(e);const[mx,my]=structXY(Z,EREF+e);stat('built');if(!S.flags['built_'+k]){S.flags['built_'+k]=1;addXp(S,10+d.lv*4)}else addXp(S,2);sfx('build',mx,my);emit('fx','dust',mx,my);return true}
   if(d.floor){Z.fl[i]=k;emit('floor',i)}else{Z.obj[i]={k,hp:maxHp(k),r:rot};if(d.store)Z.obj[i].inv=[];if(d.turret)Z.obj[i].ammo=0;Z.touch(i)}
   stat('built');if(!S.flags['built_'+k]){S.flags['built_'+k]=1;addXp(S,10+d.lv*4)}else addXp(S,2);
   sfx('build',x+.5,y+.5);emit('fx','dust',x+.5,y+.5);return true;
