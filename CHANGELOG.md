@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.10.16 — 2026-11-14
 
 - **A full pack no longer switches Auto mode off.** It stops gathering and stays on guard, fighting whatever comes, and says so once. It used to switch off between two fights.
 
