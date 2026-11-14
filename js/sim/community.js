@@ -57,7 +57,9 @@ const edible=(it,key)=>it.t==='food'&&!it.risk&&!it.buff&&(it[key]||0)>=8;
 export function needs(S){
   const people=S.surv.length,meals=S.surv.reduce((a,s)=>a+(s.trait==='glutton'?2:1),0);let food=0,water=0;
   const skip={};for(const b of homeStores(S))for(const s of b.inv){if(!s)continue;const it=ITEMS[s.id];if(!it)continue;if(edible(it,'food'))food+=s.n;else if(edible(it,'water'))water+=s.n;else if(it.t==='food')skip[s.id]=(skip[s.id]||0)+s.n}
-  return{people,meals,drinks:people,food,water,skip,foodDays:meals?food/meals:Infinity,waterDays:people?water/people:Infinity};
+  // what you carry does not feed them: your people eat from the boxes (shown separately so a full pack of water is not mistaken for stores)
+  const pack={food:0,water:0};for(const s of S.p.inv){if(!s)continue;const it=ITEMS[s.id];if(!it)continue;if(edible(it,'food'))pack.food+=s.n;else if(edible(it,'water'))pack.water+=s.n}
+  return{people,meals,drinks:people,food,water,skip,pack,foodDays:meals?food/meals:Infinity,waterDays:people?water/people:Infinity};
 }
 
 // ---------------------------------------------------------------- the others
@@ -180,6 +182,8 @@ function runRaid(S,id){
 /** Every dawn: people waiting give up, trade runs come home, enemies plan raids, the hurt mend. */
 export function dawn(S){
   const day=dayOf(S.t);
+  // they go at dawn, so a warning at the dawn before: there is still a day to build the bed or make room
+  for(const c of S.wait)if(!c.warned&&c.until-S.t<1440&&c.until>S.t){c.warned=1;note(S,c.n+' will give up waiting at your fence and leave tomorrow morning'+(S.surv.length>=W.survRoom(S)?(S.surv.length>=3?': your homestead is full (three people)':': you need a free bed first (Build, Base)'):': decide in the Camp ledger, People'),'bad')}
   for(let i=S.wait.length-1;i>=0;i--)if(S.wait[i].until<=S.t){const c=S.wait.splice(i,1)[0];note(S,c.n+' gave up waiting at your fence and moved on','info')}
   const medics=S.surv.filter(s=>s.job==='medic'&&available(s)).length;
   for(const sv of S.surv){sv.away=0;if(sv.hurt>0){sv.hurt=Math.max(0,sv.hurt-1-(medics?1:0));if(!sv.hurt)toast(sv.n+' is back on their feet','good')}}

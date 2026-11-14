@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.10.66 — 2026-11-14
+
+- **Someone at your fence is warned of before they go.** They leave at dawn after three days; at the dawn before, you now get "Greta will give up waiting at your fence and leave tomorrow morning", and what to do (build a bed, or your homestead is full). Three people left a bot's fence with no word.
+- **The ledger separates what you carry from the stores.** With the stores low it now says "You carry 3 meals and 9 drinks: that does not count. Your people eat and drink from the storage boxes, so put it in one."
+
 ## 0.10.65 — 2026-11-14
 
 - **A window goes into a wall you already have.** Placing a Plank or Stone Window on a plain wall takes the wall out and puts the window in its place (half the old piece's cost comes back, as when you remove one), and a plain wall goes back over a window the same way. A door cannot be swapped. Before, a yard that was already walled had to be torn down to get windows into it, and the refusal for a taken side did not say what stood there.
