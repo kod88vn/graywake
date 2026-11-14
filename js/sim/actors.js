@@ -4,6 +4,7 @@ import {ITEMS} from '../data/items.js';
 import {OBJ} from '../data/objects.js';
 import {sourcesOf} from '../data/sources.js';
 import {FIND} from '../data/world.js';
+import {WEATHER} from '../data/events.js';
 import {ENEMIES,scale} from '../data/enemies.js';
 import {G,gained,homeStores,emit,toast,sfx,stat,statMax,derive,perk,weaponDef,weaponItem,count,take,give,addTo,slotCount,freeSlots,roomFor,wear,findTool,wearTool,dropAt,addXp,maxHp,FIST,quickUse,EREF,edgeIdx,structAt,structXY} from './core.js';
 import {collide,los,shotBlock,blockAt,playerField,field,stepOn,rollLoot,freeNear,atExit,edgeCross,edgeBetween,walkClear,pathAim} from './zone.js';
@@ -236,7 +237,7 @@ export function interactInfo(Z,i){
   if(d.bed)return{type:'bed',label:'Sleep'};
   if(d.turret)return{type:'turret',label:'Load'};
   if(d.special==='garden')return{type:'garden',label:!o.seed?'Plant':cropReady(o)?'Harvest':'Check'};
-  if(d.special==='prod')return{type:'prod',label:o.stock>0?'Collect':'Check'};
+  if(d.special==='prod')return{type:'prod',label:o.stock>=1?'Collect':'Check'};
   if(['radio','generator','recycler','repair','trade','kennel','maptable','guard','beacon','tower','scarecrow'].includes(d.special))return{type:d.special,label:d.special==='generator'?'Fuel':d.special==='trade'?'Trade':'Use'};
   return null;
 }
@@ -284,7 +285,8 @@ export function interact(Z,target){
     p.act={type:'open',i:t.i,t:0,dur:o.inv?.15:.7};return true}
   if(t.type==='cage'){o.held=0;Z.touch(t.i);sfx('door',t.x,t.y);if(G.hooks.rescue)G.hooks.rescue();return true}
   if(t.type==='garden'){if(o.seed&&cropReady(o)){harvest(Z,t.i);return true}if(o.seed){const left=Math.max(0,o.ripe-S.t);toast(ITEMS[ITEMS[o.seed].crop].n+': ready in '+(left>=60?Math.ceil(left/60)+' h':Math.ceil(left)+' min'),'info');return true}}
-  if(t.type==='prod'){if(o.stock>0){collectProd(Z,t.i)}else toast(d.n+': nothing yet','info');return true}
+  if(t.type==='prod'){if(o.stock>=1){collectProd(Z,t.i)}else{const pr=d.prod,wet=pr.rain&&G.S.weather&&(WEATHER[G.S.weather.id]||{}).rain,min=Math.ceil((1-(o.stock||0))*pr.every/(wet?pr.rain:1));
+    toast(d.n+': nothing yet. The next '+(ITEMS[pr.item]?ITEMS[pr.item].n.toLowerCase():'one')+' in about '+(min>=90?Math.round(min/60)+' hours':min+' minutes')+(pr.rain?(wet?' (rain is filling it '+pr.rain+' times faster)':'; rain fills it '+pr.rain+' times faster'):'')+'. It holds '+pr.cap+'.','info')}return true}
   if(t.type==='station'&&o.out){/* fallthrough to UI, which shows the tray */}
   emit('ui',t.type,t.i);sfx('ui_open');return true;
 }

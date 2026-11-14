@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.10.24 — 2026-11-14
+
+- **A Rain Catcher (or any producer) that is part-filled says Check, not Collect.** It offered Collect as soon as it held a fraction of a water, and pressing it gave nothing and said nothing. Now it says Check until there is a whole one, and checking tells you when the next comes, that rain fills it faster, and how much it holds.
+
+- **The Radio Mast lists what is on the air.** Its Contracts page now opens with the radio leads still open, how hard each is for you, how long it lasts and who holds it.
+
 ## 0.10.23 — 2026-11-14
 
 - **Event fights say what they will cost.** A fight an event starts was rated only on whether you would live through it with the medicine you carry, so a lone bear that took half a level 23's health every time (measured six times) was called "Easy pickings". The rating now also counts the health the fight is expected to take, and the choice says it: "A fair fight for you as you stand · costs you about half your health".
