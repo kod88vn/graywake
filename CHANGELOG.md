@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased
+## 0.10.9 — 2026-11-13
+
+- **Fixed: Auto mode wandered out of the yard just before a tide.** In the last 45 minutes before one it went on gathering, walked out to chop a tree, and was caught outside the walls when the tide came (Haiku Two died and lost tide 5 that way). It now stops gathering and keeps to the spot where it was switched on.
 
 - The bone knife lasts 200 blows (was 100): it swings more than twice as fast as a spear, so by blows it wore out in a single outing.
 - Quick drink skips meals with a little water in them (a Field Ration).
