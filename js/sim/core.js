@@ -411,7 +411,9 @@ export function quickUse(S,need){
     if(v>score){score=v;best=i}});
   if(best<0){toast(need==='hp'?'Nothing to heal with':need==='tox'?'No antidote':need==='water'?(risky?'Only '+risky+' to drink: boil it at a campfire first, or drink it from your pack and risk it':'Nothing to drink in your pack'):'Nothing suitable in your pack','bad');sfx('error');return false}
   // say what was used and how many are left: a quick key, the health bar or auto mode spends things the player did not pick by hand
-  const id=S.p.inv[best].id,ok=useItem(S,best);if(ok){const left=count(S,id);toast('Used '+ITEMS[id].n+(left?' · '+left+' left':' · that was the last one'),left?'info':'bad')}return ok;
+  const id=S.p.inv[best].id,ok=useItem(S,best);if(ok){const left=count(S,id);toast('Used '+ITEMS[id].n+(left?' · '+left+' left':' · that was the last one'),left?'info':'bad');
+    // a weak cure for a heavy dose: say what would actually clear it
+    if(need==='tox'&&S.p.tox>=40)toast('Toxin still '+Math.round(S.p.tox)+': Charcoal Tablets (-25) or Antitoxin (-70) clear it properly. A gas mask keeps it out','bad')}return ok;
 }
 export function repairWithKit(S,slot){
   const e=S.p.eq[slot];if(!e||e.d===undefined)return false;const it=ITEMS[e.id];if(e.d>=it.dur){toast('Not worn','info');return false}
