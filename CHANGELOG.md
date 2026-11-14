@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.10.49 — 2026-11-14
+
+- A radio lead's card says what its threat was worked out for ("Rated for: baseball bat and machete, 61 armour, 33 medicine in your pack"), and that medicine left in your storage boxes does not count. Putting medicine away between two looks raised the threat from 2 to 4 skulls with no visible reason.
+
 ## 0.10.48 — 2026-11-14
 
 - Choosing who runs a trade route, each name says what job they would leave ("Yusuf (leaves guard)"), and the first choice is someone resting, or anyone but a guard.
