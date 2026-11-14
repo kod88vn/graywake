@@ -86,7 +86,7 @@ function resize(){if(!R)return;const w=canvas.clientWidth||innerWidth,h=canvas.c
 function disposeZone(){
   if(ground){scene.remove(ground);ground.geometry.dispose();ground=null}if(water){scene.remove(water);water.geometry.dispose();water=null}
   for(const m of borderMeshes){scene.remove(m);m.dispose()}borderMeshes=[];for(const m of clutterMeshes){scene.remove(m);m.dispose()}clutterMeshes=[];clutterAt.clear();
-  for(const e of inst.values()){scene.remove(e.mesh);e.mesh.dispose()}inst.clear();shown.length=0;shownF.length=0;shownE.length=0;dirty.clear();
+  for(const e of inst.values()){if(e.mesh){scene.remove(e.mesh);e.mesh.dispose()}}inst.clear();   /* (an entry nothing has been drawn for yet has no mesh: clearing a homestead on the way to a new one threw) */shown.length=0;shownF.length=0;shownE.length=0;dirty.clear();
   for(const m of dyn.values())scene.remove(m);dyn.clear();for(const L of leaves.values())scene.remove(L.root);leaves.clear();if(buildEdge){scene.remove(buildEdge);buildEdge=null}
   for(const r of rigs.values()){scene.remove(r.root);disposeRig(r)}rigs.clear();
   if(vehMesh){scene.remove(vehMesh);vehMesh=null}parts.length=0;wobble.length=0;decals.length=0;decalN=0;decalDirty=true;glows.length=0;if(aoMesh)aoMesh.count=0;

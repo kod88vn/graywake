@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.10.64 — 2026-11-14
+
+- **The Camp ledger names furniture you cannot walk to.** A bed, fire and boxes could wall in the cell behind the door of a yard built before 0.10.59, and nothing said so: it now reads "Cannot be walked to from the door: Workbench at (24, 24)… Move a bed, fire or box (Build, Move) to open a path."
+- **A toxic lead's card warns about the toxin.** The Pharmacy is a fair fight on the rating, and a character cleared it twelve times out of twelve, but with toxin at the maximum in every run. Without a mask the card now says to expect that, and to carry cures.
+- **Fixed a crash on the way to a new homestead** (`Cannot read properties of null (reading 'dispose')`): the view threw when a zone was cleared before a wall of a new kind had been drawn once. Reproduced, and gone.
+
 ## 0.10.63 — 2026-11-14
 
 - **The build toolbar no longer hides the ground you build on.** In build mode the view moves three tiles south, so a wall five tiles south of you is above the toolbar instead of under it (the toolbar is 156 pixels tall: only two tiles south were reachable, and a bot could not target its own south wall).

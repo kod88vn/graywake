@@ -7,7 +7,7 @@ import {PERK,xpFor,MAX_LEVEL} from '../data/progress.js';
 import {clamp,rnd} from './util.js';
 import {sourcesOf} from '../data/sources.js';
 
-export const VERSION='0.10.63';
+export const VERSION='0.10.64';
 export const SAVE_V=2;
 export const HOME_W=46,HOME_H=46,EXIT_RING=2,NO_BUILD=4;
 export const MIN_PER_SEC=1.5;            // game minutes per real second: a day is 16 real minutes
@@ -310,15 +310,25 @@ function boxesIn(Z,i){
 /** Would a solid thing on tile i cut a station, box or bed off from the outside? Each must keep a free side you can walk to from the edge of the
  *  homestead (through doors). One with an open side could still be walled off by furniture: a bot's bed, fire and boxes split its yard in two and
  *  the workbench could not be reached from the corner it was in (0.10.59). Only what could be reached before counts. */
-function cutsOff(Z,i){
+function furnitureReach(Z,blocked){
   const W=Z.w,H=Z.h,useful=o=>{const d=o&&OBJ[o.k];return d&&(d.station||d.store||d.special||d.bed)&&d.solid&&!d.door};
-  const flood=blocked=>{const seen=new Uint8Array(W*H),q=[];for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(x<3||y<3||x>=W-3||y>=H-3){const j=y*W+x;seen[j]=1;q.push(j)}
-    const open=j=>{if(j===blocked)return false;const o=Z.obj[j];if(!o)return true;const od=OBJ[o.k];return!od||!od.solid||!!od.door};
-    while(q.length){const c=q.pop(),x=c%W,y=(c-x)/W;for(const[dx,dy,side]of[[1,0,1],[-1,0,3],[0,1,2],[0,-1,0]]){const nx=x+dx,ny=y+dy,n=ny*W+nx;if(nx<0||ny<0||nx>=W||ny>=H||seen[n])continue;const w=Z.ed[edgeIdx(W,x,y,side)];if(w&&!(OBJ[w.k]&&OBJ[w.k].door))continue;if(!open(n))continue;seen[n]=1;q.push(n)}}return seen};
-  const reach=(seen,j)=>{const x=j%W,y=(j-x)/W;for(const[dx,dy,side]of[[1,0,1],[-1,0,3],[0,1,2],[0,-1,0]]){const nx=x+dx,ny=y+dy;if(nx<0||ny<0||nx>=W||ny>=H)continue;const w=Z.ed[edgeIdx(W,x,y,side)];if(w)continue;if(seen[ny*W+nx])return true}return false};
-  const before=flood(-1),after=flood(i);
-  for(let j=0;j<Z.obj.length;j++){if(j===i||!useful(Z.obj[j]))continue;if(reach(before,j)&&!reach(after,j))return OBJ[Z.obj[j].k].n}
+  const seen=new Uint8Array(W*H),q=[];for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(x<3||y<3||x>=W-3||y>=H-3){const j=y*W+x;seen[j]=1;q.push(j)}
+  const open=j=>{if(j===blocked)return false;const o=Z.obj[j];if(!o)return true;const od=OBJ[o.k];return!od||!od.solid||!!od.door};
+  while(q.length){const c=q.pop(),x=c%W,y=(c-x)/W;for(const[dx,dy,side]of[[1,0,1],[-1,0,3],[0,1,2],[0,-1,0]]){const nx=x+dx,ny=y+dy,n=ny*W+nx;if(nx<0||ny<0||nx>=W||ny>=H||seen[n])continue;const w=Z.ed[edgeIdx(W,x,y,side)];if(w&&!(OBJ[w.k]&&OBJ[w.k].door))continue;if(!open(n))continue;seen[n]=1;q.push(n)}}
+  const reach=j=>{const x=j%W,y=(j-x)/W;for(const[dx,dy,side]of[[1,0,1],[-1,0,3],[0,1,2],[0,-1,0]]){const nx=x+dx,ny=y+dy;if(nx<0||ny<0||nx>=W||ny>=H)continue;const w=Z.ed[edgeIdx(W,x,y,side)];if(w)continue;if(seen[ny*W+nx])return true}return false};
+  return{reach,useful};
+}
+function cutsOff(Z,i){
+  const b=furnitureReach(Z,-1),a=furnitureReach(Z,i);
+  for(let j=0;j<Z.obj.length;j++){if(j===i||!b.useful(Z.obj[j]))continue;if(b.reach(j)&&!a.reach(j))return OBJ[Z.obj[j].k].n}
   return null;
+}
+/** Stations, boxes and beds at home that cannot be walked to from outside the yard (through its doors), by name and place: what the placement check
+ *  stops today, for yards built before it. A door that opens onto a cell walled in by furniture shows here. */
+export function unreachable(Z){
+  if(!Z.home)return[];const f=furnitureReach(Z,-1),W=Z.w,out=[];
+  for(let j=0;j<Z.obj.length;j++)if(f.useful(Z.obj[j])&&!f.reach(j))out.push(OBJ[Z.obj[j].k].n+' at ('+(j%W)+', '+Math.floor(j/W)+')');
+  return out;
 }
 function sealsIn(Z,i){
   const W=Z.w,H=Z.h,p=Z.pl,s=Math.floor(p.y)*W+Math.floor(p.x);if(s===i)return false;const seen=new Uint8Array(W*H),q=[s];seen[s]=1;

@@ -1,7 +1,7 @@
 // Runs inside the bot's game page (served only by tools/bot/session.mjs, never published). It reads what a player could see into plain data,
 // numbers the things that can be clicked, and helps the session steer by key presses. It never changes game state: every action the bot takes
 // goes through real key and mouse events sent by the session.
-import {G,weaponDef,betterGear,gearScore,canCraft,recipeVisible} from '../js/sim/core.js';
+import {G,unreachable,weaponDef,betterGear,gearScore,canCraft,recipeVisible} from '../js/sim/core.js';
 import {RECIPE_LIST} from '../js/data/recipes.js';
 import {JOBS} from '../js/data/progress.js';
 import {OBJ} from '../js/data/objects.js';
@@ -119,6 +119,7 @@ B.observe=(full=false)=>{
       spare:sp&&ITEMS[sp.id]?ITEMS[sp.id].n:null,auto:!!G.auto,build:!!G.build};
     o.you.pack=(p.inv||[]).filter(Boolean).length;
     // people: who lives here and what they do, who waits at the fence, and room
+    if(Z&&Z.home){const u=unreachable(Z);o.blocked=u.slice(0,6)}
     if(Z&&Z.home&&GW.World.yardCheck){const y=GW.World.yardCheck(S);o.yard=y?(y.closed?'closed all round ('+y.tiles+' tiles inside)':'OPEN: nothing stands on the '+y.gap[2]+' side of tile ('+y.gap[0]+', '+y.gap[1]+')'):null}
     {const beds=GW.World.survCap?GW.World.survCap(S):0;o.people={surv:S.surv.map(s=>s.n+' ('+((JOBS[s.job]||JOBS.idle).n)+(Object.values(S.fac||{}).some(f=>f&&f.route&&f.route.sv===s.id)?', on the trade run':s.job==='idle'?', no job':', job set')+')'),idle:S.surv.filter(s=>s.job==='idle'&&!Object.values(S.fac||{}).some(f=>f&&f.route&&f.route.sv===s.id)).length,wait:S.wait.map(c=>c.n),beds,room:GW.World.survRoom?GW.World.survRoom(S):beds+1}}
     // the shared world, if this game is in one: where this enclave stands and who else holds ground
