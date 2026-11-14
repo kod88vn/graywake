@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Contracts you have already taken can be finished and handed in without a Radio Mast: an enclave that moved valleys kept them but the Contracts tab only said "No signal".
+
 ## 0.10.17 — 2026-11-14
 
 - **Falling back at home keeps to your yard.** When you stand inside walls in a tide, Auto's falling back (and the bot's flee) heads for the spot you were holding, not out into the open, where faster raiders ran Haiku Two down and it lost tide 9. In the open nothing changes (tide 5, machete, no medicine, 32 runs: 9 before, 15 after, within the spread).
