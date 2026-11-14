@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.10.36 — 2026-11-14
+
+- Broken gear (0% condition) is never "better gear": Wear best offered a broken fire axe. It counts again once it is mended.
+
 ## 0.10.35 — 2026-11-14
 
 - **A drag that upgrades, repairs or clears keeps to what it started on.** Upgrading a line of stick walls also upgraded the chest the drag crossed (spending iron and planks) and took a plank piece in the line on to stone, and the pointer drifting from one side of a cell to another lost the line. Upgrade now keeps to the one kind of piece, repair and clearing keep to walls or to things on tiles, and a drag along a wall keeps to that wall's side.
