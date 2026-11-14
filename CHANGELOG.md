@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.10.31 — 2026-11-14
+
+- A wall or door that breaks in a tide says so at once, with where ("Plank Wall broken at (23, 18)"), at most every few seconds: the list at the end came too late to stand in the gap.
+
 ## 0.10.30 — 2026-11-14
 
 - A radio lead that runs out while you are on the road to it now says so when you arrive ("The Hardware Store went quiet at 13:36, before you got there"), instead of "someone got there first, or it was abandoned". A detour on the road counts against its time.

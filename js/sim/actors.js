@@ -89,7 +89,9 @@ export function hurtPlayer(Z,dmg,o={}){
 export function damageObj(Z,i,dmg){
   const o=structAt(Z,i);if(!o||!(o.hp>0))return false;o.hp-=dmg;const[x,y]=structXY(Z,i);
   if(o.hp>0){o.hit=Z.time;emit('fx','wood',x,y);if(i>=EREF)emit('edge',i-EREF);return false}
-  if(Z.tideGone)Z.tideGone.push(OBJ[o.k]?OBJ[o.k].n:o.k);
+  if(Z.tideGone){Z.tideGone.push(OBJ[o.k]?OBJ[o.k].n:o.k);
+    // said as it happens (at most every few seconds), so a gap in the wall is known while there is still time to stand in it
+    if(!(Z.time-(Z.goneSaid||-9)<3)){Z.goneSaid=Z.time;toast((OBJ[o.k]?OBJ[o.k].n:'A wall')+' broken at ('+Math.floor(x)+', '+Math.floor(y)+')','bad')}}
   if(i>=EREF){Z.ed[i-EREF]=null;Z.touchEdge(i-EREF);sfx('break',x,y);emit('fx','dust',x,y);emit('shake',.15);stat('lostWalls');if(Z.tideLost!==undefined)Z.tideLost++;return true}
   const d=OBJ[o.k];if(o.inv)dropAt(Z,x,y,o.inv.filter(Boolean));
   Z.obj[i]=null;Z.touch(i);sfx('break',x,y);emit('fx','dust',x,y);emit('shake',.15);stat('lostWalls');if(Z.tideLost!==undefined)Z.tideLost++;return true;
