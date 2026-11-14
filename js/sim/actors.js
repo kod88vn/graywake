@@ -645,8 +645,43 @@ function wander(Z,e,dt,speed){
   e.t-=dt;if(e.t<=0){e.t=2+rnd()*5;if(rnd()<.6){const ang=rnd()*TAU,r=1+rnd()*3;e.wx=clamp(e.hx+Math.cos(ang)*r,2,Z.w-2);e.wy=clamp(e.hy+Math.sin(ang)*r,2,Z.h-2)}else e.wx=undefined}
   if(e.wx!==undefined&&dist(e.x,e.y,e.wx,e.wy)>.4){const ox=e.x,oy=e.y;steer(Z,e,e.wx,e.wy,speed,dt);if(Math.hypot(e.x-ox,e.y-oy)<speed*dt*.3)e.wx=undefined}
 }
+// ---------------------------------------------------------------- the homestead's people at work
+// The user: "some animation to show the survivors doing something useful like farming or repairing something or harvesting stuff instead of wandering
+// around uselessly all day". A survivor at home walks to the place their job is done and works there: a mechanic to a wall (a damaged one first, which
+// they patch while they work), a farmer to the garden beds, a cook to the fire, a medic to the herbalist table; someone resting sits by the fire or
+// their bed. `e.work` says what they are doing; the renderer gives them the tool and the motion. The daily output of each job is still worked out
+// in world.js; this is the part you can see.
+const WORK_AT={mech:o=>null,farm:d=>d.special==='garden',cook:d=>d.station==='campfire',medic:d=>d.station==='medic',idle:d=>!!d.bed,guard:d=>d.special==='guard'};
+function workTask(Z,e,job){
+  const W=Z.w,spots=[];
+  if(job==='mech'){
+    // walls the player built, the most damaged first; stand in the cell on the reachable side, facing the wall's middle
+    const walls=[];for(let k=0;k<Z.ed.length;k++){const w=Z.ed[k];if(!w||!OBJ[w.k]||!OBJ[w.k].cost)continue;walls.push([k,(w.hp||1)/(OBJ[w.k].hp||1)])}
+    if(!walls.length)return null;walls.sort((a,b)=>a[1]-b[1]);const pick=walls[Math.min(walls.length-1,Math.floor(rnd()*rnd()*walls.length))][0],t=pick>>1,west=pick&1,x=t%W,y=(t-x)/W;
+    const fx=west?x:x+.5,fy=west?y+.5:y,cells=west?[[x,y],[x-1,y]]:[[x,y],[x,y-1]];const c=cells.find(([cx,cy])=>cx>=0&&cy>=0&&!(Z.obj[cy*W+cx]&&OBJ[Z.obj[cy*W+cx].k].solid))||cells[0];
+    return{k:'mech',x:c[0]+.5,y:c[1]+.5,fx,fy,edge:pick,r:.55};
+  }
+  const want=WORK_AT[job]||WORK_AT.idle;for(let i=0;i<Z.obj.length;i++){const o=Z.obj[i];if(o&&OBJ[o.k]&&want(OBJ[o.k]))spots.push(i)}
+  if(!spots.length){if(job!=='idle')return workTask(Z,e,'idle');return null}
+  const i=spots[Math.floor(rnd()*spots.length)],x=i%W,y=(i-x)/W,solid=OBJ[Z.obj[i].k].solid;let sx=x+.5,sy=y+.5;
+  if(solid){const n=[[0,1],[1,0],[-1,0],[0,-1]].map(([dx,dy])=>[x+dx,y+dy]).find(([cx,cy])=>!Z.obj[cy*W+cx]&&cx>0&&cy>0&&cx<W-1&&cy<Z.h-1);if(n){sx=n[0]+.5;sy=n[1]+.5}}
+  return{k:job==='idle'?'rest':job,x:sx,y:sy,fx:x+.5,fy:y+.5,r:solid?.5:.35};
+}
+function survivorWork(Z,e,dt){
+  const S=G.S,sv=S&&S.surv.find(s=>s.id===e.sv);if(!sv){wander(Z,e,dt,e.def.spd*.3);return}
+  const job=sv.hurt>0?'idle':sv.job;e.jt=(e.jt||0)-dt;
+  if(!e.task||e.task.job!==job||e.jt<=0){e.task=workTask(Z,e,job);if(e.task){e.task.job=job;e.task.f=field(Z,Math.floor(e.task.x),Math.floor(e.task.y),true,160)}e.jt=9+rnd()*9;e.stuck=0}
+  const T=e.task;if(!T){e.work=null;wander(Z,e,dt,e.def.spd*.3);return}
+  const d=dist(e.x,e.y,T.x,T.y);
+  if(d>T.r){e.work=null;const a=pathAim(Z,T.f,e.x,e.y,e.r,true)||[T.x,T.y],ox=e.x,oy=e.y;steer(Z,e,a[0],a[1],e.def.spd*.55,dt);
+    if(Math.hypot(e.x-ox,e.y-oy)<e.def.spd*dt*.2){e.stuck+=dt;if(e.stuck>4)e.jt=0}else e.stuck=0;return}
+  e.work=T.k;e.a=Math.atan2(T.fy-e.y,T.fx-e.x);
+  // a mechanic at a damaged wall patches it while you watch
+  if(T.k==='mech'){const w=Z.ed[T.edge];if(w&&OBJ[w.k]&&w.hp<OBJ[w.k].hp){w.hp=Math.min(OBJ[w.k].hp,w.hp+dt*1.5)}}
+}
 function stepAlly(Z,e,dt,p){
   const def=e.def;e.cd-=dt;e.flash-=dt;if(e.atkT>0)e.atkT-=dt;e.mv=0;if(e.stunT>0){e.stunT-=dt;return}
+  if(e.sv&&Z.home&&def.ai==='follow'){survivorWork(Z,e,dt);return}
   if(def.ai==='wander'||def.ai==='follow'){if(def.ai==='follow'&&!e.stay&&p&&dist(e.x,e.y,p.x,p.y)>3)steer(Z,e,p.x,p.y,def.spd,dt);else wander(Z,e,dt,def.spd*.3);return}
   const range=def.ai==='guard'?def.reach*(e.far?1.3:1):7;let t=null,td=range;
   for(const a of Z.actors){if(a.team!==1||a.dead||a.def.ai==='flee'||(!a.alert&&def.ai==='pet'))continue;const d=dist(a.x,a.y,e.x,e.y);if(d<td&&(def.ai==='pet'||los(Z,e.x,e.y,a.x,a.y))){td=d;t=a}}

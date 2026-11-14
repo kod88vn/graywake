@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.10.12 — 2026-11-14
+
+"Some animation to show the survivors doing something useful like farming or repairing something or harvesting stuff instead of wandering around uselessly all day."
+
+- **Your people work where you can see them.** A mechanic walks to a wall (the most damaged first), works at it with a wrench and patches it while there; a farmer works the garden beds with a pick; a cook tends the fire and a medic the herbalist table; someone resting or laid up stays by their bed. Each picks a new spot every ten to twenty seconds. Guards already stand at their guard posts. The daily output of each job is unchanged.
+- A lead lost to a rival while you are on the road says who took it.
+
 ## 0.10.11 — 2026-11-14
 
 - **Fixed: in a tide, Auto mode walked out through the yard's door** to meet raiders gathering in the trap field outside, and was killed there (twice, the second time costing Haiku Two a tide). What stands on the far side of a wall or a door from Auto's post is now left to the wall. Tested with a walled yard and an enemy outside the door: Auto stays put. In the open the measured result is unchanged (tide 5, machete, no medicine: 6 of 16 both before and after).
