@@ -34,7 +34,7 @@ export function candidate(S,how='came in off the road'){
   if(S.wait.length>=COMM.waitMax){const gone=S.wait.shift();note(S,gone.n+' could not wait any longer and moved on','info')}
   const used=new Set([...S.surv.map(s=>s.n),...S.wait.map(s=>s.n)]),names=SURV_NAMES.filter(n=>!used.has(n)),traits=Object.keys(SURV_TRAITS);
   const c={id:++S.survN,n:names[Math.floor(rnd()*names.length)]||'Stranger',trait:traits[Math.floor(rnd()*traits.length)],until:S.t+COMM.waitDays*1440,how};
-  S.wait.push(c);note(S,c.n+' '+how+' and asks to join you. Decide in the Camp ledger, under People.','good');sfx('quest');return c;
+  S.wait.push(c);note(S,c.n+' '+how+' and asks to join you. '+(W.survRoom&&S.surv.length>=3?'Your homestead already has the three people it can support: they will wait a few days in case one of yours leaves.':'Decide in the Camp ledger, under People.'),'good');sfx('quest');return c;
 }
 export function recruit(S,cid){
   const i=S.wait.findIndex(c=>c.id===cid);if(i<0)return null;
