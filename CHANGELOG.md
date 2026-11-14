@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.10.23 — 2026-11-14
+
+- **Event fights say what they will cost.** A fight an event starts was rated only on whether you would live through it with the medicine you carry, so a lone bear that took half a level 23's health every time (measured six times) was called "Easy pickings". The rating now also counts the health the fight is expected to take, and the choice says it: "A fair fight for you as you stand · costs you about half your health".
+
 ## 0.10.22 — 2026-11-14
 
 - **Your dropped pack comes with you when the enclave falls.** A death at home drops your pack by the fence, and when that death is what ended the enclave, the move to a new valley left the pack behind for good. It now comes over the pass: into your pack, and what does not fit lies beside you at the new homestead.

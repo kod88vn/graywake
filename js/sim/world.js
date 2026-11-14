@@ -243,7 +243,11 @@ export function ambushPlan(S,table,top){
   const t={};for(const k in table)if(ENEMIES[k])t[k]=table[k];const odds=L=>leadOdds(S,{en:t,open:1},L);
   let lvl=Math.max(1,top||1);while(lvl>1&&odds(lvl)>AMBUSH.want)lvl--;
   for(let g=0;g<40&&odds(lvl)>AMBUSH.most;g++){const k=Object.keys(t).filter(k=>ENEMIES[k].ai!=='flee').sort((a,b)=>t[b]-t[a])[0];if(!k||Object.values(t).reduce((a,b)=>a+b,0)<=1)break;if(--t[k]<=0)delete t[k]}
-  const o=odds(lvl),sk=skullsFor(o);return{table:t,lvl,odds:o,skulls:sk,word:THREAT[sk],names:Object.keys(t).map(k=>t[k]+' '+ENEMIES[k].n+(t[k]>1?'s':'')).join(', ')};
+  // the odds say whether you live through it with what you carry; a fight that takes half your health before medicine is not "easy pickings"
+  // however many bandages you have (a level 9 bear took 100 to 120 of a level 23's 220 health every time, rated one skull: 0.10.23). The health
+  // it is expected to cost is the odds times what you have to give (health plus medicine up to as much again), over your health.
+  const o=odds(lvl),ds=derive(S);let heal=0;for(const it of S.p.inv)if(it&&ITEMS[it.id]&&ITEMS[it.id].t==='med'&&ITEMS[it.id].hp>0)heal+=ITEMS[it.id].hp*it.n;
+  const cost=o*(ds.maxHp+Math.min(heal,ds.maxHp))/ds.maxHp,sk=Math.max(skullsFor(o),cost<.3?1:cost<.6?2:cost<1?3:4);return{table:t,lvl,odds:o,cost,skulls:sk,word:THREAT[sk],names:Object.keys(t).map(k=>t[k]+' '+ENEMIES[k].n+(t[k]>1?'s':'')).join(', ')};
 }
 /** The level road fights in a region would be at before they are pitched to the player. */
 const ambushTop=(S,reg)=>Math.max(1,Math.round((LOCATIONS.filter(l=>l.reg===reg).reduce((a,l)=>Math.min(a,l.lvl),99)+S.p.lvl*.6)/1.6));
