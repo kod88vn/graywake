@@ -286,6 +286,16 @@ const touchRef=(Z,ref)=>{if(ref>=EREF)Z.touchEdge(ref-EREF);else Z.touch(ref)};
 /** Why a piece cannot go on this tile, or null if it can. For a wall or door, `side` says which edge of the tile (0 north, 1 east, 2 south, 3 west). */
 /** Would a solid thing on tile i leave the player with no way on foot to the edge of the homestead? (A bot boxed itself into a corner of its own yard
  *  with a torch and a storage box.) Walls stop the way unless they are doors; solid things stop it unless they are doors. */
+/** Would a solid thing on tile i leave a station, a storage box or anything else you use, next to it, with no open side to stand at? (A bot walled its
+ *  campfire into a corner with the workbench and the furnace and could not reach it.) Returns the name of what would be boxed in, or null. */
+function boxesIn(Z,i){
+  const W=Z.w,x0=i%W,y0=(i-x0)/W,useful=o=>{const d=o&&OBJ[o.k];return d&&(d.station||d.store||d.special||d.bed||d.loot)&&d.solid};
+  const sides=[[1,0,1],[-1,0,3],[0,1,2],[0,-1,0]];
+  for(const[dx,dy]of sides){const nx=x0+dx,ny=y0+dy,n=ny*W+nx;if(nx<0||ny<0||nx>=W||ny>=Z.h||!useful(Z.obj[n]))continue;
+    let open=0;for(const[ex,ey,side]of sides){const mx=nx+ex,my=ny+ey,m=my*W+mx;if(m===i||mx<0||my<0||mx>=W||my>=Z.h)continue;if(Z.ed[edgeIdx(W,nx,ny,side)])continue;const o=Z.obj[m];if(o&&OBJ[o.k]&&OBJ[o.k].solid&&!OBJ[o.k].door)continue;open++}
+    if(!open)return OBJ[Z.obj[n].k].n}
+  return null;
+}
 function sealsIn(Z,i){
   const W=Z.w,H=Z.h,p=Z.pl,s=Math.floor(p.y)*W+Math.floor(p.x);if(s===i)return false;const seen=new Uint8Array(W*H),q=[s];seen[s]=1;
   const open=j=>{if(j===i)return false;const o=Z.obj[j];if(!o)return true;const od=OBJ[o.k];return!od||!od.solid||!!od.door};
@@ -302,7 +312,8 @@ export function canPlace(S,k,x,y,side=0){
   const i=idx(Z,x,y);if(Z.g[i]===6)return'Water';
   if(d.floor){if(Z.fl[i])return'Already floored'}
   else{if(Z.obj[i])return'Occupied';if(d.solid)for(const a of Z.actors)if(!a.dead&&Math.floor(a.x)===x&&Math.floor(a.y)===y)return'Something is standing there';
-    if(d.solid&&!d.door&&Z.pl&&sealsIn(Z,i))return'That would shut you in: leave yourself a way out'}
+    if(d.solid&&!d.door&&Z.pl&&sealsIn(Z,i))return'That would shut you in: leave yourself a way out';
+    if(d.solid&&!d.door){const b=boxesIn(Z,i);if(b)return'That would leave the '+b+' with no side to stand at'}}
   const miss=afford(S,buildCost(k));if(miss)return'Missing '+miss;
   return null;
 }

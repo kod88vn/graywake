@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **You cannot box in your own furniture.** Placing something solid that would leave a station, a storage box or a bed with no open side to stand at is refused ("That would leave the Campfire with no side to stand at"). A bot walled its campfire into a yard corner with the workbench and could not reach it.
+
 - Contracts you have already taken can be finished and handed in without a Radio Mast: an enclave that moved valleys kept them but the Contracts tab only said "No signal".
 
 ## 0.10.17 — 2026-11-14
