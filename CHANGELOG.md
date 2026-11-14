@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.10.15 — 2026-11-14
+
+"They could also be sleeping especially at night." "So survivors participate in base defense? They should."
+
+- **Your people sleep at night.** From 22:00 to 06:00 everyone off duty goes to a bed (each to their own bedroll, lying along it, chest rising and falling) or lies down where they are if no bed can be reached. Anything hostile close wakes them, and so does a tide.
+- **Everyone fit defends the homestead in a tide.** When a tide starts, each of your people who is not laid up takes up a bow and stands with you, near where you are, shooting what they can see. If one falls they are laid up for three days. When the tide ends they go back to their jobs. Guards at guard posts are at their posts as before.
+
 ## 0.10.14 — 2026-11-14
 
 - **Fixed: collecting from a rain catcher or snare with a full pack duplicated the catch.** It fell on the ground and also stayed in the catcher. It now goes into the pack, then the storage boxes; what fits nowhere stays in the catcher, with a message.

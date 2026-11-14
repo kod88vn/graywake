@@ -475,6 +475,13 @@ function startTide(S,Z){
   const{q,lvl}=tideQueue(S);S.tide.live={q,lvl,t:0,total:q.length,killed:0};Z.tideLost=0;Z.lvl=lvl;
   // allies keep their word: two fighters from every community you have a pact with
   for(const[id,n]of Community.allies(S)){for(let i=0;i<n;i++){const[x,y]=freeNear(Z,Z.w/2+(rnd()-.5)*6,Z.h/2+(rnd()-.5)*6,4);spawnActor(Z,'guard',x,y,lvl,{from:id})}toast(FACTIONS[id].n+' sends two fighters to stand with you','good')}
+  // everyone who lives here and is on their feet takes up a bow and stands with you (the user: survivors "should" join the defence). They stand inside,
+  // near where you are, shoot what they can see, and are laid up three days if they fall. Those at guard posts are already at them.
+  {const fit=S.surv.filter(sv=>!(sv.hurt>0)&&!sv.away),lvlG=1+Math.floor(S.tide.n*1.2);let n=0;
+    for(let k=Z.actors.length-1;k>=0;k--){const a=Z.actors[k];if(!a.sv||a.def.ai!=='follow')continue;const sv=fit.find(s=>s.id===a.sv);if(!sv)continue;
+      const[x,y]=freeNear(Z,Z.pl.x+(rnd()-.5)*3,Z.pl.y+(rnd()-.5)*3,2.5),g=spawnActor(Z,'guard',x,y,lvlG,{from:'home'});g.sv=sv.id;if(sv.trait==='shot')g.dmg=Math.round(g.dmg*1.5);if(sv.trait==='tough'){g.hp*=2;g.mhp*=2}
+      Z.actors.splice(Z.actors.indexOf(a),1);n++}
+    if(n)toast((n>1?n+' of your people take':'One of your people takes')+' up a bow and stand'+(n>1?'':'s')+' with you','good')}
   for(const a of Z.actors)if(a.team===1&&!a.dead)a.tide=true;
   emit('ui','tideStart');sfx('horde_horn');if(G.auto&&Z.pl){Z.pl.auto=null;toast('Auto: holding the homestead','bad')}   // auto mode stays on and defends
 }
@@ -491,7 +498,8 @@ function tickTide(S,Z,dt){
 }
 function endTide(S,Z,won){
   const n=S.tide.n+1,kind=TIDE_KINDS.find(k=>k.id===S.tide.kind)||TIDE_KINDS[0];S.tide.n=n;S.tide.live=null;stat('tides');S.deeds[won?'held':'lost']++;
-  if(G.Z&&G.Z.home)for(let i=G.Z.actors.length-1;i>=0;i--)if(G.Z.actors[i].from)G.Z.actors.splice(i,1);   // allied fighters go home
+  if(G.Z&&G.Z.home){for(let i=G.Z.actors.length-1;i>=0;i--)if(G.Z.actors[i].from)G.Z.actors.splice(i,1);   // allied fighters go home, and your own people go back to work
+    const Zh=G.Z;for(const sv of S.surv)if(!Zh.actors.some(a=>a.sv===sv.id&&!a.dead)){const[x,y]=freeNear(Zh,Zh.pl.x+(rnd()-.5)*4,Zh.pl.y+(rnd()-.5)*4,3);const a=spawnActor(Zh,'captive',x,y,1);a.stay=true;a.sv=sv.id;a.look=sv.id}}
   const res={n,name:kind.n,won,lost:Z?Z.tideLost||0:0,xp:0,scrip:0,items:[]};
   if(won){res.xp=60+45*n;res.scrip=12+8*n;addXp(S,res.xp);S.scrip+=res.scrip;stat('earned',res.scrip);
     const loot=rollLoot('stash',maxRegion(S),rnd,1);if(n%5===0)loot.push(...rollLoot('mil',Math.max(2,maxRegion(S)),rnd));for(const it of loot){give(S,it.id,it.n,it.d,true);res.items.push(it)}

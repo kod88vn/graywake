@@ -475,6 +475,13 @@ function poseHuman(rig,s,dt,v){
   if(s.recoil>0)rig.kick=1;rig.kick=damp(rig.kick||0,0,13,dt);if(s.strike&&!rig._st)rig.blow=1;rig._st=!!s.strike;rig.blow=damp(rig.blow||0,0,7,dt);
   if(s.flash>0&&!rig._fl)rig.flinch=1;rig._fl=s.flash>0;rig.flinch=damp(rig.flinch||0,0,8,dt);
   // ---- death: knees go, then the body falls and settles
+  // asleep: lowered onto the back over a second or so, knees a little up, arms loose at the sides, the chest rising and falling slowly
+  rig.wSleep=damp(rig.wSleep||0,s.sleep?1:0,2.2,dt);
+  if(rig.wSleep>.02&&!s.dead){const k=ease(rig.wSleep),br=Math.sin(s.t*1.1+sd)*.5+.5;
+    body.rotation.x=(Math.PI/2)*k;body.position.y=.08*k;body.rotation.y*=1-k;
+    P.legL.rotation.x=-.35*k;P.legR.rotation.x=-.25*k;P.kneeL.rotation.x=.6*k;P.kneeR.rotation.x=.45*k;P.legL.rotation.z=-.08*k;P.legR.rotation.z=.1*k;
+    P.armL.rotation.x=.15*k;P.armR.rotation.x=.1*k;P.armL.rotation.z=-.25*k;P.armR.rotation.z=.3*k;P.elbowL.rotation.x=-.35*k;P.elbowR.rotation.x=-.5*k;
+    P.chest.rotation.x=-.04*k-.025*br*k;P.chest.rotation.y=0;P.head.rotation.x=-.25*k;P.head.rotation.y=.35*k*Math.sin(sd);P.head.rotation.z=0;if(k>.98)return}
   if(s.dead){rig.death=Math.min(1,rig.death+dt*1.5);const d=rig.death,buckle=ease(d/.35),fall=sat((d-.12)/.7),f2=fall*fall,side=sd>3?1:-1,settle=Math.sin(Math.PI*sat((d-.82)/.18))*.07;
     body.rotation.x=-(Math.PI/2)*f2+settle;body.rotation.y=side*.5*f2;body.position.y=-.1*buckle*(1-f2)+.1*f2;
     P.kneeL.rotation.x=1.2*buckle*(1-f2*.75);P.kneeR.rotation.x=1.0*buckle*(1-f2*.4);P.legL.rotation.x=-.5*buckle*(1-f2);P.legR.rotation.x=-.35*buckle*(1-f2)-.15*f2;P.legL.rotation.z=-.2*f2;P.legR.rotation.z=.26*f2;

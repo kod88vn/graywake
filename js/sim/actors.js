@@ -8,7 +8,7 @@ import {ENEMIES,scale} from '../data/enemies.js';
 import {G,gained,homeStores,emit,toast,sfx,stat,statMax,derive,perk,weaponDef,weaponItem,count,take,give,addTo,slotCount,freeSlots,roomFor,wear,findTool,wearTool,dropAt,addXp,maxHp,FIST,quickUse,EREF,edgeIdx,structAt,structXY} from './core.js';
 import {collide,los,shotBlock,blockAt,playerField,field,stepOn,rollLoot,freeNear,atExit,edgeCross,edgeBetween,walkClear,pathAim} from './zone.js';
 import {noteKill} from './quests.js';
-import {clamp,dist,angDiff,rnd,TAU} from './util.js';
+import {clamp,dist,angDiff,rnd,TAU,hourOf} from './util.js';
 
 const TOOL_NAMES={axe:'hatchet',pick:'pickaxe',rod:'fishing rod',wrench:'wrench',pry:'crowbar'},TIER_NAMES=['','','an iron','a steel','a titanium'];
 const SHOT_SFX={pistol:'shot_pistol',smg:'shot_smg',rifle:'shot_rifle',carbine:'shot_rifle',sniper:'shot_rifle',minigun:'shot_smg',shotgun:'shot_shotgun',bow:'bow',crossbow:'bow',flamer:'flame',launcher:'throw',lance:'beam'};
@@ -655,7 +655,7 @@ function wander(Z,e,dt,speed){
 // they patch while they work), a farmer to the garden beds, a cook to the fire, a medic to the herbalist table; someone resting sits by the fire or
 // their bed. `e.work` says what they are doing; the renderer gives them the tool and the motion. The daily output of each job is still worked out
 // in world.js; this is the part you can see.
-const WORK_AT={mech:o=>null,farm:d=>d.special==='garden',cook:d=>d.station==='campfire',medic:d=>d.station==='medic',idle:d=>!!d.bed,guard:d=>d.special==='guard'};
+const WORK_AT={sleep:d=>!!d.bed,mech:o=>null,farm:d=>d.special==='garden',cook:d=>d.station==='campfire',medic:d=>d.station==='medic',idle:d=>!!d.bed,guard:d=>d.special==='guard'};
 function workTask(Z,e,job){
   const W=Z.w,spots=[];
   if(job==='mech'){
@@ -666,20 +666,24 @@ function workTask(Z,e,job){
     return{k:'mech',x:c[0]+.5,y:c[1]+.5,fx,fy,edge:pick,r:.55};
   }
   const want=WORK_AT[job]||WORK_AT.idle;for(let i=0;i<Z.obj.length;i++){const o=Z.obj[i];if(o&&OBJ[o.k]&&want(OBJ[o.k]))spots.push(i)}
-  if(!spots.length){if(job!=='idle')return workTask(Z,e,'idle');return null}
-  const i=spots[Math.floor(rnd()*spots.length)],x=i%W,y=(i-x)/W,solid=OBJ[Z.obj[i].k].solid;let sx=x+.5,sy=y+.5;
+  if(!spots.length){if(job==='sleep')return{k:'sleep',x:e.x,y:e.y,fx:e.x+Math.cos(e.a||0),fy:e.y+Math.sin(e.a||0),r:9};if(job!=='idle')return workTask(Z,e,'idle');return null}
+  const own=job==='sleep'?G.S.surv.findIndex(s=>s.id===e.sv):-1,i=own>=0?spots[own%spots.length]:spots[Math.floor(rnd()*spots.length)],x=i%W,y=(i-x)/W,solid=OBJ[Z.obj[i].k].solid;let sx=x+.5,sy=y+.5;
   if(solid){const n=[[0,1],[1,0],[-1,0],[0,-1]].map(([dx,dy])=>[x+dx,y+dy]).find(([cx,cy])=>!Z.obj[cy*W+cx]&&cx>0&&cy>0&&cx<W-1&&cy<Z.h-1);if(n){sx=n[0]+.5;sy=n[1]+.5}}
-  return{k:job==='idle'?'rest':job,x:sx,y:sy,fx:x+.5,fy:y+.5,r:solid?.5:.35};
+  return{k:job==='idle'?'rest':job,x:sx,y:sy,fx:x+.5,fy:y+.5,r:solid?.5:.35,face:job==='sleep'&&!solid?Math.PI/2-(Z.obj[i].r||0)*Math.PI/2:undefined};   // (a sleeper lies along the bedroll)   // (a bedroll is lain on; a solid bed is slept beside)
 }
 function survivorWork(Z,e,dt){
   const S=G.S,sv=S&&S.surv.find(s=>s.id===e.sv);if(!sv){wander(Z,e,dt,e.def.spd*.3);return}
-  const job=sv.hurt>0?'idle':sv.job;e.jt=(e.jt||0)-dt;
-  if(!e.task||e.task.job!==job||e.jt<=0){e.task=workTask(Z,e,job);if(e.task){e.task.job=job;e.task.f=field(Z,Math.floor(e.task.x),Math.floor(e.task.y),true,160)}e.jt=9+rnd()*9;e.stuck=0}
+  // at night everyone off duty sleeps, in a bed if there is one (the user: "they could also be sleeping especially at night"); anything hostile close wakes them
+  const h=hourOf(S.t),night=(h>=22||h<6)&&!S.tide.live&&!threatNear(Z,8);
+  const job=night?'sleep':sv.hurt>0?'idle':sv.job;e.jt=(e.jt||0)-dt;
+  if(!e.task||e.task.job!==job||(e.jt<=0&&(job!=='sleep'||e.stuck>4))){e.task=workTask(Z,e,job);if(e.task){e.task.job=job;e.task.f=field(Z,Math.floor(e.task.x),Math.floor(e.task.y),true,160);
+      // a place they cannot get to (behind walls with no door): they do it where they stand instead of circling
+      if(!(e.task.f[Math.floor(e.y)*Z.w+Math.floor(e.x)]<1e9))e.task={k:job==='sleep'?'sleep':'rest',job,x:e.x,y:e.y,fx:e.x+1,fy:e.y,r:9}}e.jt=9+rnd()*9;e.stuck=0}
   const T=e.task;if(!T){e.work=null;wander(Z,e,dt,e.def.spd*.3);return}
   const d=dist(e.x,e.y,T.x,T.y);
   if(d>T.r){e.work=null;const a=pathAim(Z,T.f,e.x,e.y,e.r,true)||[T.x,T.y],ox=e.x,oy=e.y;steer(Z,e,a[0],a[1],e.def.spd*.55,dt);
     if(Math.hypot(e.x-ox,e.y-oy)<e.def.spd*dt*.2){e.stuck+=dt;if(e.stuck>4)e.jt=0}else e.stuck=0;return}
-  e.work=T.k;e.a=Math.atan2(T.fy-e.y,T.fx-e.x);
+  e.work=T.k;e.a=T.face!==undefined?T.face:Math.atan2(T.fy-e.y,T.fx-e.x);if(T.k==='sleep'&&T.face!==undefined){e.x+=(T.x-e.x)*Math.min(1,dt*3);e.y+=(T.y-e.y)*Math.min(1,dt*3)}
   // a mechanic at a damaged wall patches it while you watch
   if(T.k==='mech'){const w=Z.ed[T.edge];if(w&&OBJ[w.k]&&w.hp<OBJ[w.k].hp){w.hp=Math.min(OBJ[w.k].hp,w.hp+dt*1.5)}}
 }
