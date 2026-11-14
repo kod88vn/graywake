@@ -253,8 +253,9 @@ export function findInteract(Z){
   const p=Z.pl,px=Math.floor(p.x),py=Math.floor(p.y);let best=null,bs=1e9;
   for(let ty=py-2;ty<=py+2;ty++)for(let tx=px-2;tx<=px+2;tx++){if(tx<0||ty<0||tx>=Z.w||ty>=Z.h)continue;const i=ty*Z.w+tx,info=interactInfo(Z,i);if(!info)continue;
     const d=dist(tx+.5,ty+.5,p.x,p.y);if(d>1.75||walled(Z,p.x,p.y,tx+.5,ty+.5))continue;// what you are standing on wins over what you happen to face; beyond that, nearer and more in front is better
-    // a bed is something you lie down on, not something in the way of the box beside it: it wins only when it is clearly what you are standing on
-    const bed=OBJ[Z.obj[i].k].bed,s=(d<(bed?.4:.6)?d*.5:d+Math.abs(angDiff(Math.atan2(ty+.5-p.y,tx+.5-p.x),p.a))*.35)+(bed&&d>=.4?.8:0)+(info.type==='prod'&&info.label==='Check'&&d>=.4?.8:0);   // an empty snare or catcher only says 'nothing yet': it does not win over the bench beside it
+    // a bed is something you lie down on, not something in the way of the box beside it: it wins only when nothing else is in reach (standing on a
+    // bedroll beside a box, E still went to the bed: 0.10.46)
+    const bed=OBJ[Z.obj[i].k].bed,s=(d<(bed?.4:.6)?d*.5:d+Math.abs(angDiff(Math.atan2(ty+.5-p.y,tx+.5-p.x),p.a))*.35)+(bed?1.6:0)+(info.type==='prod'&&info.label==='Check'&&d>=.4?.8:0);   // an empty snare or catcher only says 'nothing yet': it does not win over the bench beside it
     if(s<bs){bs=s;best={i,x:tx+.5,y:ty+.5,...info}}}
   if(!best||bs>1.2)for(const dr of Z.drops){const d=dist(dr.x,dr.y,p.x,p.y);if(d<1.3&&d<bs){bs=d;best={drop:dr,x:dr.x,y:dr.y,type:'drop',label:'Pick up'}}}
   return best;

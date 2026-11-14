@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.10.46 — 2026-11-14
+
+- Standing on a bedroll beside a box, E opens the box: the bed took E whenever you stood on it, and the box could not be opened. The bed still answers E when nothing else is in reach.
+
 ## 0.10.45 — 2026-11-14
 
 - The map will not send you to a radio lead that will be gone before you get there: Travel is greyed out with "Gone before you could get there (10h 39m on the road, 10h 19m left)".
