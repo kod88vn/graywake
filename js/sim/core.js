@@ -7,7 +7,7 @@ import {PERK,xpFor,MAX_LEVEL} from '../data/progress.js';
 import {clamp,rnd} from './util.js';
 import {sourcesOf} from '../data/sources.js';
 
-export const VERSION='0.10.32';
+export const VERSION='0.10.33';
 export const SAVE_V=2;
 export const HOME_W=46,HOME_H=46,EXIT_RING=2,NO_BUILD=4;
 export const MIN_PER_SEC=1.5;            // game minutes per real second: a day is 16 real minutes
@@ -129,8 +129,10 @@ export function wearBest(S){
 }
 export function give(S,id,n=1,d,quiet){
   if(!ITEMS[id]||n<=0)return 0;
-  const left=addTo(S.p.inv,slotCount(S),id,n,d),got=n-left;
+  let left=addTo(S.p.inv,slotCount(S),id,n,d);const got=n-left;
   S.codex.it[id]=1;
+  // at home what the pack has no room for goes into the storage boxes, and only what fits nowhere is put on the ground
+  if(left>0&&G.Z&&G.Z.home){const was=left;for(const b of homeStores(S)){left=addTo(b.inv,OBJ[b.k].store,id,left,d);if(!left)break}if(was>left&&!quiet)toast('Pack full: '+(was-left)+' '+ITEMS[id].n+' put in your storage','info')}
   if(got>0&&!quiet)emit('loot',id,got);
   if(got>0)gained(S,id,quiet);
   if(left>0){if(G.Z&&G.Z.pl){dropAt(G.Z,G.Z.pl.x,G.Z.pl.y,[{id,n:left,d}]);if(!quiet)toast('Pack full: '+ITEMS[id].n+' dropped','bad')}else if(!quiet)toast('Pack full: '+ITEMS[id].n+' left behind','bad')}

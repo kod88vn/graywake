@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.10.33 — 2026-11-14
+
+- At home, what your pack has no room for (a harvest, something made, something given) goes into your storage boxes, and only what fits nowhere is put on the ground. It used to be dropped at your feet and picked up again in the same breath ("Pack full: Wild Herb dropped | picked up +1 Wild Herb").
+
 ## 0.10.32 — 2026-11-14
 
 - Event choices say how long they take ("Sweat it out (takes 10h)"): the time was only told after choosing.
