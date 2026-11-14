@@ -440,6 +440,8 @@ function autoFight(Z,p,e,dt){
   if(S.p.hp<ds.maxHp*.45&&Z.time>=F.heal){F.heal=Z.time+2.5;const med=S.p.inv.some(it=>it&&(ITEMS[it.id].t==='med'?ITEMS[it.id].hp>0:ITEMS[it.id].t==='food'&&ITEMS[it.id].hp>=8));
     if(med)quickUse(S,'hp');else if(S.p.hp<ds.maxHp*.25&&!F.warn){F.warn=true;toast('Badly hurt and no medicine: auto is still fighting','bad');sfx('error')}}
   // a weapon the player swapped to by hand (Q) is left in hand for two game hours
+  // the hand you chose is kept for a while, unless it has nothing left to give: an empty gun or a broken blade (a bot clicked an empty revolver all fight)
+  {const e=S.p.eq[S.p.active],w=e&&ITEMS[e.id];if(w&&((w.t==='gun'&&count(S,w.ammo)<=0)||(w.dur&&e.d!==undefined&&e.d<=0)))S.p.chose=undefined}
   if(!p.atk&&!(S.p.chose!==undefined&&S.t-S.p.chose<120)){const slot=autoWeapon(S);if(slot!==S.p.active){S.p.active=slot;emit('eq')}}
   const w=weaponDef(S),gun=w.t==='gun'&&count(S,w.ammo)>0,thrown=w.t==='throw',d=dist(p.x,p.y,e.x,e.y),see=los(Z,p.x,p.y,e.x,e.y),ang=Math.atan2(e.y-p.y,e.x-p.x);
   const hitR=(thrown?FIST.rng:w.rng)+e.r,reach=gun?Math.min(w.rng*.8,8):hitR-.15;
