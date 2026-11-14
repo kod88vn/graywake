@@ -7,7 +7,7 @@ import {PERK,xpFor,MAX_LEVEL} from '../data/progress.js';
 import {clamp,rnd} from './util.js';
 import {sourcesOf} from '../data/sources.js';
 
-export const VERSION='0.10.61';
+export const VERSION='0.10.62';
 export const SAVE_V=2;
 export const HOME_W=46,HOME_H=46,EXIT_RING=2,NO_BUILD=4;
 export const MIN_PER_SEC=1.5;            // game minutes per real second: a day is 16 real minutes
@@ -84,6 +84,13 @@ export function addTo(inv,cap,id,n,d){
 export function removeFrom(inv,id,n){for(let i=inv.length-1;i>=0&&n>0;i--){const s=inv[i];if(s&&s.id===id){const k=Math.min(n,s.n);s.n-=k;n-=k;if(s.n<=0)inv[i]=null}}return n}
 /** Would n of an item fit in the pack right now? */
 export function roomFor(S,id,n){const it=ITEMS[id],cap=slotCount(S);let room=0;for(let i=0;i<cap;i++){const s=S.p.inv[i];if(!s)room+=it.st;else if(s.id===id&&it.st>1)room+=it.st-s.n;if(room>=n)return true}return room>=n}
+/** Room for n of an item in the pack, or at home in the pack and the storage boxes together (what does not fit the pack goes into storage). */
+export function roomForHome(S,id,n){
+  if(roomFor(S,id,n))return true;if(!(G.Z&&G.Z.home))return false;const it=ITEMS[id];let left=n;
+  const inv=S.p.inv.map(s=>s&&{...s});left=addTo(inv,slotCount(S),id,left,it.dur);
+  for(const b of homeStores(S)){if(left<=0)break;const c=(b.inv||[]).map(s=>s&&{...s});left=addTo(c,OBJ[b.k].store,id,left,it.dur)}
+  return left<=0;
+}
 export const freeSlots=S=>{const cap=slotCount(S);let n=0;for(let i=0;i<cap;i++)if(!S.p.inv[i])n++;return n};
 /** Give the player items. Whatever does not fit is dropped at their feet (or lost on the map). Returns the number that fit. */
 const WEAR=['head','body','legs','feet','hands'];
@@ -225,7 +232,7 @@ export function canCraft(S,r,n=1,at){
   if(!recipeVisible(S,r))return'Locked';if(!stationOk(r,at))return'Wrong station';
   const home=!!(G.Z&&G.Z.home);for(const k in r.i)if(count(S,k,home)<r.i[k]*n)return'Missing '+ITEMS[k].n+': need '+r.i[k]*n+', have '+count(S,k,home);
   if(r.fx&&r.fx.veh&&S.veh>=r.fx.veh)return'Already built';
-  if(!r.fx&&!(r.t>0&&at!=null)&&!roomFor(S,r.o,r.q*n)){let frees=false;for(const k in r.i){let c=0;for(const s of S.p.inv)if(s&&s.id===k)c+=s.n;if(c>0&&c<=r.i[k]*n)frees=true}if(!frees)return'Pack full: make room first'}
+  if(!r.fx&&!(r.t>0&&at!=null)&&!roomForHome(S,r.o,r.q*n)){let frees=false;for(const k in r.i){let c=0;for(const s of S.p.inv)if(s&&s.id===k)c+=s.n;if(c>0&&c<=r.i[k]*n)frees=true}if(!frees)return'Pack full: make room first'}
   return null;
 }
 export function craft(S,rid,n=1,at){

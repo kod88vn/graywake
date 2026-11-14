@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.10.62 — 2026-11-14
+
+- At home, a full pack no longer blocks crafting: what you make that does not fit goes into your storage boxes, and "Pack full: make room first" only shows when the boxes are full too.
+
 ## 0.10.61 — 2026-11-14
 
 - **A pack dropped by a death at home is never lost.** The bag was only put down if the tile nearest you was empty, and otherwise the whole pack vanished without a word (a death among trees and traps lost one for good). It now goes on the nearest empty tile, and as a last resort the items are dropped loose.
