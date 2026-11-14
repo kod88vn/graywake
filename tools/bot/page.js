@@ -81,7 +81,8 @@ function around(full){
   for(const a of Z.actors){if(a.pl||a.dead)continue;const dist=Math.hypot(a.x-p.x,a.y-p.y);if((dist>R+4&&!(a.team===1&&lead&&(few||a.def.boss)))||a.vis<.5)continue;
     const e={name:a.def.n||a.kind,x:r1(a.x),y:r1(a.y),dist:r1(dist),dir:compass(a.x-p.x,a.y-p.y),hp:Math.round(a.hp/a.mhp*100)};
     if(a.team===1&&a.def.ai!=='flee'){e.state=a.alert?(a.st==='wind'?'about to strike':a.st==='charge'?'charging':'coming for you'):'has not seen you';if(a.def.boss)e.boss=true;foes.push(e)}
-    else{e.kind=a.team===0?'with you':'animal';others.push(e)}}
+    // one of your own people walking about the homestead is named, with their job, so they are not taken for a newcomer to free
+    else{const sv=a.sv&&G.S.surv.find(s=>s.id===a.sv);if(sv){e.name=sv.n;e.kind='lives here: '+((JOBS[sv.job]||JOBS.idle).n).toLowerCase()}else if(a.escort)e.kind='your group';else e.kind=a.team===0?'on your side':'animal';others.push(e)}}
   foes.sort((a,b)=>a.dist-b.dist);others.sort((a,b)=>a.dist-b.dist);
   // something within arm's reach on the far side of a wall cannot be used from here: say so, since the game (rightly) just does nothing
   const list=[...things.values()].sort((a,b)=>a.dist-b.dist).slice(0,full?40:18).map(t=>({name:t.name,act:t.act&&t.dist<2.2&&Z.ed.length&&edgeCross(Z,p.x,p.y,t.x+.5,t.y+.5,true)>=0?t.act+' (but a wall is between you and it: go round)':t.act,yours:t.yours,n:t.n,x:t.x,y:t.y,dist:r1(t.dist),dir:compass(t.x+.5-p.x,t.y+.5-p.y)}));
