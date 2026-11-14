@@ -42,7 +42,7 @@ npm run test:world   # world server rules, then a real game page against it
 
 - `tools/world/` and `js/net.js` shared worlds: a world server (enclaves, hold, shared leads, event stages) and the game's client for it. Off unless the page is given `?world=URL`. `docs/MULTIPLAYER.md`.
 
-Guides: `docs/MULTIPLAYER.md`, `docs/ARCHITECTURE.md`, `docs/CONTENT_GUIDE.md`, `docs/BALANCE.md`, `docs/TESTING.md`, `docs/AUTOMATION.md`.
+Guides: `docs/OPERATIONS.md` (**read this to resume work**: what is running, the commands, the release routine, the traps, the open decisions), `docs/MULTIPLAYER.md`, `docs/ARCHITECTURE.md`, `docs/CONTENT_GUIDE.md`, `docs/BALANCE.md`, `docs/TESTING.md`, `docs/AUTOMATION.md`, and `harness_review.md` (the bot setup reviewed, with a log of every bug found and how it was fixed). `tools/measure/` holds the headless A/B measurements; `tools/bot/stats.py` and `tools/bot/watch-events.py` read and watch the bot sessions.
 
 ## Rules that are easy to break
 
@@ -70,6 +70,12 @@ Guides: `docs/MULTIPLAYER.md`, `docs/ARCHITECTURE.md`, `docs/CONTENT_GUIDE.md`, 
 - **The simulation runs in real time at any frame rate** (`main.js` splits slow frames into steps). Never cap `dt` in a way that slows the game down.
 - **The game sells nothing:** no purchases, energy, real-time waits or ads. Time only passes while you play or travel.
 - **No dependencies and no build step** without discussing it first.
+
+- **Windows are walls that let sight and shots through** (`window:1` in `objects.js`; `edgeCross(..., sight=true)` and `los()` pass them, walking does not). In a tide fit survivors go to the windows nearest the player (`windowSpots` in `world.js`) and shoot from there: walls stop arrows. A window goes into a plain wall in place (`swaps` in `core.js`, half the old cost back); a wall does not replace a window (a drag would undo a whole row). The user's words: "walls with windows so shoot through feel more realistic. Bots need to be near a window to shoot outside. Line of sight rules still apply, window allows line of sight but block pathway."
+- **Nothing the player owns is lost silently.** What does not fit the pack at home goes into the storage boxes and the game says so (`give`, `roomForHome`); a death at home always keeps the pack on the nearest empty tile (`placeBag`); a trade or sale waits for room; a survivor who leaves is logged with the morale and the body is removed. A fault of this kind outranks a balance fault: fix and test it first.
+- **Auto mode in a tide**: its post is where the player stands unless that is well away from home (then a spot inside the yard, `homeAnchor`); it hunts stragglers only when three or fewer remain or all are ranged; gathering stays within fourteen tiles of the yard when a tide is under two hours off; a tide with nothing killed for 90 seconds ends. Measured with `tools/measure/yard.mjs`; read `docs/OPERATIONS.md` section 6 before changing any of it.
+- **Releasing**: `npm run check`, then the tests (stop on the first failure), then bump `VERSION` in `js/sim/core.js`, `package.json` and `CHANGELOG.md`, commit, and only then publish, as its own step. Publishing in the same step as a failing test run happened once (0.10.74).
+- **Bot reports are leads, not verdicts**: reproduce from the report's `save.json`, then sort it into game fault, rough edge (the game is right but silent: make it say so), the bot's tools, or the bot misreading. `harness_review.md` section 7 lists examples of each.
 
 ## Bot sessions
 

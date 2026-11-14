@@ -35,7 +35,12 @@ The address is remembered in the browser; `?world=off` forgets it. `&enclave=Nam
 - The save carries `S.net` (the pass to the world), `S.world` (the last news) and `S.deeds`. A save with no `S.net` is a game played alone.
 - `js/ui/panels.js`: the World sheet (`PANELS.world`, key O) and `PANELS.exile`.
 
+## Replacements (0.10.57)
+
+When a settlement falls, a new one takes its place two world days later (one at a time, up to the world's three), seeded from the world and already grown to the world's pace, with a name from `NPC_NAMES` that is not in use. A fallen or departed enclave's name can be taken again. In a tide, every person in a settlement fights from its windows (it puts one in every sixth piece of its wall), not only its guards; a settlement leader is always counted at full health. Measured over 160 settlements for 60 world days: 46% fall instead of all of them (`tools/measure/settlements.mjs`); farmers never fell.
+
+In the live worlds at the late stages (tides ×1.5 and ×1.7) most settlements still fall within a few tides; the replacements keep the valley populated. Whether to ease those stages is an open decision (`docs/OPERATIONS.md`).
+
 ## Not built yet
 
-New settlements arriving when old ones fall (a world can end up with players only). 
 Seeing each other in the same place; trade, gifts, raids and pacts between player enclaves (the single-player communities in `js/sim/community.js` are the model for these); a world's end and a winner; accounts (an enclave is whoever holds its token, which lives in the save); running the server anywhere but this machine.

@@ -7,7 +7,7 @@ import {PERK,xpFor,MAX_LEVEL} from '../data/progress.js';
 import {clamp,rnd} from './util.js';
 import {sourcesOf} from '../data/sources.js';
 
-export const VERSION='0.10.78';
+export const VERSION='0.10.79';
 export const SAVE_V=2;
 export const HOME_W=46,HOME_H=46,EXIT_RING=2,NO_BUILD=4;
 export const MIN_PER_SEC=1.5;            // game minutes per real second: a day is 16 real minutes
@@ -344,7 +344,7 @@ export function canPlace(S,k,x,y,side=0){
   const Z=G.Z,d=OBJ[k];if(!Z||!Z.home)return'Only at home';if(!d||!d.cost)return'Cannot build that';
   if(!buildUnlocked(S,k))return d.bp?'Needs a schematic':'Needs level '+d.lv;
   if(!inBuildArea(Z,x,y))return'Too close to the tree line';
-  if(isEdgeKind(k)){if(Z.g[idx(Z,x,y)]===6)return'Water';{const old=Z.ed[edgeIdx(Z.w,x,y,side&3)];if(old&&!swaps(old.k,k))return'There is already a wall on that side'+(OBJ[old.k]&&OBJ[old.k].window?' (a window)':'')}const miss=afford(S,buildCost(k));return miss?'Missing '+miss:null}
+  if(isEdgeKind(k)){if(Z.g[idx(Z,x,y)]===6)return'Water';{const old=Z.ed[edgeIdx(Z.w,x,y,side&3)];if(old&&!swaps(old.k,k))return'There is already a '+(OBJ[old.k]?OBJ[old.k].n:'wall')+' on that side'+(OBJ[old.k]&&OBJ[old.k].window&&OBJ[k]&&OBJ[k].window?': take it out first to change it':'')}const miss=afford(S,buildCost(k));return miss?'Missing '+miss:null}
   const i=idx(Z,x,y);if(Z.g[i]===6)return'Water';
   if(d.floor){if(Z.fl[i])return'Already floored'}
   else{if(Z.obj[i])return'Occupied by '+(OBJ[Z.obj[i].k]?OBJ[Z.obj[i].k].n:'something')+' at ('+x+', '+y+')';if(d.solid)for(const a of Z.actors)if(!a.dead&&Math.floor(a.x)===x&&Math.floor(a.y)===y)return'Something is standing there';

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.10.79 — 2026-11-14
+
+- A refused placement on a taken side names what stands there ("There is already a Plank Window on that side"), not "a wall (a window)".
+- **Someone who leaves over low morale really leaves.** Only the record was removed: the person stayed standing outside, listed as "on your side", and the ledger said they were gone. They are taken off the ground too, and the message gives the threshold (under 15), which a bot read as a contradiction at morale 8.
+
 ## 0.10.78 — 2026-11-14
 
 - **Two tide clocks could disagree by an hour.** Opening the map left a copy of its tide line in the page with the same name as the one at the top of the screen, and that copy went stale as the game moved on (1h 46m against a true 1h 43m a few seconds later; after a long trip, an hour out). The map's line now has its own name, so there is only ever one tide clock.

@@ -46,6 +46,14 @@ The other direction: the bot uses some CPU and GPU and your Claude usage allowan
 - **Pace.** `live` (default): the world runs in real time and does not wait while the model thinks, as for a person. Sheets pause the game as usual. If something hostile closes in while the model is between moves, the session presses F so the game's own Auto mode defends the character, and tells the model. `turns`: the world holds still between moves (`G.hold` in `main.js`), for careful step-by-step testing; the picture then moves in bursts.
 - **Shifts and the notebook.** The model plays in shifts of N moves, each a fresh conversation, so context stays small. Its notebook (`.out/bot/profiles/NAME/notebook.md`) is the only memory between shifts; it rewrites it at the end of each. The brief it plays under is `tools/bot/PLAYER.md`.
 
+## Added since: two bots, a shared world, and the tools around them
+
+- **Two bots at once**: give the second its own `--profile` and `--port` (`--profile haiku2 --port 8778`) and, for a shared world, `--world URL --name "Haiku Two"`. `ctl.mjs` takes `--port N` to pick which one. `http://127.0.0.1:8795/watch` shows both side by side with the world's standings.
+- **More bot commands**: `leave` (walk to the nearest edge of the place, home included), `auto on|off`, `flee` (works at home: it runs for the yard when outside the walls), `wait` stops when a tide is an hour away or starts, `attack` stops four tiles from where it began at home in a tide. A stop releases all four movement keys.
+- **More for the bot to see**: the yard's state (closed or the gap's tile), furniture it cannot walk to, every building in a place with its door and what is left to search, the People and World lines, your own survivors named with their jobs.
+- **`ctl.mjs hint --port N "text"`** sends a running bot a line it reads with its next move. Use it to explain a misreading or say a fault is already fixed; a lesson for every bot belongs in `PLAYER.md`.
+- **`watch-events.py`** prints one line per hold change, newcomer, fall, major bug and finished run; **`stats.py`** totals sessions, hours, cost and recurring complaints. `docs/OPERATIONS.md` has the whole running procedure; `harness_review.md` has what the setup found and what was good and bad about it.
+
 ## What a session leaves behind
 
 `.out/bot/sessions/<date-time>-<profile>/`:
