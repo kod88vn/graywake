@@ -99,7 +99,7 @@ export function arrive(dest){
   if(dest==='home'){goHome(true);emit('save');return}
   const site=S.sites.find(s=>s.id===dest);let Z;
   // the place went off the map while the player was on the road to it (a rival opened the strongroom, or its time ran out): back to the map, with a word
-  if(!site&&!LOC[dest]){G.Z=null;G.pending=null;G.mode='map';S.at='map';toast('That place is gone: someone got there first, or it was abandoned','bad');emit('ui','map');emit('save');return}
+  if(!site&&!LOC[dest]){const lt=S.lead.lostTo&&S.lead.lostTo.id===dest?S.lead.lostTo:null;G.Z=null;G.pending=null;G.mode='map';S.at='map';toast(lt?lt.by+' reached the '+lt.name+' first, while you were on the road: there is nothing left there for you. Pick another place':'That place is gone: someone got there first, or it was abandoned','bad');emit('ui','map');emit('save');return}
   if(site){Z=genZone(siteDef(site,site.reg,site.lvl),hash(S.seed,site.id*7919));Z.site=site.id;Z.id='site';Z.name=SITES[site.site].n;Z.siteKind=site.site;if(site.bag&&site.bag.some(Boolean)){const x=Math.floor(Z.w/2)-2,y=Z.h-4;Z.obj[y*Z.w+x]={k:'deathbag',r:0,v:0,inv:site.bag,open:1}}if(SITES[site.site].lead&&leadInfo(S,site).skulls>=4)Z.lt=Math.min(5,Z.lt+1)}
   else{const l=LOC[dest],m=S.loc[dest]=S.loc[dest]||{n:0};Z=genZone(l,hash(S.seed+m.n*101,LOCATIONS.indexOf(l)),{lvl:locLevel(S,l)});if(!m.n)stat('locs');m.n++}
   enterZone(Z,Z.spawn.x,Z.spawn.y);
@@ -303,7 +303,7 @@ export function worldNews(S,W,you){
   // leads heard before joining belong to no world: they are struck off, so the same place is never on the map twice (one being stood in, or holding a dropped pack, stays)
   S.sites=S.sites.filter(s=>!(SITES[s.site]&&SITES[s.site].lead&&!s.wid&&!(G.Z&&G.Z.site===s.id)&&!(s.bag&&s.bag.some(Boolean))));if(S.lead.note&&!S.sites.some(s=>s.id===S.lead.note))S.lead.note=null;
   for(const l of W.leads||[]){const site=S.sites.find(s=>s.wid===l.id);
-    if(l.by&&l.by!==me){if(site&&!(G.Z&&G.Z.site===site.id)){S.sites=S.sites.filter(s=>s!==site);if(S.lead.note===site.id)S.lead.note=null;toast('Radio: '+l.by+' reached the '+SITES[l.kind].n+' first','bad');sfx('radio')}net.heard[l.id]=1;continue}
+    if(l.by&&l.by!==me){if(site&&!(G.Z&&G.Z.site===site.id)){const going=G.pending&&G.pending.dest===site.id;S.sites=S.sites.filter(s=>s!==site);if(S.lead.note===site.id)S.lead.note=null;S.lead.lostTo={id:site.id,by:l.by,name:SITES[l.kind].n};toast('Radio: '+l.by+' reached the '+SITES[l.kind].n+' first'+(going?', while you were on the road to it':''),'bad');sfx('radio')}net.heard[l.id]=1;continue}
     if(site||l.by||net.heard[l.id]||!SITES[l.kind]||S.tide.live)continue;
     const st=addLead(S,l.kind,undefined,S.lead.n===0?2:undefined);if(!st)continue;net.heard[l.id]=1;st.wid=l.id;st.until=S.t+Math.max(120,l.until-W.t);
     // the same place for everyone: a bearing and a distance from the world, turned into a spot one and a half to two and a half hours from this home
