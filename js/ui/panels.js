@@ -42,7 +42,9 @@ PANELS.inv={title:'Pack',live:true,open(){sel=null},
       else if(['melee','gun','tool','throw'].includes(it.t)){a+=btn('Equip','equip','data-slot="w1"','go')+btn('Equip as spare','equip','data-slot="w2"')}
       else if(['head','body','legs','feet','hands','pack'].includes(it.t))a+=btn('Wear','use','','go');
       else if(p.inv[sel.i].id==='flare')a+=btn('Fire','flare','','go');
-      else if(p.inv[sel.i].id==='repair_kit'){const w=mostWorn(p);a+=w?btn('Repair '+ITEMS[p.eq[w].id].n+' ('+Math.round(p.eq[w].d/ITEMS[p.eq[w].id].dur*100)+'%)','kitOn',`data-slot="${w}"`,'go'):'<small style="color:var(--dim)">Nothing you have on is worn.</small> '}
+      // one button for each worn thing you have on or in hand, most worn first: the kit is yours to spend where you choose
+      else if(p.inv[sel.i].id==='repair_kit'){const worn=Object.keys(p.eq).filter(k=>{const e=p.eq[k],it=e&&ITEMS[e.id];return it&&it.dur&&e.d!==undefined&&e.d<it.dur}).sort((x,y)=>p.eq[x].d/ITEMS[p.eq[x].id].dur-p.eq[y].d/ITEMS[p.eq[y].id].dur).slice(0,4);
+        a+=worn.length?worn.map((w,j)=>btn('Repair '+ITEMS[p.eq[w].id].n+' ('+Math.round(p.eq[w].d/ITEMS[p.eq[w].id].dur*100)+'%)','kitOn',`data-slot="${w}"`,j?'':'go')).join(''):'<small style="color:var(--dim)">Nothing you have on is worn.</small> '}
       a+=btn(p.inv[sel.i].n>1?'Drop one':'Drop','drop')+(p.inv[sel.i].n>1?btn('Drop all','dropall'):'');
       const b=up.find(b=>b.i===sel.i);card=itemCard(p.inv[sel.i],a);if(b)card=card.replace('<div class="row">',`<p class="okc">${b.was?'Better than the '+esc(ITEMS[b.was].n)+' you have '+(b.slot==='w1'||b.slot==='w2'?'in hand':'on')+'.':b.slot==='w1'||b.slot==='w2'?'You have a hand free for it.':'You have nothing on there.'}</p><div class="row">`)}
     else if(sel&&sel.src==='eq'&&p.eq[sel.slot]){const e=p.eq[sel.slot],it=ITEMS[e.id];card=itemCard(e,btn('Take off','unequip','','go')+(it.dur&&e.d<it.dur&&count(s,'repair_kit')?btn('Use repair kit','kit'):'')+(sel.slot==='w1'||sel.slot==='w2'?btn('Make active','active'):''))}
