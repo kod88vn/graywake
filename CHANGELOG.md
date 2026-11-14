@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.10.20 — 2026-11-14
+
+- Building on a taken spot says what is there ("Occupied by Wooden Spikes"), not just "Occupied": a low trap is easy to miss under the cursor.
+
 ## 0.10.19 — 2026-11-14
 
 - **"Missing" says where to get it.** Building, upgrading or repairing without enough of something now names where it comes from in the message itself ("Missing Nails: need 4, have 0 (made at a Workbench from Scrap Metal…)"); before, that was only in a tooltip that touch screens never show.
