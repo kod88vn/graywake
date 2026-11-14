@@ -14,6 +14,9 @@ import {STORY,BUILD_TAGS,CONTRACTS,PERKS,ACHIEVEMENTS,JOBS,TRADE,TRADE_BP} from 
 import {FACTIONS} from '../js/data/community.js';
 
 const errs=[],warns=[];const E=m=>errs.push(m),W=m=>warns.push(m);
+// every script parses: the data tables above import only part of the game, so a syntax error in a UI file went through this check (0.10.28)
+{const {execFileSync}=await import('node:child_process');const walk=d=>fs.readdirSync(path.join(ROOT,d),{withFileTypes:true}).flatMap(e=>e.isDirectory()?walk(d+'/'+e.name):/\.m?js$/.test(e.name)?[d+'/'+e.name]:[]);
+  for(const f of[...walk('js'),...walk('tools')]){try{execFileSync(process.execPath,['--check',path.join(ROOT,f)],{stdio:'pipe'})}catch(e){E(f+': does not parse: '+String(e.stderr||e.message).split('\n').filter(Boolean).slice(0,4).join(' | '))}}}
 const item=(id,where)=>{if(!ITEMS[id])E(`${where}: unknown item "${id}"`)},obj=(id,where)=>{if(!OBJ[id])E(`${where}: unknown object "${id}"`)},foe=(id,where)=>{if(!ENEMIES[id])E(`${where}: unknown creature "${id}"`)};
 const got=new Set(),used=new Set();
 const read=f=>fs.existsSync(path.join(ROOT,f))?fs.readFileSync(path.join(ROOT,f),'utf8'):'';

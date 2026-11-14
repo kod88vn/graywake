@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.10.28 — 2026-11-14
+
+- **What you drop stays dropped.** Auto mode picked up every loose pile it passed, including the junk you had just put down to make room, and walking over it picked it up again. A pile you drop yourself is now left alone by both (press E on it to take it back).
+- `npm run check` now makes sure every script parses.
+
 ## 0.10.27 — 2026-11-14
 
 - Times round to the minute before they are written, so the tide clock no longer reads "1h 60m".

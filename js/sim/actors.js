@@ -374,7 +374,7 @@ function autoTarget(Z,p){
     if(d.node){ok=(!d.node.tool||!!findTool(S,d.node.tool,d.node.tier))&&d.node.give.some(g=>roomFor(S,g[0],1))}else if(d.loot&&!o.empty&&!o.kept&&!Z.home){ok=!d.lock||o.unlocked||!!o.inv}
     if(!ok)continue;let v=near(i);if(held&&d.node&&d.node.tool===held)v-=6;if(v<bd){bd=v;best=i}}
   // loose loot comes first: anything lying within a short walk is picked up before going back to gathering (it is what a fight leaves behind)
-  let drop=null,dd=Infinity;for(const dr of Z.drops){if(dr.full&&Z.time-dr.full<20)continue;const v=f[Math.floor(dr.y)*W+Math.floor(dr.x)];if(v<dd){dd=v;drop=dr}}
+  let drop=null,dd=Infinity;for(const dr of Z.drops){if(dr.mine||dr.full&&Z.time-dr.full<20)continue;const v=f[Math.floor(dr.y)*W+Math.floor(dr.x)];if(v<dd){dd=v;drop=dr}}
   if(drop&&(dd<26||dd<bd)){best=-2;p.autoDrop=drop}
   if(best===-1)return null;
   if(best===-2)return{drop:p.autoDrop,f:field(Z,Math.floor(p.autoDrop.x),Math.floor(p.autoDrop.y),true,120)};
@@ -543,7 +543,7 @@ function stepPlayer(Z,dt){
     }
   }
   // loose loot
-  if(S.set.autoPick)for(let k=Z.drops.length-1;k>=0;k--){const dr=Z.drops[k];dr.t+=dt;if(dr.t>.5&&dist(dr.x,dr.y,p.x,p.y)<.95&&!(dr.full&&Z.time-dr.full<4))pickDrop(Z,dr,false)}
+  if(S.set.autoPick)for(let k=Z.drops.length-1;k>=0;k--){const dr=Z.drops[k];dr.t+=dt;if(dr.t>.5&&!dr.mine&&dist(dr.x,dr.y,p.x,p.y)<.95&&!(dr.full&&Z.time-dr.full<4))pickDrop(Z,dr,false)}
   Z.exit=atExit(Z,Math.floor(p.x),Math.floor(p.y));
 }
 

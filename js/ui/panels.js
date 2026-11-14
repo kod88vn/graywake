@@ -63,7 +63,7 @@ PANELS.inv={title:'Pack',live:true,open(){sel=null},
     else if(a==='use'){useItem(s,sel.i);if(!p.inv[sel.i])sel=null}
     else if(a==='equip'){equip(s,sel.i,d.slot);if(!p.inv[sel.i])sel=null}
     else if(a==='flare'){if(World.useFlare(s,sel.i))return false}
-    else if(a==='drop'||a==='dropall'){const it=p.inv[sel.i],n=a==='drop'?1:it.n;if(G.Z&&G.Z.pl)dropAt(G.Z,G.Z.pl.x+Math.cos(G.Z.pl.a)*1.1,G.Z.pl.y+Math.sin(G.Z.pl.a)*1.1,[{id:it.id,n,d:it.d}]).full=G.Z.time+6;it.n-=n;if(it.n<=0){p.inv[sel.i]=null;sel=null}}
+    else if(a==='drop'||a==='dropall'){const it=p.inv[sel.i],n=a==='drop'?1:it.n;if(G.Z&&G.Z.pl)Object.assign(dropAt(G.Z,G.Z.pl.x+Math.cos(G.Z.pl.a)*1.1,G.Z.pl.y+Math.sin(G.Z.pl.a)*1.1,[{id:it.id,n,d:it.d}]),{full:G.Z.time+6,mine:1});/* what you put down yourself, auto mode and walking over it leave alone (E still picks it up) */it.n-=n;if(it.n<=0){p.inv[sel.i]=null;sel=null}}
     else if(a==='unequip'){unequip(s,sel.slot);sel=null}
     else if(a==='kit'){repairWithKit(s,sel.slot)}
     else if(a==='kitOn'){repairWithKit(s,d.slot);if(!p.inv[sel.i])sel=null}
