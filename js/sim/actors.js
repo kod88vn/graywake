@@ -478,7 +478,8 @@ function autoStep(Z,p,dt){
           for(let k=0;k<S.p.inv.length;k++){const it=S.p.inv[k];if(!it||!['mat','seed','ammo'].includes(ITEMS[it.id].t))continue;const left=addTo(o.inv,cap,it.id,it.n,it.d);if(left<it.n)n++;if(left>0)it.n=left;else S.p.inv[k]=null}
           p.stow=null;if(n){toast('Auto: put '+n+' stack'+(n>1?'s':'')+' of materials in the '+OBJ[o.k].n,'info');sfx('pickup');return[0,0]}}
         else{const dir=pathDir(Z,p,s.f);if(dir)return dir;const l=Math.hypot(tx-p.x,ty-p.y)||1;return[(tx-p.x)/l,(ty-p.y)/l]}}}
-    if(freeSlots(S)===0){G.auto=false;p.auto=null;p.stow=null;toast(Z.home?'Auto stopped: pack full, and no storage box has room for the materials (build another)':'Auto stopped: pack full','info');return[0,0]}}
+    // a full pack ends the gathering, not the defending: auto mode stays on and fights whatever comes, and says so once
+    if(freeSlots(S)===0){p.auto=null;p.stow=null;if(!p.fullSaid||Z.time-p.fullSaid>60){p.fullSaid=Z.time;toast(Z.home?'Auto: pack full and no storage box has room (build another). Still on guard':'Auto: pack full, no more gathering. Still on guard','info')}return[0,0]}}
   if(p.act)return[0,0];
   let a=p.auto;
   if(a&&(a.drop?!Z.drops.includes(a.drop):(!Z.obj[a.i]||Z.obj[a.i].empty)))a=p.auto=null;

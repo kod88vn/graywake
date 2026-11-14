@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **A full pack no longer switches Auto mode off.** It stops gathering and stays on guard, fighting whatever comes, and says so once. It used to switch off between two fights.
+
 - The fire axe fells trees like an iron hatchet.
 
 ## 0.10.15 — 2026-11-14
