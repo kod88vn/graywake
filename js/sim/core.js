@@ -7,7 +7,7 @@ import {PERK,xpFor,MAX_LEVEL} from '../data/progress.js';
 import {clamp,rnd} from './util.js';
 import {sourcesOf} from '../data/sources.js';
 
-export const VERSION='0.10.75';
+export const VERSION='0.10.76';
 export const SAVE_V=2;
 export const HOME_W=46,HOME_H=46,EXIT_RING=2,NO_BUILD=4;
 export const MIN_PER_SEC=1.5;            // game minutes per real second: a day is 16 real minutes
@@ -457,7 +457,7 @@ export function quickUse(S,need){
     else if(need==='hp'){if(it.t!=='med'&&!(it.hp>=8))return;const miss=ds.maxHp-p.hp;v=it.hp>0?Math.max(1,100-Math.abs(miss-it.hp)):0}
     else if(need==='tox'){if((it.tox||0)>-10)return;v=-(it.tox||0)}   /* a real cure only: a poultice takes off 6 and was spent on the antidote key (and a key press should not waste it) */
     if(v>score){score=v;best=i}});
-  if(best<0){toast(need==='hp'?'Nothing to heal with':need==='tox'?'No antidote. Herbal Tea is brewed at a campfire (2 herbs, clean water); Charcoal Tablets and Antitoxin are made at a Herbalist Table':need==='water'?(risky?'Only '+risky+' to drink: boil it at a campfire first, or drink it from your pack and risk it':'Nothing to drink in your pack'):'Nothing suitable in your pack','bad');sfx('error');return false}
+  if(best<0){toast(need==='hp'?'Nothing to heal with':need==='tox'?'No antidote. Rest at home: toxin clears there by itself in a couple of hours (a night in bed takes 25 off). Herbal Tea is brewed at a campfire; Charcoal Tablets and Antitoxin at a Herbalist Table':need==='water'?(risky?'Only '+risky+' to drink: boil it at a campfire first, or drink it from your pack and risk it':'Nothing to drink in your pack'):'Nothing suitable in your pack','bad');sfx('error');return false}
   // say what was used and how many are left: a quick key, the health bar or auto mode spends things the player did not pick by hand
   const id=S.p.inv[best].id,ok=useItem(S,best);if(ok){const left=count(S,id);toast('Used '+ITEMS[id].n+(left?' · '+left+' left':' · that was the last one'),left?'info':'bad');
     // a weak cure for a heavy dose: say what would actually clear it

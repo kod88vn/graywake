@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.10.76 — 2026-11-14
+
+- **Toxin clears by itself much faster at home.** It fell by 0.03 a game minute everywhere, so from 100 it took 28 game hours to get under 50, with no healing in between (a bot sat at 100 for an hour and a half with nothing to cure it). At home it is now 0.25 (about two real minutes, 3.3 game hours); away from home 0.04. The "No antidote" message says to rest at home.
+
 ## 0.10.75 — 2026-11-14
 
 - **A tide that has stalled ends.** Once every wave is in, if nothing has been killed for 90 seconds (as well as the 40 seconds of no one being hurt from 0.10.52) the last attackers fall back and the tide is held. Spitters standing off and spitting could keep a tide going for good, which showed up as the tide-15 test failing about one run in four. Auto also hunts the last attackers whenever every one of them is a ranged one, not only when three or fewer are left. Twelve runs of the sim tests in a row pass; tide 5 survival is unchanged.

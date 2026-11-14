@@ -449,9 +449,9 @@ export function advance(S,m,mode='live'){
   p.water=Math.max(0,p.water-m*THIRST*f*(1+(ds.pk.thirst||0))*(live?(W.thirst||1)*(Z&&Z.heat?1.35:1):1));
   let loss=0;if(p.food<=0)loss+=m*.14;if(p.water<=0)loss+=m*.2;
   if(live&&Z){
-    const tox=(Z.tox||0)+(W.tox&&reg===5?.4:0);if(tox>0)p.tox=Math.min(100,p.tox+m*.5*tox*(1-ds.tox));else p.tox=Math.max(0,p.tox-m*.03);
+    const tox=(Z.tox||0)+(W.tox&&reg===5?.4:0);if(tox>0)p.tox=Math.min(100,p.tox+m*.5*tox*(1-ds.tox));else p.tox=Math.max(0,p.tox-m*TOX_CLEAR(S,Z));
     const cold=(Z.cold||0)*(W.cold||1);if(cold>0)loss+=m*.22*cold*(1-ds.cold);
-  }else p.tox=Math.max(0,p.tox-m*.03);
+  }else p.tox=Math.max(0,p.tox-m*TOX_CLEAR(S,Z));
   if(p.tox>=50)loss+=m*(p.tox-50)/50*.25;
   if(loss>0){p.hp-=loss;if(!live)p.hp=Math.max(5,p.hp);else if(p.hp<=0&&Z&&Z.pl&&!Z.pl.dead){p.hp=0;Z.pl.dead=true;sfx('death');G.hooks.die()}}
   // home keeps working whether you are there or not
@@ -548,6 +548,9 @@ function windowSpots(Z){
     if(best&&bc<1e9)out.push(best)});
   return out.sort((a,b)=>a.c-b.c);
 }
+/** How fast toxin clears by itself, per game minute: at home, resting among your own things, eight times faster than out in the wild (it was 0.03 everywhere:
+ *  100 to 50 took 28 game hours with no healing, which a bot sat through with nothing to cure it). */
+const TOX_CLEAR=(S,Z)=>(Z&&Z.home)||(!Z&&S.pos==='home')?.25:.04;
 const TIDE_CALM=40,TIDE_STALL=90;   // (no one hurt for 40 s, or nothing killed for 90 s, once every wave is in)
 function tickTide(S,Z,dt){
   // animals that only run away never count as attackers: a herd that wandered in must not keep a tide from ending
