@@ -9,7 +9,7 @@
 import {ITEMS} from '../data/items.js';
 import {OBJ} from '../data/objects.js';
 import {FACTIONS,COMM,relOf} from '../data/community.js';
-import {SURV_NAMES,SURV_TRAITS} from '../data/progress.js';
+import {SURV_NAMES,SURV_TRAITS,JOBS} from '../data/progress.js';
 import {G,toast,sfx,stat,count,take,give,homeStores,addXp,perk} from './core.js';
 import {clamp,rnd,dayOf} from './util.js';
 
@@ -110,7 +110,7 @@ export function openRoute(S,id,svId){
   if(fs.st<COMM.routeAt){toast(F.n+' does not trust you enough yet (standing '+COMM.routeAt+')','bad');return false}
   if(!sv||!available(sv)||routeOf(S,sv.id)){toast('Pick someone who is fit and not already on a run','bad');return false}
   if(S.scrip<COMM.routeCost){toast('Opening a route costs '+COMM.routeCost+' scrip in gifts and gear','bad');sfx('error');return false}
-  S.scrip-=COMM.routeCost;fs.route={sv:svId,since:dayOf(S.t),n:0};sv.job='idle';note(S,sv.n+' starts the daily run to '+F.n,'good');stat('routes');return true;
+  const was=sv.job&&sv.job!=='idle'&&JOBS[sv.job]?JOBS[sv.job].n.toLowerCase():null;S.scrip-=COMM.routeCost;fs.route={sv:svId,since:dayOf(S.t),n:0};sv.job='idle';note(S,sv.n+' starts the daily run to '+F.n+(was?', and is no longer your '+was+(was==='guard'?': nobody of yours takes that post in a tide now unless you give someone the job':''):''),was?'bad':'good');stat('routes');return true;
 }
 export function closeRoute(S,id){const fs=fac(S,id);if(!fs.route)return false;fs.route=null;toast('Route to '+FACTIONS[id].n+' closed','info');return true}
 /** The community a survivor runs to, or null. */

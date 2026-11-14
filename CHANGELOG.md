@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.10.40 — 2026-11-14
+
+- Opening a trade route says what the runner stops doing ("Ada starts the daily run to Millrace, and is no longer your guard…"): a guard sent on a route left the tide post empty without a word.
+
 ## 0.10.39 — 2026-11-14
 
 - On the map, tapping where places are drawn on top of each other steps to the next one on each tap, so the one underneath can be picked.
