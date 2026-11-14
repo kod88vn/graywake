@@ -64,7 +64,7 @@ export function makeServer({dir=path.join(ROOT,'.out/worlds'),rnd=Math.random,no
   function join(wid,name,kind){
     let w=wid&&DB.worlds.find(x=>x.id===wid);if(!w)w=DB.worlds.filter(x=>players(x).length<RULES.room).sort((a,b)=>players(b).length-players(a).length)[0]||createWorld();
     if(players(w).length>=RULES.room)w=createWorld();
-    name=String(name||'Enclave').trim().slice(0,24)||'Enclave';if(w.enclaves.some(e=>e.name===name))name+=' '+(w.enclaves.length+1);
+    name=String(name||'Enclave').trim().slice(0,24)||'Enclave';if(w.enclaves.some(e=>e.name===name&&e.status==='holding'))name+=' '+(w.enclaves.length+1);   // (a fallen or departed enclave of the same name does not take it: one came back to a valley it had left as "Haiku One 6")
     const e={id:id(),token:id()+id(),name,kind:kind==='bot'?'bot':'human',status:'holding',hold:RULES.hold0,score:0,day:1,level:1,deeds:{held:0,lost:0,deaths:0,leads:0},joined:now(),seen:now()};
     w.enclaves.push(e);w.last=now();news(w,name+' has settled in '+w.name+'.','good');save();return{w,e};
   }
