@@ -16,6 +16,7 @@ import {clamp,rnd,dist,dayOf,hourOf,hash,TAU} from './util.js';
 import * as Community from './community.js';
 
 G.hooks={};
+const fmtClock=t=>{const h=hourOf(t),m=Math.floor((h%1)*60);return String(Math.floor(h)).padStart(2,'0')+':'+String(m).padStart(2,'0')};
 export const isNight=t=>{const h=hourOf(t);return h>=20.5||h<5.5};
 /** 0 at midnight-dark, 1 at full day, with dawn and dusk ramps. */
 export const daylight=t=>{const h=hourOf(t);return h<4.5?0:h<7?(h-4.5)/2.5:h<18.5?1:h<21?1-(h-18.5)/2.5:0};
@@ -82,6 +83,8 @@ export function travel(dest){
   const S=G.S,why=canVisit(S,dest);if(why){toast(why,'bad');sfx('error');return false}
   if(dest===S.pos&&dest==='home'){goHome(true);return true}
   const info=travelInfo(S,dest),reg=destReg(S,dest);
+  // where you are going and how long it lasts, so a place that runs out while you are on the road can be named when you get there
+  {const st=S.sites.find(s=>s.id===dest);S.lead.quiet=st?{id:dest,name:SITES[st.site]?SITES[st.site].n:'place',at:st.until}:null}
   if(info.fuel>0)take(S,'fuel',info.fuel,S.pos==='home');else if(info.noFuel)toast('No fuel: going the slow way','bad');
   sfx('travel');advance(S,info.min,'travel');stat('distance',Math.round(info.d));
   // The road is also a rest: wounds mend on the way, paid for in food and water, as far as there is any to spare (the user's idea:
@@ -99,7 +102,7 @@ export function arrive(dest){
   if(dest==='home'){goHome(true);emit('save');return}
   const site=S.sites.find(s=>s.id===dest);let Z;
   // the place went off the map while the player was on the road to it (a rival opened the strongroom, or its time ran out): back to the map, with a word
-  if(!site&&!LOC[dest]){const lt=S.lead.lostTo&&S.lead.lostTo.id===dest?S.lead.lostTo:null;G.Z=null;G.pending=null;G.mode='map';S.at='map';toast(lt?lt.by+' reached the '+lt.name+' first, while you were on the road: there is nothing left there for you. Pick another place':'That place is gone: someone got there first, or it was abandoned','bad');emit('ui','map');emit('save');return}
+  if(!site&&!LOC[dest]){const lt=S.lead.lostTo&&S.lead.lostTo.id===dest?S.lead.lostTo:null;G.Z=null;G.pending=null;G.mode='map';S.at='map';const qt=S.lead.quiet&&S.lead.quiet.id===dest&&S.lead.quiet.at<S.t?S.lead.quiet:null;toast(lt?lt.by+' reached the '+lt.name+' first, while you were on the road: there is nothing left there for you. Pick another place':qt?'The '+qt.name+' went quiet at '+fmtClock(qt.at)+', before you got there (the road took longer than its time left). Pick another place':'That place is gone: someone got there first, or it was abandoned','bad');emit('ui','map');emit('save');return}
   if(site){Z=genZone(siteDef(site,site.reg,site.lvl),hash(S.seed,site.id*7919));Z.site=site.id;Z.id='site';Z.name=SITES[site.site].n;Z.siteKind=site.site;if(site.bag&&site.bag.some(Boolean)){const x=Math.floor(Z.w/2)-2,y=Z.h-4;Z.obj[y*Z.w+x]={k:'deathbag',r:0,v:0,inv:site.bag,open:1}}if(SITES[site.site].lead&&leadInfo(S,site).skulls>=4)Z.lt=Math.min(5,Z.lt+1)}
   else{const l=LOC[dest],m=S.loc[dest]=S.loc[dest]||{n:0};Z=genZone(l,hash(S.seed+m.n*101,LOCATIONS.indexOf(l)),{lvl:locLevel(S,l)});if(!m.n)stat('locs');m.n++}
   enterZone(Z,Z.spawn.x,Z.spawn.y);

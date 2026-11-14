@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.10.30 — 2026-11-14
+
+- A radio lead that runs out while you are on the road to it now says so when you arrive ("The Hardware Store went quiet at 13:36, before you got there"), instead of "someone got there first, or it was abandoned". A detour on the road counts against its time.
+
 ## 0.10.29 — 2026-11-14
 
 - The caravan will not sell you something your pack has no room for: it took the scrip and dropped the thing on the ground, where it was easy to walk away from. It now says to make room first.
