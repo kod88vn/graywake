@@ -56,8 +56,8 @@ const edible=(it,key)=>it.t==='food'&&!it.risk&&!it.buff&&(it[key]||0)>=8;
 /** What the group eats and drinks a day against what the storage boxes hold. */
 export function needs(S){
   const people=S.surv.length,meals=S.surv.reduce((a,s)=>a+(s.trait==='glutton'?2:1),0);let food=0,water=0;
-  for(const b of homeStores(S))for(const s of b.inv){if(!s)continue;const it=ITEMS[s.id];if(!it)continue;if(edible(it,'food'))food+=s.n;else if(edible(it,'water'))water+=s.n}
-  return{people,meals,drinks:people,food,water,foodDays:meals?food/meals:Infinity,waterDays:people?water/people:Infinity};
+  const skip={};for(const b of homeStores(S))for(const s of b.inv){if(!s)continue;const it=ITEMS[s.id];if(!it)continue;if(edible(it,'food'))food+=s.n;else if(edible(it,'water'))water+=s.n;else if(it.t==='food')skip[s.id]=(skip[s.id]||0)+s.n}
+  return{people,meals,drinks:people,food,water,skip,foodDays:meals?food/meals:Infinity,waterDays:people?water/people:Infinity};
 }
 
 // ---------------------------------------------------------------- the others
