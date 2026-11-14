@@ -284,6 +284,16 @@ export const structAt=(Z,ref)=>ref>=EREF?Z.ed[ref-EREF]:Z.obj[ref];
 export const structXY=(Z,ref)=>{if(ref>=EREF){const e=ref-EREF,i=e>>1,x=i%Z.w,y=(i-x)/Z.w;return e&1?[x,y+.5]:[x+.5,y]}return[ref%Z.w+.5,Math.floor(ref/Z.w)+.5]};
 const touchRef=(Z,ref)=>{if(ref>=EREF)Z.touchEdge(ref-EREF);else Z.touch(ref)};
 /** Why a piece cannot go on this tile, or null if it can. For a wall or door, `side` says which edge of the tile (0 north, 1 east, 2 south, 3 west). */
+/** Would a solid thing on tile i leave the player with no way on foot to the edge of the homestead? (A bot boxed itself into a corner of its own yard
+ *  with a torch and a storage box.) Walls stop the way unless they are doors; solid things stop it unless they are doors. */
+function sealsIn(Z,i){
+  const W=Z.w,H=Z.h,p=Z.pl,s=Math.floor(p.y)*W+Math.floor(p.x);if(s===i)return false;const seen=new Uint8Array(W*H),q=[s];seen[s]=1;
+  const open=j=>{if(j===i)return false;const o=Z.obj[j];if(!o)return true;const od=OBJ[o.k];return!od||!od.solid||!!od.door};
+  const wallOn=e=>{const w=Z.ed[e];if(!w)return false;const wd=OBJ[w.k];return!(wd&&wd.door)};
+  while(q.length){const c=q.pop(),x=c%W,y=(c-x)/W;if(x<3||y<3||x>=W-3||y>=H-3)return false;
+    for(const[dx,dy,side]of[[1,0,1],[-1,0,3],[0,1,2],[0,-1,0]]){const nx=x+dx,ny=y+dy,n=ny*W+nx;if(nx<0||ny<0||nx>=W||ny>=H||seen[n])continue;if(wallOn(edgeIdx(W,x,y,side)))continue;if(!open(n))continue;seen[n]=1;q.push(n)}}
+  return true;
+}
 export function canPlace(S,k,x,y,side=0){
   const Z=G.Z,d=OBJ[k];if(!Z||!Z.home)return'Only at home';if(!d||!d.cost)return'Cannot build that';
   if(!buildUnlocked(S,k))return d.bp?'Needs a schematic':'Needs level '+d.lv;
@@ -291,7 +301,8 @@ export function canPlace(S,k,x,y,side=0){
   if(isEdgeKind(k)){if(Z.g[idx(Z,x,y)]===6)return'Water';if(Z.ed[edgeIdx(Z.w,x,y,side&3)])return'There is already a wall on that side';const miss=afford(S,buildCost(k));return miss?'Missing '+miss:null}
   const i=idx(Z,x,y);if(Z.g[i]===6)return'Water';
   if(d.floor){if(Z.fl[i])return'Already floored'}
-  else{if(Z.obj[i])return'Occupied';if(d.solid)for(const a of Z.actors)if(!a.dead&&Math.floor(a.x)===x&&Math.floor(a.y)===y)return'Something is standing there'}
+  else{if(Z.obj[i])return'Occupied';if(d.solid)for(const a of Z.actors)if(!a.dead&&Math.floor(a.x)===x&&Math.floor(a.y)===y)return'Something is standing there';
+    if(d.solid&&!d.door&&Z.pl&&sealsIn(Z,i))return'That would shut you in: leave yourself a way out'}
   const miss=afford(S,buildCost(k));if(miss)return'Missing '+miss;
   return null;
 }
