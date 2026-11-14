@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased
+## 0.10.7 — 2026-11-13
+
+- **Fixed: a fallen enclave could keep its old homestead.** Haiku One's enclave fell in tide 11 and the world moved it to Low Water, but the news arrived under its death sheet and the move was never made: it went on in the new world with the old base, stores and tide count. The fall is now written into the save and shown as soon as no sheet needs an answer, putting away anything else that is open.
 
 - E next to a bed and a box opens the box: a bed is chosen only when you are standing right on it. A bedroll beside a storage box made the box impossible to open from most sides.
 

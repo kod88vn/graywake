@@ -97,7 +97,6 @@ function onEvent(e){
     else if(n==='tideWarn'){const k=TIDE_KINDS.find(k=>k.id===S.tide.kind);banner('Tide coming',k.n+' from the '+DIRS[S.tide.dir]);if(G.mode==='map')MapScreen.draw()}
     else if(n==='tideStart'){const k=TIDE_KINDS.find(k=>k.id===S.tide.kind);banner('The tide',k.n+' · from the '+DIRS[S.tide.dir]);closeQuiet();buildClose()}
     else if(n==='tideEnd')setTimeout(()=>open('tideEnd',a),900);
-    else if(n==='exile'){closeQuiet();buildClose();open('exile',a)}
     else if(n==='wake')banner('Day '+a,WEATHER[S.weather.id].n);
     else if(n==='ending')setTimeout(()=>open('ending'),2500);
     else if(PANELS[n])open(n,a);
@@ -218,6 +217,8 @@ function frame(dt){if(cur==='inv')Portrait.frame(dt||.016);
   const bf=S.p.buffs.map(b=>`<span>${{speed:'Quick',haste:'Sharp',resist:'Steady',regen:'Mending',vigor:'Hale',weak:'Weak'}[b.k]||b.k} ${Math.ceil(b.t)}s</span>`).join('')+(p.sneak?'<span style="color:var(--violet)">Sneaking</span>':'')+(p.rest?'<span style="color:var(--green)">Catching breath</span>':p.rested&&!p.fed?'<span>Rested: eat well or use medicine for more</span>':'')+(p.fed&&S.p.hp<ds.maxHp?'<span style="color:var(--green)">Well fed: healing</span>':'')+(ds.set?`<span>Set bonus</span>`:'')+(Z.cold&&ds.cold<.95?'<span class="danger">Freezing</span>':'')+(Z.heat?'<span>Heat</span>':'');
   if($('buffs')._h!==bf){$('buffs')._h=bf;$('buffs').innerHTML=bf}
   const W=WEATHER[S.weather.id];$('clock').firstElementChild.innerHTML=`DAY ${dayOf(S.t)} · ${fmtTime(S.t)}<span>${W.n}</span>`;
+  // the fall waits only for a sheet that must be answered (a death, an event); anything else is put away for it
+  if(S.net&&S.net.exile&&cur!=='exile'&&!(cur&&PANELS[cur].modal)&&G.mode==='play'&&G.Z&&G.Z.pl&&!G.Z.pl.dead){closeQuiet();buildClose();open('exile',S.net.exile)}
   {const w=S.world,we=$('worldchip');we.hidden=!w;if(w){const y=w.you||{};we.textContent=`${w.name.toUpperCase()} · ${w.stageName.toUpperCase()} · HOLD ${y.hold??'?'} · ${y.rank||'?'} OF ${y.of||w.enclaves.length}`;we.className=(y.hold??60)<25?'low':''}}
   const T=S.tide,te=$('tide');if(T.live){te.className='live';te.textContent=`TIDE ${T.n+1} · ${T.live.left||T.live.total} LEFT`}else{const left=T.at-S.t;te.className=left<12*60?'soon':'';te.textContent=`TIDE ${T.n+1} IN ${fmtMin(left).toUpperCase()}`+(T.warned?' · '+DIRS[T.dir].toUpperCase():'')}
   let boss=null;for(const a of Z.actors)if(a.team===1&&!a.dead&&(a.def.boss)&&a.alert){boss=a;break}

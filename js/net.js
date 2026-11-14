@@ -32,7 +32,9 @@ export const Net={url:null,name:'',kind:'human',pick:'',state:'off',err:'',world
       d.held-=sent.held;d.lost-=sent.lost;d.deaths-=sent.deaths;d.leads=d.leads.filter(x=>!sent.leads.includes(x));
       // what the world has been told is written down at once, so a save never holds deeds the world has already counted
       if(sent.held||sent.lost||sent.deaths||sent.leads.length)G.ev.push(['save']);
-      if(r.moved){Object.assign(S.net,{world:r.moved.world,enclave:r.moved.enclave,token:r.moved.token,name:r.moved.name,heard:{}});G.ev.push(['ui','exile',{from:r.moved.from,to:r.world.name,world:r.world,you:r.you}]);this.state='on';return}
+      // the fall is written into the save at once and shown as soon as nothing else is on screen (it once arrived under a death sheet and was never applied)
+      if(r.moved){Object.assign(S.net,{world:r.moved.world,enclave:r.moved.enclave,token:r.moved.token,name:r.moved.name,heard:{},exile:{from:r.moved.from,to:r.world.name,world:r.world,you:r.you}});G.ev.push(['save']);this.state='on';return}
+      if(S.net.exile)return;   // nothing more from the new world until the move has been made
       World.worldNews(S,r.world,r.you);this.state='on';this.err='';
     }catch(e){this.state='down';this.err=String(e&&e.message||e)}
     finally{this.busy=false}},
