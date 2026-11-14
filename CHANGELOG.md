@@ -1,6 +1,10 @@
 # Changelog
 
-## Unreleased
+## 0.10.18 — 2026-11-14
+
+- **Auto no longer takes back what you stored.** Out in the valley Auto loots every chest it passes, and that included a chest you had just put things into: stash raw hides in a Tool Chest, switch Auto on, and the hides came back to your pack as if they had been copied. A container you have put something into is now yours, and Auto leaves it alone (chests the game filled are looted as before).
+
+- A would-be recruit at your fence says when the homestead already has the three people it can support.
 
 - **You cannot box in your own furniture.** Placing something solid that would leave a station, a storage box or a bed with no open side to stand at is refused ("That would leave the Campfire with no side to stand at"). A bot walled its campfire into a yard corner with the workbench and could not reach it.
 

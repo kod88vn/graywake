@@ -6,7 +6,7 @@ import {RECIPES,VEHICLES} from '../data/recipes.js';
 import {PERK,xpFor,MAX_LEVEL} from '../data/progress.js';
 import {clamp,rnd} from './util.js';
 
-export const VERSION='0.10.17';
+export const VERSION='0.10.18';
 export const SAVE_V=2;
 export const HOME_W=46,HOME_H=46,EXIT_RING=2,NO_BUILD=4;
 export const MIN_PER_SEC=1.5;            // game minutes per real second: a day is 16 real minutes
