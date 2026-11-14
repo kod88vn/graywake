@@ -178,7 +178,10 @@ C.sneak=async a=>{sneak=String(a[0]).toLowerCase()!=='off';if(sneak)await keyDow
 // middle of a tide and died. `auto on` / `auto off` set it; `key f` right after the session switched it on is taken as "on".
 C.auto=async a=>{const want=String(a[0]||'on').toLowerCase()!=='off';const p=await pulse();if(!!p.auto===want)return{msg:'Auto mode is already '+(want?'ON':'OFF')};
   if(!want&&p.alertN>0&&p.foe<6&&p.hp<(p.max||100)*.6)return{msg:'NOT NOW: something is '+p.foe+' tiles away and your health is '+Math.round(p.hp)+'. Auto is fighting for you; turn it off once they are dealt with, or `flee`.'};
-  await press('f');const r=await during(.45);if(!want)S.autoOffT=Date.now();else S.autoOffT=0;return{msg:'Auto mode is now '+(r.p.auto?'ON':'OFF')+(r.why?': '+r.why:'')}};
+  await press('f');const r=await during(.45);if(!want)S.autoOffT=Date.now();else S.autoOffT=0;
+  // Auto switches itself off at once when there is nothing it can do (nothing to gather here, a full pack): say why, from what the game said
+  let why='';if(want&&!r.p.auto)why=await ev(`(__bot.msgs||[]).slice(-3).map(m=>m.t||m).filter(t=>/Auto/.test(t)).pop()||''`).catch(()=>'');
+  return{msg:'Auto mode is now '+(r.p.auto?'ON':'OFF')+(why?` (the game switched it straight off: "${why}". Auto fights only what comes at you and otherwise gathers; with nothing to gather or a full pack it stops)`:'')+(r.why?': '+r.why:'')}};
 C.key=async a=>{if(String(a[0]).toLowerCase()==='f'&&Date.now()-(S.guardT||0)<20000){const p=await pulse();if(p.auto)return{msg:'Auto mode is ALREADY ON: the session switched it on a moment ago because something hostile came close. Use `auto off` if you really want it off.'}}
   if(!keyDef(a[0]))return{msg:'unknown key "'+a[0]+'". Keys: i c b j l m f q r e 1 2 3 4 esc tab space enter'};await press(a[0]);const r=await during(clamp(num(a[1],.45),.2,5));
   // the bot switching Auto off is a decision: the guardian leaves it off for a while (unless the character is badly hurt), and the result says which way it went
