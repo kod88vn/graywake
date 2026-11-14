@@ -390,7 +390,7 @@ export function setJob(S,id,job){
   if(J.needs&&!hasBuilt(S,o=>o.id===J.needs||o.special===J.needs||o.station===J.needs)){toast('Build '+(OBJ[J.needs]?OBJ[J.needs].n.toLowerCase():'the station')+' first','bad');return false}
   // a trade runner given a job at home comes off the route to do it (the job was set while the route went on, so the ledger said guard and the
   // camp log said not: a guard on the road holds no post in a tide)
-  if(job!=='idle'){const rid=Community.routeOf(S,sv.id);if(rid){Community.closeRoute(S,rid);toast(sv.n+' comes off the trade route to work as your '+J.n.toLowerCase(),'info')}}
+  if(job!=='idle'){const rid=Community.routeOf(S,sv.id);if(rid)Community.closeRoute(S,rid,': '+sv.n+' comes off it to work as your '+J.n.toLowerCase())}
   if(sv.job===job){toast(sv.n+' is already your '+J.n.toLowerCase(),'info');return true}
   sv.job=job;sfx('ui_tap');toast(sv.n+' is now your '+J.n.toLowerCase(),'good');return true;
 }

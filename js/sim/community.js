@@ -112,7 +112,7 @@ export function openRoute(S,id,svId){
   if(S.scrip<COMM.routeCost){toast('Opening a route costs '+COMM.routeCost+' scrip in gifts and gear','bad');sfx('error');return false}
   const was=sv.job&&sv.job!=='idle'&&JOBS[sv.job]?JOBS[sv.job].n.toLowerCase():null;S.scrip-=COMM.routeCost;fs.route={sv:svId,since:dayOf(S.t),n:0};sv.job='idle';note(S,sv.n+' starts the daily run to '+F.n+(was?', and is no longer your '+was+(was==='guard'?': nobody of yours takes that post in a tide now unless you give someone the job':''):''),was?'bad':'good');stat('routes');return true;
 }
-export function closeRoute(S,id){const fs=fac(S,id);if(!fs.route)return false;fs.route=null;toast('Route to '+FACTIONS[id].n+' closed','info');return true}
+export function closeRoute(S,id,why){const fs=fac(S,id);if(!fs.route)return false;const sv=S.surv.find(s=>s.id===fs.route.sv);fs.route=null;note(S,'The trade route to '+FACTIONS[id].n+' is closed'+(why?why:sv?': '+sv.n+' is home again':''),'info');return true}   /* in the camp log, so it reads true afterwards */
 /** The community a survivor runs to, or null. */
 export const routeOf=(S,svId)=>{for(const id in S.fac){const r=S.fac[id].route;if(r&&r.sv===svId)return id}return null};
 /** Stand together: they send fighters when a tide lands on you, and will send volunteers if asked. */

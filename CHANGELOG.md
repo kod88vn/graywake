@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.10.56 — 2026-11-14
+
+- A trade route closing goes into the camp log too ("The trade route to Millrace is closed: Yusuf comes off it to work as your guard"): the log showed the runs starting and never ending, so it contradicted the People list.
+
 ## 0.10.55 — 2026-11-14
 
 - When Auto empties a full pack into your storage boxes, it keeps the ammunition for any gun you carry: pistol rounds were stowed with the nails and planks, and the gun went into the next tide empty.
