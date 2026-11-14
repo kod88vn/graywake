@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.10.44 — 2026-11-14
+
+- Using a repair kit from the pack says what it mended and by how much ("Riot Helmet repaired: 72% → 100% (1 kit left)"): kits went to the most worn piece without a word, and looked wasted.
+
 ## 0.10.43 — 2026-11-14
 
 - A caravan you call can be found again: while it is at your gate its line in the Camp ledger reads "Trade at their caravan (here 5h more)" instead of "already been today", and calling it says it has arrived and for how long. Closing the trade sheet used to lose it.

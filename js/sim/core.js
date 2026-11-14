@@ -7,7 +7,7 @@ import {PERK,xpFor,MAX_LEVEL} from '../data/progress.js';
 import {clamp,rnd} from './util.js';
 import {sourcesOf} from '../data/sources.js';
 
-export const VERSION='0.10.43';
+export const VERSION='0.10.44';
 export const SAVE_V=2;
 export const HOME_W=46,HOME_H=46,EXIT_RING=2,NO_BUILD=4;
 export const MIN_PER_SEC=1.5;            // game minutes per real second: a day is 16 real minutes
@@ -432,5 +432,6 @@ export function quickUse(S,need){
 }
 export function repairWithKit(S,slot){
   const e=S.p.eq[slot];if(!e||e.d===undefined)return false;const it=ITEMS[e.id];if(e.d>=it.dur){toast('Not worn','info');return false}
-  if(!take(S,'repair_kit',1)){toast('No repair kit','bad');return false}e.d=Math.min(it.dur,e.d+Math.max(60,it.dur*.6));sfx('build');return true;
+  if(!take(S,'repair_kit',1)){toast('No repair kit','bad');return false}const was=Math.round(e.d/it.dur*100);e.d=Math.min(it.dur,e.d+Math.max(60,it.dur*.6));const left=count(S,'repair_kit');
+  toast(it.n+' repaired: '+was+'% → '+Math.round(e.d/it.dur*100)+'% ('+(left?left+' kit'+(left>1?'s':'')+' left':'that was the last kit')+')','good');sfx('build');return true;
 }
