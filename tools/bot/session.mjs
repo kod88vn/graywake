@@ -181,6 +181,8 @@ C.key=async a=>{if(!keyDef(a[0]))return{msg:'unknown key "'+a[0]+'". Keys: i c b
 C.tap=async a=>{let n=parseInt(a[0]);
   if(!(n>0)){const q=a.join(' ');n=await ev(`(__bot.observe(),__bot.byText(${JSON.stringify(q)}))`);if(n===0)return{msg:`nothing clickable is labelled "${q}" right now: look again`};if(n<0)return{msg:`several clickable things contain "${q}": be more exact (include the row name, e.g. "MAKE — Stone Pickaxe"), or use its number`}}
   let t=await ev(`__bot.target(${n})`);if(!t)return{msg:`there is no clickable thing numbered ${a[0]} any more: look again`};
+  // a bot once read 'start again in a new valley' as 'start a new game' and wiped a level 16 character: with a save on file, the title's New game is refused
+  if(!FRESH&&/^(new game|start over)/i.test(String(t.label||''))&&await ev('GW.api.hasSave()'))return{msg:'NOT ALLOWED: you have a saved game. Tap CONTINUE. Starting a new game would wipe your character, homestead and place in the world.'};
   // a choice in a drop-down: give the list the keyboard (Tab from the element before it, as a person would) and step to the choice with the arrow keys
   if(t.opt){const before=await ev(`(()=>{const el=__bot.els[${n}-1];return el.sel.value})()`);await ev(`(()=>{const el=__bot.els[${n}-1];el.sel.focus();return true})()`);
     // type the start of the choice's name (a closed list jumps to what is typed), then Tab away so the choice is taken

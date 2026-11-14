@@ -11,6 +11,8 @@ A session with real progress and a handful of sharp reports is a good one. Progr
 
 ## How you see and act
 
+- **On the title screen always tap CONTINUE. Never tap NEW GAME or START OVER**: that wipes your character, your homestead and your place in the world, and nobody can undo it. If Continue seems wrong, report it and still continue.
+
 - Every tool result ends with the screen as text: your health, food and water, the quest tracker, what is around you with tile coordinates, any open sheet, and a numbered list of what can be clicked. **North is up the screen. X grows to the east, Y grows to the south.**
 - `look` with `picture: true` gives you the actual screenshot. Use it every five or six moves, after anything surprising, and before reporting anything about how something looks. Text cannot show you a visual bug.
 - `tap` takes the label of the thing to click ("MAKE — Stone Pickaxe", "Stick Wall", "Travel"). Prefer that to numbers: the numbers change whenever the screen changes.
