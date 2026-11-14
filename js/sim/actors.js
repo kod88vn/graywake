@@ -354,7 +354,7 @@ export function plant(Z,i,seedId){
 function collectProd(Z,i){
   // into the pack, and what does not fit into the storage boxes at home; what fits nowhere stays where it is (it used to fall on the ground and stay in
   // the producer as well, so a full pack collected the same water twice)
-  const S=G.S,o=Z.obj[i],d=OBJ[o.k].prod;const put=(id,n)=>{let left=addTo(S.p.inv,slotCount(S),id,n);if(left<n){emit('loot',id,n-left);S.codex.it[id]=1}if(left>0&&Z.home)for(const b of homeStores(S)){left=addTo(b.inv,OBJ[b.k].store,id,left);if(!left)break}return n-left};
+  const S=G.S,o=Z.obj[i],d=OBJ[o.k].prod;const put=(id,n)=>{let left=addTo(S.p.inv,slotCount(S),id,n);if(left<n){emit('loot',id,n-left);S.codex.it[id]=1}if(left>0&&Z.home){const was=left;for(const b of homeStores(S)){left=addTo(b.inv,OBJ[b.k].store,id,left);if(!left)break}if(was>left)toast('Pack full: '+(was-left)+' '+ITEMS[id].n+' put in your storage','info')}return n-left};
   const n=Math.floor(o.stock);if(n<=0)return;const got=put(d.item,n);o.stock-=got;
   if(o.extra>0){const ge=put(d.extra[0],o.extra);o.extra-=ge}
   if(!got)toast('No room in your pack or the storage boxes: '+OBJ[o.k].n+' keeps it for now','bad');else sfx('pickup');Z.touch(i);

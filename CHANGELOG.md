@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.10.34 — 2026-11-14
+
+- Collecting from a snare, catcher or other producer with a full pack says when the catch went into your storage boxes, instead of seeming to vanish.
+
 ## 0.10.33 — 2026-11-14
 
 - At home, what your pack has no room for (a harvest, something made, something given) goes into your storage boxes, and only what fits nowhere is put on the ground. It used to be dropped at your feet and picked up again in the same breath ("Pack full: Wild Herb dropped | picked up +1 Wild Herb").
