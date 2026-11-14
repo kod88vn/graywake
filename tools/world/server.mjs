@@ -33,7 +33,8 @@ export const RULES={
     {n:'The Long Night',need:70,tide:1.5,d:'Nobody remembers the last quiet week.'},
     {n:'The Signal',need:110,tide:1.7,d:'Something is calling them all to the same place.'}],
 };
-const WORLD_NAMES=['Pinewatch','Low Water','Greywell','Emberfield','Stonecross','Marrow Lake','Thornreach','Coldharbour','Ashlow','Wickerfen','Dunmere','Haldane Gap'];
+// (none of these may echo a region of the map: a world called Pinewatch made the map's "Pinewatch Valley" read as the old world after a move)
+const WORLD_NAMES=['Low Water','Greywell','Emberfield','Stonecross','Marrow Lake','Thornreach','Coldharbour','Ashlow','Wickerfen','Dunmere','Haldane Gap'];
 const NPC_NAMES=['Ashford Mill','Kettle Row','Saltmarsh Chapel','Hollow Bridge','Cinder Yard',"Wren's Landing",'The Granary','Tollhouse Six','Brackwater','Old Quarry Camp'];
 const LEAD_KINDS=Object.keys(SITES).filter(k=>SITES[k].lead);
 
