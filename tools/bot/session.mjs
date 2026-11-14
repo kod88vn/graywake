@@ -220,7 +220,7 @@ C.tap=async a=>{let n=parseInt(a[0]);
   if(t.spot){const want=t.spot.name||t.label.replace(/^place on the map:\s*/,'').replace(/\s*\(RADIO LEAD\)$/,'');for(let k=0;k<4&&(await ev('__bot.mapSel()'))!==want;k++){await sleep(150);await click(clamp(t2.x,2,W-2),clamp(t2.y,2,H-2))}}
   const r=await during(.5);return{msg:`clicked "${t.label}"`+(t.disabled?' (it is greyed out)':'')+(r.why?': '+r.why:'')}};
 C.click=async a=>{const x=num(a[0],-1),y=num(a[1],-1);if(x<0||y<0||x>W||y>H)return{msg:`click needs page pixels inside ${W}×${H}`};await click(x,y,a[2]==='right'?'right':'left');const r=await during(.45);return{msg:`clicked at ${x}, ${y}`+(r.why?': '+r.why:'')}};
-const SIDE={n:[0,-.42],e:[.42,0],s:[0,.42],w:[-.42,0]};
+const SIDE={n:[0,-.34],e:[.34,0],s:[0,.34],w:[-.34,0]};   // (not nearer the boundary than that: at .42 a click could land in the next cell, and the wall on its far side)
 // how much stands at home, so a build click can say whether anything was actually placed or removed
 const builtCount=()=>ev(`(()=>{const Z=GW.G.Z;if(!Z||!Z.home)return null;let e=0,o=0,f=0;for(const w of Z.ed)if(w)e++;for(const q of Z.obj)if(q&&q.hp>0)o++;for(const k of Z.fl)if(k)f++;
   // what stands where (kind and facing, by name and tile), so an upgrade, a move or a turn can be named even though nothing was added or taken away

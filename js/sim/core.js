@@ -7,7 +7,7 @@ import {PERK,xpFor,MAX_LEVEL} from '../data/progress.js';
 import {clamp,rnd} from './util.js';
 import {sourcesOf} from '../data/sources.js';
 
-export const VERSION='0.10.67';
+export const VERSION='0.10.69';
 export const SAVE_V=2;
 export const HOME_W=46,HOME_H=46,EXIT_RING=2,NO_BUILD=4;
 export const MIN_PER_SEC=1.5;            // game minutes per real second: a day is 16 real minutes
@@ -455,7 +455,7 @@ export function quickUse(S,need){
     if(need==='food')v=(it.food||0)-(it.risk?it.risk[0]*40:0);else if(need==='water'){if((it.water||0)<10||(it.food||0)>(it.water||0)*2)return;   // a drink: not berries, and not a meal that happens to be moist (a Field Ration)
       v=(it.water||0)-(it.risk?it.risk[0]*40:0);if(v<=0)risky=it.n}   // a drink, not a handful of berries; and nothing that is likely to make you ill
     else if(need==='hp'){if(it.t!=='med'&&!(it.hp>=8))return;const miss=ds.maxHp-p.hp;v=it.hp>0?Math.max(1,100-Math.abs(miss-it.hp)):0}
-    else if(need==='tox')v=-(it.tox||0);
+    else if(need==='tox'){if((it.tox||0)>-10)return;v=-(it.tox||0)}   /* a real cure only: a poultice takes off 6 and was spent on the antidote key (and a key press should not waste it) */
     if(v>score){score=v;best=i}});
   if(best<0){toast(need==='hp'?'Nothing to heal with':need==='tox'?'No antidote. Herbal Tea is brewed at a campfire (2 herbs, clean water); Charcoal Tablets and Antitoxin are made at a Herbalist Table':need==='water'?(risky?'Only '+risky+' to drink: boil it at a campfire first, or drink it from your pack and risk it':'Nothing to drink in your pack'):'Nothing suitable in your pack','bad');sfx('error');return false}
   // say what was used and how many are left: a quick key, the health bar or auto mode spends things the player did not pick by hand

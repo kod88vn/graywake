@@ -373,10 +373,12 @@ export function autoPlan(Z){
 }
 function autoTarget(Z,p){
   const S=G.S,f=field(Z,Math.floor(p.x),Math.floor(p.y),true,90),W=Z.w,held=weaponDef(S).tool||null;let best=-1,bd=80;
+  // with a tide under two hours off, gathering stays within fourteen tiles of the yard: a bot went far afield an hour out and was caught there
+  const leash=Z.home&&!S.tide.live&&S.tide.at-S.t<120?homeAnchor(Z,p):null;
   const near=i=>{let m=Infinity;const x=i%W,y=(i-x)/W;for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){const nx=x+dx,ny=y+dy;if(nx<0||ny<0||nx>=W||ny>=Z.h||walled(Z,nx+.5,ny+.5,x+.5,y+.5))continue;const v=f[ny*W+nx];if(v<m)m=v}return m};
   for(let i=0;i<Z.obj.length;i++){const o=Z.obj[i];if(!o)continue;const d=OBJ[o.k];let ok=false;
     if(d.node){ok=(!d.node.tool||!!findTool(S,d.node.tool,d.node.tier))&&d.node.give.some(g=>roomFor(S,g[0],1))}else if(d.loot&&!o.empty&&!o.kept&&!Z.home){ok=!d.lock||o.unlocked||!!o.inv}
-    if(!ok)continue;let v=near(i);if(held&&d.node&&d.node.tool===held)v-=6;if(v<bd){bd=v;best=i}}
+    if(!ok)continue;if(leash&&Math.hypot(i%W+.5-leash.x,Math.floor(i/W)+.5-leash.y)>14)continue;let v=near(i);if(held&&d.node&&d.node.tool===held)v-=6;if(v<bd){bd=v;best=i}}
   // loose loot comes first: anything lying within a short walk is picked up before going back to gathering (it is what a fight leaves behind)
   let drop=null,dd=Infinity;for(const dr of Z.drops){if(dr.mine||dr.full&&Z.time-dr.full<20)continue;const v=f[Math.floor(dr.y)*W+Math.floor(dr.x)];if(v<dd){dd=v;drop=dr}}
   if(drop&&(dd<26||dd<bd)){best=-2;p.autoDrop=drop}

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.10.69 — 2026-11-14
+
+- **The antidote key only takes a real cure.** It used a Herb Poultice (takes off 6 toxin) when nothing better was carried, spending it and leaving the toxin high; now it says there is no antidote and keeps the poultice. Herbal Tea, Charcoal Tablets and Antitoxin count.
+
+## 0.10.68 — 2026-11-14
+
+- **Auto gathers close to home when a tide is near.** With a tide under two hours away, Auto keeps its gathering within fourteen tiles of the yard (it had wandered 23 to 27 tiles out an hour before one and was caught there; measured over six runs, now 13 to 15). In the last 45 minutes it still walks you back inside.
+
 ## 0.10.67 — 2026-11-14
 
 - A refused placement on a taken tile names the tile as well as the thing ("Occupied by Bedroll at (22, 21)"), so a click that landed on a different tile than the one aimed at can be seen for what it was.
