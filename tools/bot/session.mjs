@@ -206,9 +206,12 @@ C.click=async a=>{const x=num(a[0],-1),y=num(a[1],-1);if(x<0||y<0||x>W||y>H)retu
 const SIDE={n:[0,-.42],e:[.42,0],s:[0,.42],w:[-.42,0]};
 // how much stands at home, so a build click can say whether anything was actually placed or removed
 const builtCount=()=>ev(`(()=>{const Z=GW.G.Z;if(!Z||!Z.home)return null;let e=0,o=0,f=0;for(const w of Z.ed)if(w)e++;for(const q of Z.obj)if(q&&q.hp>0)o++;for(const k of Z.fl)if(k)f++;
-  // a signature of what stands where (kind and facing), so an upgrade, a move or a turn is seen even though nothing was added or taken away
-  let sig=0;const mix=(i,s)=>{let h=i*2654435761>>>0;for(let c=0;c<s.length;c++)h=Math.imul(h^s.charCodeAt(c),16777619)>>>0;sig=(sig+h)>>>0};Z.ed.forEach((w,i)=>{if(w)mix(i,w.k)});Z.obj.forEach((q,i)=>{if(q&&q.hp>0)mix(i+1e6,q.k+(q.r||0))});return[e,o,f,sig]})()`);
-const builtDelta=(a,b)=>{if(!a||!b)return'';const d=[b[0]-a[0],b[1]-a[1],b[2]-a[2]],names=['wall or door piece','structure','floor tile'],out=[];d.forEach((n,i)=>{if(n)out.push((n>0?'+':'')+n+' '+names[i]+(Math.abs(n)>1?'s':''))});return out.length?' — placed/removed: '+out.join(', '):a[3]!==b[3]?' — something was changed in place (upgraded, moved or turned): look at the build list for what it is now':' — nothing was placed, removed or changed'};
+  // what stands where (kind and facing, by name and tile), so an upgrade, a move or a turn can be named even though nothing was added or taken away
+  const W=Z.w,O=(window.__bot&&__bot.OBJ)||{},nm=k=>(O[k]&&O[k].n)||k,m={};Z.ed.forEach((w,i)=>{if(!w)return;const t=i>>1,x=t%W,y=(t-x)/W;m['e'+i]=[nm(w.k),x,y,i&1?'W':'N']});Z.obj.forEach((q,i)=>{if(q&&q.hp>0){const x=i%W,y=(i-x)/W;m['o'+i]=[nm(q.k)+(q.r?' (turned '+q.r+')':''),x,y,'']}});return[e,o,f,m]})()`);
+const builtDelta=(a,b)=>{if(!a||!b)return'';const d=[b[0]-a[0],b[1]-a[1],b[2]-a[2]],names=['wall or door piece','structure','floor tile'],out=[];d.forEach((n,i)=>{if(n)out.push((n>0?'+':'')+n+' '+names[i]+(Math.abs(n)>1?'s':''))});
+  const ch=[];for(const k in b[3]){const x=a[3][k],y=b[3][k];if(x&&x[0]!==y[0])ch.push(`${x[0]} → ${y[0]} at (${y[1]}, ${y[2]})${y[3]?' '+y[3]+' side':''}`)}
+  const said=ch.length?' — changed: '+ch.slice(0,8).join('; ')+(ch.length>8?` and ${ch.length-8} more`:''):'';
+  return out.length?' — placed/removed: '+out.join(', ')+said:said||' — nothing was placed, removed or changed'};
 const tileXY=async(x,y,side)=>{const o=SIDE[String(side||'').toLowerCase()]||[0,0];return ev(`__bot.screen(${Math.floor(x)+.5+o[0]},${Math.floor(y)+.5+o[1]},0)`)};
 const needBuild=async()=>(await ev('!!GW.G.build'))?null:{msg:'build mode is not open (it closes on Esc or Done): press `key b` first. Clicking the ground outside build mode swings your weapon.'};
 C.tile=async a=>{const nb=await needBuild();if(nb)return nb;const x=num(a[0],NaN),y=num(a[1],NaN);if(!(x>=0&&y>=0))return{msg:'tile needs X Y (and optionally a side n e s w for walls)'};const s=await tileXY(x,y,a[2]);

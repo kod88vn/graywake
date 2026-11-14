@@ -13,7 +13,7 @@ import {MapScreen} from '../js/ui/map.js';
 const $=id=>document.getElementById(id),vis=el=>!!el&&!el.hidden&&el.offsetParent!==null,txt=el=>el?el.innerText.replace(/\s+\n/g,'\n').replace(/[ \t]+/g,' ').trim():'';
 const DIRS=['E','SE','S','SW','W','NW','N','NE'],compass=(dx,dy)=>DIRS[((Math.round(Math.atan2(dy,dx)/(Math.PI/4))%8)+8)%8];
 const r1=v=>Math.round(v*10)/10;
-const B=window.__bot={msgs:[],els:[],gateUntil:0,shield:false,nav:null};
+const B=window.__bot={OBJ,msgs:[],els:[],gateUntil:0,shield:false,nav:null};
 
 // ---- everything the game says in passing (toasts, the pickup feed, banners) is kept, because it fades before a slow reader sees it
 const watch=(id,kind)=>{const el=$(id);if(!el)return;new MutationObserver(ms=>{for(const m of ms)for(const n of m.addedNodes){const t=(n.innerText||n.textContent||'').trim();if(t)B.msgs.push({kind,t,cls:n.className||''})}}).observe(el,{childList:true})};
