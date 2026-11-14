@@ -333,7 +333,7 @@ function nodeHit(Z,i,tool){
   addXp(S,nd.xp+Math.floor(Z.lt/2));stat(nd.tool==='axe'?'wood':nd.tool==='pick'?'ore':nd.tool==='rod'?'fish':'forage',nd.tool==='rod'?1:3);
   if(Z.home&&nd.regrow)S.home.regrow.push({k:o.k,i,at:S.t+nd.regrow*(.8+rnd()*.4)});
   // a bank, pool or rock that is worked out says so (and at home, that it comes back): otherwise it just vanishes from under you
-  if(nd.hits>1&&nd.tool!=='axe'&&!G.auto)toast(d.n+' is used up'+(Z.home&&nd.regrow?': it comes back in about '+Math.max(1,Math.round(nd.regrow/60))+' h':''),'info');
+  if((nd.hits>1||d===OBJ.pond)&&nd.tool!=='axe'&&!G.auto)toast(d.n+(d===OBJ.pond?' has run dry':' is used up')+(Z.home&&nd.regrow?': it comes back in about '+Math.max(1,Math.round(nd.regrow/60))+' h':''),'info');
   Z.obj[i]=null;Z.touch(i);emit('fx','dust',x,y);
 }
 /** Bring in a ripe bed. Composted beds give half again as much. With the replant setting on, the same seed goes straight back in if you carry one. */
