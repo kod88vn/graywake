@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.10.57 — 2026-11-14
+
+- **Windows.** Build, Base now has a Plank Window and a Stone Window: wall pieces nothing can walk through but anything can see and shoot through, both ways. Walls block arrows again (the shooting over walls in 0.10.52 is gone): in a tide your people take up bows and go to the windows nearest you, and shoot what they can see from there. With no windows they say so. Measured at tide 10, a walled yard, three survivors, the player standing still: 6 to 26 killed with a window in each side against 9 to 14 with none.
+- **Your people carry real tools.** Farmers work with a hoe or a rake, mechanics with a hammer or a wrench, cooks with a ladle, medics with a bandage roll, and guards with a bow; cooks and medics used to swing empty hands.
+- **Settlements fight like you do.** Everyone in a settlement shoots from its windows in a tide (it puts one in every sixth piece of its wall), not only its guards. In a 60-day simulation of 160 settlements, 46% fall instead of all of them.
+- **Empty ground is taken.** Two days after a settlement falls, newcomers come over the pass and settle in its place, already grown to the world's pace.
+
 ## 0.10.56 — 2026-11-14
 
 - A trade route closing goes into the camp log too ("The trade route to Millrace is closed: Yusuf comes off it to work as your guard"): the log showed the runs starting and never ending, so it contradicted the People list.

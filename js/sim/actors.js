@@ -111,7 +111,7 @@ export function explode(Z,x,y,r,dmg,team,o={}){
 
 // ---------------------------------------------------------------- projectiles
 export function shoot(Z,x,y,ang,o){
-  const p={id:++Z.uid,x,y,vx:Math.cos(ang)*o.spd,vy:Math.sin(ang)*o.spd,a:ang,team:o.team,dmg:o.dmg,life:o.rng/o.spd,kind:o.kind||'bullet',pierce:o.pierce||0,hit:null,tox:o.tox,burn:o.burn,slow:o.slow,kb:o.kb||0,crit:o.crit,src:o.src,over:o.over};
+  const p={id:++Z.uid,x,y,vx:Math.cos(ang)*o.spd,vy:Math.sin(ang)*o.spd,a:ang,team:o.team,dmg:o.dmg,life:o.rng/o.spd,kind:o.kind||'bullet',pierce:o.pierce||0,hit:null,tox:o.tox,burn:o.burn,slow:o.slow,kb:o.kb||0,crit:o.crit,src:o.src};
   Z.projs.push(p);return p;
 }
 export function lob(Z,x,y,tx,ty,o){
@@ -128,7 +128,7 @@ function stepProjs(Z,dt){
     const steps=Math.max(1,Math.ceil(Math.hypot(p.vx,p.vy)*dt/.35));let gone=false;
     for(let s=0;s<steps&&!gone;s++){
       const px=p.x,py=p.y;p.x+=p.vx*dt/steps;p.y+=p.vy*dt/steps;
-      const ec=p.over?-1:edgeCross(Z,px,py,p.x,p.y);if(ec>=0){gone=true;emit('fx',p.kind==='flame'?'fire':'spark',p.x,p.y);if(p.team===1&&Z.home)damageObj(Z,EREF+ec,p.dmg*.3);break}
+      const ec=edgeCross(Z,px,py,p.x,p.y,false,true);if(ec>=0){   /* shots go through windows */gone=true;emit('fx',p.kind==='flame'?'fire':'spark',p.x,p.y);if(p.team===1&&Z.home)damageObj(Z,EREF+ec,p.dmg*.3);break}
       const b=shotBlock(Z,p.x,p.y);
       if(b!==-1){gone=true;if(b>=0){emit('fx',p.kind==='flame'?'fire':'spark',p.x,p.y);if(p.team===1&&Z.home)damageObj(Z,b,p.dmg*.3)}break}
       for(const a of Z.actors){if(a.dead||a.team===p.team||(p.team===0&&a.team===0)||(p.team===1&&a.team!==0))continue;if(p.hit&&p.hit.includes(a.id))continue;
@@ -581,7 +581,7 @@ function strikeTarget(Z,e,t,mult=1,o={}){
 }
 function fireAt(Z,e,t){
   const pr=e.def.proj,ang=Math.atan2(t.y-e.y,t.x-e.x),n=pr.pellets||1;
-  for(let k=0;k<n;k++)shoot(Z,e.x+Math.cos(ang)*.4,e.y+Math.sin(ang)*.4,ang+(rnd()-.5)*((pr.spread||5)*Math.PI/180),{spd:pr.spd,rng:pr.rng,team:e.team,dmg:e.dmg,kind:pr.kind,tox:pr.kind==='spit'?e.def.tox:0,over:e.def.ai==='guard'&&Z.home});
+  for(let k=0;k<n;k++)shoot(Z,e.x+Math.cos(ang)*.4,e.y+Math.sin(ang)*.4,ang+(rnd()-.5)*((pr.spread||5)*Math.PI/180),{spd:pr.spd,rng:pr.rng,team:e.team,dmg:e.dmg,kind:pr.kind,tox:pr.kind==='spit'?e.def.tox:0});
   sfx(pr.kind==='spit'?'spit':pr.kind==='arrow'?'bow':pr.pellets?'shot_shotgun':'shot_pistol',e.x,e.y,{vol:.7});if(pr.kind==='bullet')emit('fx','muzzle',e.x+Math.cos(ang)*.5,e.y+Math.sin(ang)*.5,ang);
 }
 function pickFoe(Z,e,p){
@@ -716,8 +716,9 @@ function stepAlly(Z,e,dt,p){
   if(e.sv&&Z.home&&def.ai==='follow'){survivorWork(Z,e,dt);return}
   if(def.ai==='wander'||def.ai==='follow'){if(def.ai==='follow'&&!e.stay&&p&&dist(e.x,e.y,p.x,p.y)>3)steer(Z,e,p.x,p.y,def.spd,dt);else wander(Z,e,dt,def.spd*.3);return}
   const range=def.ai==='guard'?def.reach*(e.far?1.3:1):7;let t=null,td=range;
-  for(const a of Z.actors){if(a.team!==1||a.dead||a.def.ai==='flee'||(!a.alert&&def.ai==='pet'))continue;const d=dist(a.x,a.y,e.x,e.y);if(d<td&&(def.ai==='pet'||los(Z,e.x,e.y,a.x,a.y,def.ai==='guard'&&Z.home))){td=d;t=a}}   /* your people at home shoot over your own walls and doors: from inside a closed yard they could not see what was battering it (the user: survivors "should" help defend) */
-  if(def.ai==='guard'){if(t){e.a=Math.atan2(t.y-e.y,t.x-e.x);if(e.cd<=0){e.cd=def.cd;e.atkT=.2;fireAt(Z,e,t)}}else if(e.escort&&p&&!p.dead&&dist(e.x,e.y,p.x,p.y)>2.6)steer(Z,e,p.x,p.y,def.spd*1.1,dt);return}   // the group keeps up with the player
+  for(const a of Z.actors){if(a.team!==1||a.dead||a.def.ai==='flee'||(!a.alert&&def.ai==='pet'))continue;const d=dist(a.x,a.y,e.x,e.y);if(d<td&&(def.ai==='pet'||los(Z,e.x,e.y,a.x,a.y))){td=d;t=a}}   /* through a window, not over a wall: in a tide they stand at the windows (the user's rule: "bots need to be near a window to shoot outside") */
+  if(def.ai==='guard'){if(e.post&&dist(e.x,e.y,e.post.x,e.post.y)>.35&&!(t&&dist(e.x,e.y,t.x,t.y)<2.5)){steer(Z,e,e.post.x,e.post.y,def.spd,dt);return}   /* to the window first */
+    if(t){e.a=Math.atan2(t.y-e.y,t.x-e.x);if(e.cd<=0){e.cd=def.cd;e.atkT=.2;fireAt(Z,e,t)}}else if(e.escort&&p&&!p.dead&&dist(e.x,e.y,p.x,p.y)>2.6)steer(Z,e,p.x,p.y,def.spd*1.1,dt);return}   // the group keeps up with the player
   // pet
   if(e.st==='wind'){e.t-=dt;if(e.t<=0){e.st='idle';e.cd=def.cd;e.atkT=.3;if(t&&td<=def.reach+e.r+t.r+.4)strikeTarget(Z,e,t)}return}
   if(t&&p&&dist(t.x,t.y,p.x,p.y)<9){if(td<=def.reach+e.r+t.r){e.a=Math.atan2(t.y-e.y,t.x-e.x);if(e.cd<=0){e.st='wind';e.t=def.wind}}else steer(Z,e,t.x,t.y,def.spd,dt);return}

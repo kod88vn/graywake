@@ -40,7 +40,10 @@ export function leader(st,tideMult=1){
 /** Defence, counted as the game counts a homestead when the player is away: wall health, what the traps can still do, and the guards. */
 export function defence(st){
   let d=0;for(const k in st.walls)d+=st.walls[k]*OBJ[k].hp/50;for(const k in st.traps)d+=st.traps[k]*OBJ[k].trap.dmg*OBJ[k].trap.uses/90;
-  return d+st.guards*(30+st.tideN*6);
+  // the guards, and in a tide everyone else too, as the player's own people do: they shoot from the windows, so what they add depends on how many
+  // windows the wall has (a settlement puts one in every sixth piece of its ring)
+  const win=Math.floor(count(st.walls)/6),reach=Math.min(1,win/3);
+  return d+st.guards*(30+st.tideN*6)+Math.max(0,st.people-st.guards)*(11+st.tideN*3)*reach;
 }
 const count=o=>Object.values(o).reduce((a,b)=>a+b,0);
 /** One game day of a settlement's life. `ctx`: {day, stage, tideMult, leads:[{id,kind,age}]} (leads still open, with their age in minutes).

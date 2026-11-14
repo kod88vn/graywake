@@ -530,9 +530,20 @@ function startTide(S,Z){
     for(let k=Z.actors.length-1;k>=0;k--){const a=Z.actors[k];if(!a.sv||a.def.ai!=='follow')continue;const sv=fit.find(s=>s.id===a.sv);if(!sv)continue;
       const[x,y]=freeNear(Z,Z.pl.x+(rnd()-.5)*3,Z.pl.y+(rnd()-.5)*3,2.5),g=spawnActor(Z,'guard',x,y,lvlG,{from:'home'});g.sv=sv.id;if(sv.trait==='shot')g.dmg=Math.round(g.dmg*1.5);if(sv.trait==='tough'){g.hp*=2;g.mhp*=2}
       Z.actors.splice(Z.actors.indexOf(a),1);n++}
-    if(n)toast((n>1?n+' of your people take':'One of your people takes')+' up a bow and stand'+(n>1?'':'s')+' with you','good')}
+    if(n)toast((n>1?n+' of your people take':'One of your people takes')+' up a bow and stand'+(n>1?'':'s')+' with you','good');
+    // each goes to a window, the ones nearest you first: walls stop arrows, windows let them through (the user's rule)
+    const spots=windowSpots(Z);let w=0;for(const a of Z.actors)if(a.from==='home'&&a.sv&&a.def.ai==='guard'&&w<spots.length)a.post=spots[w++];
+    if(n&&!spots.length&&Z.ed.some(e=>e&&OBJ[e.k]&&OBJ[e.k].wall))toast('Your walls have no windows: your people cannot shoot past them (Build, Base: Plank Window)','info')}
   for(const a of Z.actors)if(a.team===1&&!a.dead)a.tide=true;
   emit('ui','tideStart');sfx('horde_horn');if(G.auto&&Z.pl){Z.pl.auto=null;toast('Auto: holding the homestead','bad')}   // auto mode stays on and defends
+}
+/** Where your people stand to shoot out: the inside tile at each of your windows, nearest you first. Inside is the side you can walk to. */
+function windowSpots(Z){
+  const p=Z.pl,f=p?playerField(Z):null,W=Z.w,out=[];if(!f)return out;
+  Z.ed.forEach((e,j)=>{if(!e||!OBJ[e.k]||!OBJ[e.k].window)return;const t=j>>1,x=t%W,y=(t-x)/W,pair=j&1?[[x-1,y],[x,y]]:[[x,y-1],[x,y]];
+    let best=null,bc=1e9;for(const[tx,ty]of pair){if(tx<0||ty<0||tx>=W||ty>=Z.h)continue;const i=ty*W+tx,o=Z.obj[i];if(o&&OBJ[o.k]&&OBJ[o.k].solid===1)continue;if(f[i]<bc){bc=f[i];best={x:tx+.5,y:ty+.5,c:f[i]}}}
+    if(best&&bc<1e9)out.push(best)});
+  return out.sort((a,b)=>a.c-b.c);
 }
 const TIDE_CALM=40;
 function tickTide(S,Z,dt){

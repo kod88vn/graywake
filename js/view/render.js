@@ -278,7 +278,7 @@ function syncActors(dt){
     }else{
       const d=a.def,w=['wind','windS','cast','cwind','fuse'].includes(a.st)?clamp(1-a.t/(a.st==='cast'?a.T||1:a.st==='fuse'?.65:d.wind||.5),0.01,1):0;
       // the homestead's people at work: the tool of their job in hand, and the working motion while they are at it (a slower, steadier rhythm than a swing)
-      if(a.sv){const tool=a.def.ai==='guard'?'bow':a.work==='mech'?'wrench':a.work==='farm'?'pick':null;if(r.wkey!==tool){setWeapon(r,tool);r.wkey=tool}}
+      if(a.sv){const tool=a.def.ai==='guard'?'bow':a.work==='mech'?(a.sv%2?'hammer':'wrench'):a.work==='farm'?(a.sv%2?'hoe':'rake'):a.work==='cook'?'ladle':a.work==='medic'?'bandage':null;if(r.wkey!==tool){setWeapon(r,tool);r.wkey=tool}}
       const workAct=a.work&&a.work!=='rest'&&a.mv<.3?((time*(a.work==='cook'||a.work==='medic'?.38:.5)+(a.id||0)*.37)%1)*.5:0;
       pose(r,{dt,t:time,mv:a.mv,atk:-1,wind:w,act:workAct,sleep:a.work==='sleep'&&a.mv<.3,gun:d.proj&&a.alert&&r.type==='human'?1:0,recoil:d.proj&&a.atkT>0?1:0,strike:!d.proj&&a.atkT>0,charge:a.st==='charge',stun:a.stunT>0,dead:a.dead,deadT:a.deadT,flash:a.flash,vis:a.vis});
       if(!a.dead&&bars<95&&(a.hp<a.mhp||a.boss||d.boss)&&a.vis>.5){const w0=d.boss?1.6:.7,f=clamp(a.hp/a.mhp,0,1),hy=r.h+.35;

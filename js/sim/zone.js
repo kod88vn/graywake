@@ -285,10 +285,12 @@ export function pathAim(Z,f,x,y,r,ally=false,look=7){
 export const WT=.09;
 /** The first wall crossed on the way from (x0,y0) to (x1,y1): its edge index, or -1. `ally` passes through doors. Low fences are not counted:
  *  they stop feet (collide, path fields), not eyes, shots or reach. */
-export function edgeCross(Z,x0,y0,x1,y1,ally=false){
+/** The first wall or door a straight line from one point to another crosses (its edge index), or -1. `ally`: doors let your side through.
+ *  `sight`: a line of sight or a shot, which passes windows (nothing walks through one). */
+export function edgeCross(Z,x0,y0,x1,y1,ally=false,sight=false){
   const ed=Z.ed;if(!ed.length)return-1;const W=Z.w,H=Z.h,dx=x1-x0,dy=y1-y0;let best=-1,bt=2;
-  if(dx){const a=Math.floor(Math.min(x0,x1))+1,b=Math.floor(Math.max(x0,x1));for(let k=a;k<=b;k++){const t=(k-x0)/dx;if(t<0||t>1||t>=bt)continue;const ty=Math.floor(y0+dy*t);if(k<0||k>=W||ty<0||ty>=H)continue;const e=(ty*W+k)*2+1,w=ed[e];if(w&&!OBJ[w.k].low&&!OBJ[w.k].open&&!(ally&&OBJ[w.k].door)){bt=t;best=e}}}
-  if(dy){const a=Math.floor(Math.min(y0,y1))+1,b=Math.floor(Math.max(y0,y1));for(let k=a;k<=b;k++){const t=(k-y0)/dy;if(t<0||t>1||t>=bt)continue;const tx=Math.floor(x0+dx*t);if(tx<0||tx>=W||k<0||k>=H)continue;const e=(k*W+tx)*2,w=ed[e];if(w&&!OBJ[w.k].low&&!OBJ[w.k].open&&!(ally&&OBJ[w.k].door)){bt=t;best=e}}}
+  if(dx){const a=Math.floor(Math.min(x0,x1))+1,b=Math.floor(Math.max(x0,x1));for(let k=a;k<=b;k++){const t=(k-x0)/dx;if(t<0||t>1||t>=bt)continue;const ty=Math.floor(y0+dy*t);if(k<0||k>=W||ty<0||ty>=H)continue;const e=(ty*W+k)*2+1,w=ed[e];if(w&&!OBJ[w.k].low&&!OBJ[w.k].open&&!(ally&&OBJ[w.k].door)&&!(sight&&OBJ[w.k].window)){bt=t;best=e}}}
+  if(dy){const a=Math.floor(Math.min(y0,y1))+1,b=Math.floor(Math.max(y0,y1));for(let k=a;k<=b;k++){const t=(k-y0)/dy;if(t<0||t>1||t>=bt)continue;const tx=Math.floor(x0+dx*t);if(tx<0||tx>=W||k<0||k>=H)continue;const e=(k*W+tx)*2,w=ed[e];if(w&&!OBJ[w.k].low&&!OBJ[w.k].open&&!(ally&&OBJ[w.k].door)&&!(sight&&OBJ[w.k].window)){bt=t;best=e}}}
   return best;
 }
 /** The wall or door on the edge between two cells that share a side: its edge index, or -1. */
@@ -296,10 +298,10 @@ export function edgeBetween(Z,x0,y0,x1,y1){const W=Z.w,e=y1<y0?(y0*W+x0)*2:y1>y0
 /** Does any wall touch the corner shared by two diagonal cells? (Nothing cuts a corner a wall ends on.) */
 function cornerWalled(Z,x0,y0,x1,y1){const W=Z.w,cx=Math.max(x0,x1),cy=Math.max(y0,y1),ed=Z.ed;return!!(ed[(cy*W+cx-1)*2]||ed[(cy*W+cx)*2]||ed[((cy-1)*W+cx)*2+1]||ed[(cy*W+cx)*2+1])}
 /** Does a wall stand between two points? Low cover (barricades, furniture) does not block sight or shots. */
-export function los(Z,x0,y0,x1,y1,overWalls=false){
+export function los(Z,x0,y0,x1,y1){
   const dx=x1-x0,dy=y1-y0,d=Math.hypot(dx,dy),n=Math.ceil(d*3);if(n<1)return true;
   for(let i=1;i<n;i++){const x=x0+dx*i/n,y=y0+dy*i/n,tx=Math.floor(x),ty=Math.floor(y);if(tx<0||ty<0||tx>=Z.w||ty>=Z.h)return false;const o=Z.obj[ty*Z.w+tx];if(o){const k=OBJ[o.k];if(k.solid===1&&!k.low)return false}}
-  return overWalls||edgeCross(Z,x0,y0,x1,y1)<0;
+  return edgeCross(Z,x0,y0,x1,y1,false,true)<0;   // (a window is no bar to seeing)
 }
 /** What a projectile hits at (x,y): tile index of a blocking object, or -1. */
 export function shotBlock(Z,x,y){

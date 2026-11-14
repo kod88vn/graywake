@@ -135,6 +135,10 @@ wall_stick:{n:'Stick Wall',solid:1,wall:1,cat:'base',lv:1,cost:{log:2,stick:2},h
 wall_plank:{n:'Plank Wall',solid:1,wall:1,cat:'base',lv:6,cost:{plank:4,nails:4},hp:320,up:'wall_stone'},
 wall_stone:{n:'Stone Wall',solid:1,wall:1,cat:'base',lv:14,cost:{brick:6,stone:4},hp:850,up:'wall_metal'},
 wall_metal:{n:'Steel Wall',solid:1,wall:1,cat:'base',lv:32,cost:{steel_bar:3,bolts:6},hp:2200,up:'wall_reinf'},
+// windows: a wall you can see and shoot through but not walk through (the user: "walls with windows so shoot through feel more realistic ... window
+// allows line of sight but block pathway"). Your people at home stand at them in a tide; anything with a bow or gun can shoot through either way.
+window_plank:{n:'Plank Window',solid:1,wall:1,window:1,cat:'base',lv:6,cost:{plank:4,nails:3},hp:240,up:'window_stone',d:'A wall with a shuttered gap at chest height: nothing walks through it, but you and your people can see and shoot through, and so can whatever is outside.'},
+window_stone:{n:'Stone Window',solid:1,wall:1,window:1,cat:'base',lv:14,cost:{brick:5,stone:4},hp:650,d:'Stone wall with an arrow slit: nothing walks through it, but you and your people can see and shoot through, and so can whatever is outside.'},
 wall_reinf:{n:'Bulwark',solid:1,wall:1,cat:'base',lv:46,cost:{titan_bar:3,concrete:6,steel_bar:2},hp:5500},
 door_stick:{n:'Stick Door',solid:1,door:1,cat:'base',lv:1,cost:{log:2,stick:3,rope:1},hp:100,up:'door_plank'},
 door_plank:{n:'Plank Door',solid:1,door:1,cat:'base',lv:6,cost:{plank:5,nails:6},hp:280,up:'door_stone'},

@@ -283,6 +283,12 @@ wall_stick(g){for(let i=0;i<7;i++){const h=1.14+(i*5%4)*.055,x=-.43+i*.1433,z=i%
 wall_plank(g){for(let i=0;i<5;i++){const h=1.24-(i*3%4)*.025;g.box(.196,h,.08,shade(C.plank,.88+(i*3%4)*.08),-.4+i*.2,h/2,0)}
   for(const z of[-.052,.052]){g.box(1,.07,.028,C.woodD,0,.2,z);g.box(1,.07,.028,C.woodD,0,1.02,z);g.box(1.12,.06,.024,C.woodD,0,.61,z,0,0,z>0?.74:-.74)}
   for(const x of[-.5,.5])g.box(.13,1.3,.15,C.woodD,x,.65,0)},
+window_plank(g){for(let i=0;i<5;i++)g.box(.196,.5,.08,shade(C.plank,.88+(i*3%4)*.08),-.4+i*.2,.25,0);g.box(1,.07,.16,C.woodD,0,.52,0);
+  for(let i=0;i<5;i++)g.box(.196,.26,.08,shade(C.plank,.9+(i*2%4)*.07),-.4+i*.2,1.11,0);g.box(1,.07,.16,C.woodD,0,.97,0);g.box(.06,.45,.06,C.woodD,0,.745,0);
+  for(const x of[-.5,.5])g.box(.13,1.3,.15,C.woodD,x,.65,0);for(const s of[-1,1])g.box(.18,.4,.03,shade(C.plank,.8),s*.34,.745,.09,0,s*.5,0)},
+window_stone(g){for(let r=0;r<2;r++){const n=r%2?4:5;for(let i=0;i<n;i++){const w=1/n;g.box(w-.012,.26,.22-(i+r)%2*.02,shade(C.stone,.82+((i*7+r*3)%5)*.06),-.5+w*(i+.5),.135+r*.27,0)}}
+  for(const x of[-.3,.3])g.box(.4,.46,.22,shade(C.stone,.86),x,.78,0);g.box(1,.24,.22,shade(C.stone,.9),0,1.13,0);
+  g.box(1.02,.07,.27,C.stoneL,0,1.26,0);for(const x of[-.5,.5])g.box(.17,1.3,.29,shade(C.stone,.78),x,.65,0)},
 wall_stone(g){for(let r=0;r<4;r++){const n=r%2?4:5;for(let i=0;i<n;i++){const w=1/n;g.box(w-.012,.28,.22-(i+r)%2*.02,shade(C.stone,.82+((i*7+r*3)%5)*.06),-.5+w*(i+.5),.145+r*.29,0)}}
   g.box(1.02,.07,.27,C.stoneL,0,1.2,0);for(const x of[-.5,.5])g.box(.17,1.25,.29,shade(C.stone,.78),x,.625,0)},
 wall_metal(g){const c='#74828e';g.box(1,.1,.2,C.steelD,0,.05,0);g.box(1,1.1,.09,c,0,.65,0);g.box(1.02,.06,.16,C.steelD,0,1.22,0);for(const x of[-.3,0,.3])g.box(.07,1.08,.15,shade(c,1.15),x,.64,0);
@@ -473,6 +479,12 @@ hatchet(g){haft(g,.52,C.wood);axehead(g,.34,'#8d8f93','#c4c8cc',1.1);g.box(.06,.
 pick(g){haft(g,.6,C.wood);g.box(.055,.07,.12,'#8d8f93',0,.46,0);spike(g,.04,.26,'#a7adb3',0,.46,.04,H2+.25,H2,4);spike(g,.04,.26,'#a7adb3',0,.46,-.04,H2+.25,-H2,4);g.box(.06,.05,.06,C.cloth,0,.38,0)},
 rod(g){const p=limb(g,.008,.02,1.05,'#9b7a4a',0,-.1,0,.14,H2,4);g.cyl(.028,.028,.2,C.hide,0,0,0,5);g.cyl(.045,.045,.035,C.steel,.04,.14,.02,6,0,0,H2);g.box(.006,.36,.006,C.white,p[0],p[1]-.18,p[2]);g.box(.035,.05,.035,C.red,p[0],p[1]-.38,p[2]);g.box(.03,.02,.03,C.white,p[0],p[1]-.345,p[2])},
 crowbar(g){const c='#a83a2e';g.cyl(.02,.02,.62,c,0,.21,0,5);const p=limb(g,.02,.02,.1,c,0,.5,0,1,H2,4);limb(g,.012,.02,.1,shade(c,.8),...p,2.3,H2,4);g.box(.014,.1,.045,shade(c,.8),0,-.14,.012,-.3);g.box(.03,.03,.03,C.steelL,0,-.19,.03)},
+// what your people work with at home (the user: they were "swinging invisible ... give them real tools like gardening rake or hoes")
+hoe(g){haft(g,1.05,C.wood,.02,-.2);g.box(.03,.05,.16,'#7d8186',0,.84,.05);g.box(.02,.12,.17,'#9aa0a6',0,.78,.13,-.25,0,0)},
+rake(g){haft(g,1.05,C.wood,.02,-.2);g.box(.03,.04,.26,'#7d8186',0,.86,0);for(let i=0;i<6;i++)g.box(.012,.09,.012,'#a2a8ae',0,.8,-.11+i*.044)},
+hammer(g){haft(g,.36,C.wood,.02,-.1);g.box(.05,.06,.15,'#80858a',0,.27,0);g.box(.045,.045,.05,'#9aa1a8',0,.27,.09)},
+ladle(g){haft(g,.42,C.woodD,.014,-.1);g.cyl(.055,.045,.04,'#9aa1a8',0,.33,.03,8)},
+bandage(g){g.cyl(.045,.045,.07,'#ece6da',0,.06,0,8);g.box(.07,.012,.12,'#ece6da',0,.03,.08)},
 wrench(g){const c='#9aa1a8';g.box(.022,.4,.05,c,0,.12,0);g.box(.026,.06,.13,shade(c,.85),0,.34,0);for(const z of[-.047,.047])g.box(.026,.09,.036,shade(c,1.12),0,.41,z);g.box(.026,.08,.08,shade(c,.85),0,-.1,0,PI/4);g.box(.03,.03,.03,C.black,0,-.1,0,PI/4)},
 club(g){g.cyl(.065,.028,.62,'#8a5a2b',0,.21,0,6);g.box(.07,.05,.06,'#6e4622',.035,.4,.02,.4,.3);g.box(.06,.05,.06,'#6e4622',-.03,.3,-.03,.2,.8);g.box(.055,.1,.055,C.cloth,0,0,0);g.cyl(.07,.065,.03,'#6e4622',0,.535,0,6)},
 spear(g){haft(g,.92,'#9b7a4a',.022,-.2);g.box(.012,.24,.07,'#5a5f66',0,.78,0);frus(g,.012,.07,.006,.008,.12,'#8d8f93',0,.96,0);g.box(.045,.07,.045,C.cloth,0,.68,0);g.box(.045,.03,.045,C.red,0,.62,0)},

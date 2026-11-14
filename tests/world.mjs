@@ -52,6 +52,10 @@ try{
     T.ok(went.some(w=>w[0]>0)&&went.every(w=>w[0]+w[1]<=8),'with a grocery always on the radio they do go, at most once in three days ('+went.reduce((a,w)=>a+w[0],0)+' strongrooms and '+went.reduce((a,w)=>a+w[1],0)+' beaten back across 36 settlements in 24 days)');
     const pub=S.api['POST /api/worlds']({name:'Seedwater'}),np=pub&&pub.enclaves.find(e=>e.kind==='npc');T.ok(!!np&&/people/.test(np.about)&&np.level>=1,'the world tells every game what each settlement is and has ('+(np&&np.name+': '+np.about)+')')}
   // over HTTP, from another origin
+  // a valley that loses a settlement gets a new one two days later, grown to the world's pace
+  {const c=S.api['POST /api/join']({name:'Watcher',kind:'bot'}),wd=S.DB().worlds.find(x=>x.id===c.world.id),gone=wd.enclaves.find(e=>e.kind==='npc'&&e.status==='holding');gone.status='fallen';
+    const n0=wd.enclaves.filter(e=>e.kind==='npc'&&e.status==='holding').length,d0=Math.floor(wd.t/1440)+1;for(let k=1;k<=5;k++)S.sync({world:c.world.id,enclave:c.enclave,token:c.token,report:{t:(d0+k)*1440-wd.t%1440+600,day:k,level:5,deeds:{}}});
+    const fresh=wd.enclaves.filter(e=>e.kind==='npc'&&e.status==='holding');T.ok(fresh.length===n0+1&&fresh.some(e=>!['fallen'].includes(e.status)&&e.joined&&e.name!==gone.name&&e.st.lvl>1),'a settlement that falls is replaced two days later by newcomers already grown ('+fresh.map(e=>e.name+' lvl '+e.st.lvl).join(', ')+')')}
   await new Promise(r=>S.server.listen(0,'127.0.0.1',r));const port=S.server.address().port,res=await fetch(`http://127.0.0.1:${port}/api/worlds`);
   T.ok(res.headers.get('access-control-allow-origin')==='*'&&Array.isArray(await res.json()),'the API answers over HTTP to a page on another port');
   T.ok((await (await fetch(`http://127.0.0.1:${port}/watch`)).text()).includes('side by side'),'and serves the side-by-side watch page');

@@ -44,6 +44,8 @@ When a result has a line beginning "World", you are not alone: your enclave shar
 
 ## Stay alive
 
+**Windows.** Build, Base has a Plank Window (and a Stone Window): a wall piece nothing walks through but you and your people can see and shoot through. Walls block arrows; in a tide your people take up bows and stand at the windows nearest you. Put a window or two in each side of the yard, facing where tides come from.
+
 A death costs the pack, half a day and half your health, and the developers count every one against the run. A playtester who dies learns nothing about what lies beyond. Getting out alive with nothing is a better result than dying with a full pack. So:
 
 - **Run before it is too late.** `flee` switches Auto off, runs to the nearest way out that is away from the enemy and leaves. At home during a tide do NOT keep fleeing: running out of your yard into the open is how bots die there (sprinters are faster than you). Instead stay inside the walls: heal (`key 1`), keep `auto on`, let your walls, traps and people work; use `flee` only for a moment to step back from a crowd, and it keeps you near your spot inside. Standing still at low health is how you die. Auto mode also falls back by itself when badly hurt with no medicine left.

@@ -38,7 +38,8 @@ export const RULES={
 };
 // (none of these may echo a region of the map: a world called Pinewatch made the map's "Pinewatch Valley" read as the old world after a move)
 const WORLD_NAMES=['Low Water','Greywell','Emberfield','Stonecross','Marrow Lake','Thornreach','Coldharbour','Ashlow','Wickerfen','Dunmere','Haldane Gap'];
-const NPC_NAMES=['Ashford Mill','Kettle Row','Saltmarsh Chapel','Hollow Bridge','Cinder Yard',"Wren's Landing",'The Granary','Tollhouse Six','Brackwater','Old Quarry Camp'];
+const NPC_NAMES=['Ashford Mill','Kettle Row','Saltmarsh Chapel','Hollow Bridge','Cinder Yard',"Wren's Landing",'The Granary','Tollhouse Six','Brackwater','Old Quarry Camp',
+  'Fennick Dam','Lantern Hill','The Long Barn','Cold Spring','Millers Reach','Gallow Ford','Stonecrop','The Sawpits','Heron Weir','Black Oak Rise'];
 const LEAD_KINDS=Object.keys(SITES).filter(k=>SITES[k].lead);
 
 export function makeServer({dir=path.join(ROOT,'.out/worlds'),rnd=Math.random,now=()=>Date.now()}={}){
@@ -81,7 +82,18 @@ export function makeServer({dir=path.join(ROOT,'.out/worlds'),rnd=Math.random,no
         else if(x.k==='lost'){e.hold+=RULES.tideLost;e.deeds.lost++;news(w,'The tide went through '+e.name+'.','bad')}
         else if(x.k==='death'){e.hold+=RULES.death;e.deeds.deaths++;news(w,e.name+' were '+x.text+'.','bad')}
         else if(x.k==='take'){const l=w.leads.find(l=>l.id===x.lead);if(l&&!l.by){l.by=e.name;l.byId=e.id;l.byT=w.t;e.hold=Math.min(RULES.holdMax,e.hold+RULES.lead);e.deeds.leads++;e.score+=RULES.score.lead;w.points+=3*RULES.npcPoints;news(w,e.name+' reached the '+SITES[l.kind].n+' first.','bad')}}}
-      e.score+=RULES.score.day;if(e.hold<=0)fall(w,e)}
+      e.score+=RULES.score.day;if(e.hold<=0){fall(w,e);w.npcFell=w.npcDay}}
+    // people come over the pass to fill a valley that has emptied: two days after a settlement falls, a new one takes the ground, already grown
+    // to the world's pace (its people have lived these days somewhere else), so a late valley does not end up with nobody in it but you
+    if(holding(w).filter(e=>e.kind==='npc').length<RULES.npcs){if(w.npcFell===undefined)w.npcFell=w.npcDay;else if(w.npcDay-w.npcFell>=2)settleNew(w,st,tideMult)}   // (one at a time, two days apart)
+  }
+  function settleNew(w,stage,tideMult){
+    const used=new Set(w.enclaves.map(e=>e.name)),name=NPC_NAMES.find(n=>!used.has(n))||'Newcomers '+(w.enclaves.length+1),i=w.enclaves.length;
+    const st=seedSettlement(w.seed,i);st.tideAt=1e9;   // growing up elsewhere: no tides here while it catches up
+    for(let d=1;d<w.npcDay;d++)settlementDay(st,{day:d,stage:Math.min(stage,Math.floor(d/12)),tideMult:1,leads:[]});
+    st.tideN=Math.floor(w.npcDay/3);st.tideAt=w.npcDay+3;
+    const e={id:id(),name,kind:'npc',status:'holding',hold:RULES.hold0,score:0,day:1,level:st.lvl,deeds:{held:0,lost:0,deaths:0,leads:0},joined:now(),seen:now(),st};
+    w.enclaves.push(e);w.npcFell=undefined;news(w,name+' came over the pass and took the empty ground: '+describe(st)+'.','good');
   }
   function fall(w,e){e.status='fallen';e.hold=0;w.gone.push({name:e.name,kind:e.kind,day:Math.floor(w.t/1440)+1,score:e.score});news(w,e.name+' has fallen. '+(e.kind==='npc'?'Nobody is left there.':'Its people are on the road, looking for another valley.'),'bad')}
   function tick(w){
