@@ -103,6 +103,9 @@ export function arrive(dest){
   if(site){Z=genZone(siteDef(site,site.reg,site.lvl),hash(S.seed,site.id*7919));Z.site=site.id;Z.id='site';Z.name=SITES[site.site].n;Z.siteKind=site.site;if(site.bag&&site.bag.some(Boolean)){const x=Math.floor(Z.w/2)-2,y=Z.h-4;Z.obj[y*Z.w+x]={k:'deathbag',r:0,v:0,inv:site.bag,open:1}}if(SITES[site.site].lead&&leadInfo(S,site).skulls>=4)Z.lt=Math.min(5,Z.lt+1)}
   else{const l=LOC[dest],m=S.loc[dest]=S.loc[dest]||{n:0};Z=genZone(l,hash(S.seed+m.n*101,LOCATIONS.indexOf(l)),{lvl:locLevel(S,l)});if(!m.n)stat('locs');m.n++}
   enterZone(Z,Z.spawn.x,Z.spawn.y);
+  // what the story sent you for is somewhere here: say which kind of container to look in, and roughly where (the bot searched open ground for the coil)
+  {const qi=Z.obj.findIndex(o=>o&&o.qi);if(qi>=0){const x=qi%Z.w,y=Math.floor(qi/Z.w),dx=x-Z.pl.x,dy=y-Z.pl.y,dir=(Math.abs(dy)>Math.abs(dx)*.5?(dy<0?'north':'south'):'')+(Math.abs(dx)>Math.abs(dy)*.5?(dx<0?'west':'east'):'');
+    toast('The '+ITEMS[Z.obj[qi].qi].n+' should be in a '+OBJ[Z.obj[qi].k].n+' to the '+(dir||'middle')+', inside one of the buildings','info')}}
   // the player travels alone, except to attack a base (a war camp, a raider camp): then the people of the homestead who are fit come too
   if(site&&SITES[site.site].base){const go=S.surv.filter(Community.available);for(const sv of go){const[x,y]=freeNear(Z,Z.pl.x+(rnd()-.5)*3,Z.pl.y+1.5,3),a=spawnActor(Z,'guard',x,y,Math.max(1,S.p.lvl-2),{from:'group'});a.escort=true;a.sv=sv.id;sv.away=1}
     if(go.length)toast(go.map(s=>s.n).join(', ')+(go.length>1?' come':' comes')+' with you. They are carried home if they fall, and laid up for three days','info')}
