@@ -145,6 +145,11 @@ C.goto=async a=>{let tx,ty,name;if(a.length>=2&&Number.isFinite(parseFloat(a[0])
   // end facing the thing walked to, with a nudge of the keys, so that E means it and not a neighbour
   if(end==='arrived'&&face){const l=Math.max(.01,Math.hypot(face[0],face[1]));await steerKeys(face[0]/l,face[1]/l);await sleep(70);await steerKeys(0,0);await sleep(60)}
   return{msg:end==='arrived'?`walked to ${name}`:`heading for ${name}, stopped after ${moved(r.p,r.p0).toFixed(1)} tiles: ${r.why||'ran out of time, call goto again'}`}};
+C.leave=async a=>{const e=await ev('__bot.exitSpot()');if(!e)return{msg:(await ev('!!(GW.G.Z&&GW.G.Z.home)'))?'you are at home: walk to the edge of the homestead or press M':'no way out found from here (walled in?)'};
+  if(!(await ev(`__bot.navTo(${e.x},${e.y})`)))return{msg:'no way out found'};let mark=null,markT=0,end=null;
+  const r=await during(25,{each:async(p,p0,t)=>{if(p.exit){end='edge';return'at the edge'}const s=await ev('__bot.steer()');if(s.done){end=s.done;return s.done}await steerKeys(s.dx/Math.max(.01,Math.hypot(s.dx,s.dy)),s.dy/Math.max(.01,Math.hypot(s.dx,s.dy)));
+    if(!mark){mark=p;markT=t}else if(t-markT>1.2){if(moved(p,mark)<.25){end='stuck';return'stuck'}mark=p;markT=t}}});
+  await steerKeys(0,0);return{msg:end==='edge'||end==='arrived'?`walked to the edge of this place at (${Math.floor(e.x)}, ${Math.floor(e.y)}): now press M or tap the LEAVE button`:`heading for the way out at (${Math.floor(e.x)}, ${Math.floor(e.y)}), stopped after ${moved(r.p,r.p0).toFixed(1)} tiles: ${r.why||'ran out of time, call leave again'}`}};
 C.use=async a=>{const before=await ev(`(()=>{const e=document.getElementById('prompt');return e&&!e.hidden?[...e.childNodes].filter(n=>n.nodeName!=='KBD').map(n=>n.textContent).join('').trim():''})()`);await press('e');
   const r=await during(.5);if(r.why)return{msg:`pressed E (${before||'nothing was in reach'}): ${r.why}`};
   if(r.p.act){const r2=await during(clamp(num(a[0],10),1,25),{each:p=>p.act?null:'done'});return{msg:`pressed E (${before}) and kept at it for ${(r2.secs+.5).toFixed(1)} s`+(r2.why&&r2.why!=='done'?', stopped: '+r2.why:'')}}
@@ -249,7 +254,7 @@ C.notebook=async a=>{const t=a.join(' ').trim();if(!t)return{msg:fs.existsSync(N
 C.bug=async a=>{const sev=['minor','major','blocker'].includes(String(a[0]).toLowerCase())?a.shift().toLowerCase():'minor',t=a.join(' ').trim();if(t.length<12)return{msg:'bug needs: severity (minor|major|blocker), then a title, then " :: " and what you did, what you expected, what happened'};
   const[title,...rest]=t.split('::');const b=await fileBug('bot',sev,title.trim(),rest.join('::').trim());return{msg:`filed as bug ${b.id} with a picture, the save and your last moves attached`,free:true}};
 C.idea=async a=>{const t=a.join(' ').trim();if(t.length<8)return{msg:'idea needs some text'};const o={id:S.ideas.length+1,at:new Date().toISOString(),n:S.n,text:t,where:S.last&&S.last.zone?S.last.zone.name:null};S.ideas.push(o);jl('ideas.jsonl',o);return{msg:'idea '+o.id+' recorded',free:true}};
-const MOVES=new Set(['walk','goto','use','attack','dodge','flee','tile','dragtile']);   // (auto and key work with a sheet open too)
+const MOVES=new Set(['walk','goto','leave','use','attack','dodge','flee','tile','dragtile']);   // (auto and key work with a sheet open too)
 const TIMELESS=new Set(['look','shot','note','notebook','bug','idea']);
 // writing while something is hitting you: in live pace the world does not wait, and bots died typing notes and bug reports in the middle of a tide
 const WRITING=new Set(['note','notebook','bug','idea']);

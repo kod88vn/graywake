@@ -154,6 +154,9 @@ B.fleeTo=()=>{const Z=G.Z;if(!Z||!Z.pl)return null;
   if(Z.home){const s=retreatSpot(Z,Z.pl);return s?{x:Math.floor(s.x),y:Math.floor(s.y),home:true,near:s.near}:null}const p=Z.pl,f=field(Z,Math.floor(p.x),Math.floor(p.y),true,400),foes=Z.actors.filter(a=>a.team===1&&!a.dead&&a.def.ai!=='flee');let best=null,bs=1e9;
   for(let y=0;y<Z.h;y++)for(let x=0;x<Z.w;x++){if(!atExit(Z,x,y))continue;const d=f[y*Z.w+x];if(!(d<400))continue;let near=12;for(const a of foes)near=Math.min(near,Math.hypot(a.x-x-.5,a.y-y-.5));const s=d-near*1.2;if(s<bs){bs=s;best={x,y,d:r1(d)}}}
   return best};
+// the nearest way out of a place: the reachable tile of its edge ring that is the shortest walk (a bot could not find the edge of a Police Station)
+B.exitSpot=()=>{const Z=G.Z,p=Z&&Z.pl;if(!p||Z.home)return null;const f=field(Z,Math.floor(p.x),Math.floor(p.y),true,600);let best=null,bd=1e9;
+  for(let y=0;y<Z.h;y++)for(let x=0;x<Z.w;x++){if(!atExit(Z,x,y))continue;const c=f[y*Z.w+x];if(c<bd){bd=c;best={x:x+.5,y:y+.5}}}return best};
 B.navTo=(tx,ty)=>{const Z=G.Z;if(!Z||tx<0||ty<0||tx>=Z.w||ty>=Z.h)return false;B.nav={tx,ty,f:field(Z,Math.floor(tx),Math.floor(ty),true,400),t:Z.time,zone:Z.id};return true};
 B.steer=()=>{const Z=G.Z,nv=B.nav;if(!Z||!nv||nv.zone!==Z.id)return{done:'lost'};const p=Z.pl,cx=Math.floor(nv.tx)+.5,cy=Math.floor(nv.ty)+.5,d=Math.hypot(cx-p.x,cy-p.y);
   const ti=Math.floor(nv.ty)*Z.w+Math.floor(nv.tx),o=Z.obj[ti],solid=o&&OBJ[o.k]&&OBJ[o.k].solid,usable=o&&!!interactInfo(Z,ti);
