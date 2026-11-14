@@ -174,7 +174,13 @@ C.flee=async()=>{
   return{msg:r2.p.mode==='map'||r2.p.zone!==r.p0.zone?`got away with ${Math.round(r2.p.hp)} health. The map is open: tap your Homestead and Travel to go home and mend (the road heals you on the way).`:`reached the edge with ${Math.round(r2.p.hp)} health, but could not leave: ${r2.why||'press `key m` or tap the Leave button'}`}};
 C.dodge=async a=>{const way=WAYS[String(a[0]||'').toLowerCase()];if(way)await steerKeys(way[0],way[1]);await sleep(60);await press('space');const r=await during(.6,{fight:true});await steerKeys(0,0);return{msg:'rolled'+(way?' '+String(a[0]).toUpperCase():'')+(r.why?': '+r.why:'')}};
 C.sneak=async a=>{sneak=String(a[0]).toLowerCase()!=='off';if(sneak)await keyDown('shift');else await keyUp('shift');return{msg:'sneaking '+(sneak?'on (slower, harder to notice)':'off')}};
-C.key=async a=>{if(!keyDef(a[0]))return{msg:'unknown key "'+a[0]+'". Keys: i c b j l m f q r e 1 2 3 4 esc tab space enter'};await press(a[0]);const r=await during(clamp(num(a[1],.45),.2,5));
+// Auto mode by intent, not by toggle: the session sometimes switches it on while the model is thinking, and a bot pressing F to turn it ON turned it OFF in the
+// middle of a tide and died. `auto on` / `auto off` set it; `key f` right after the session switched it on is taken as "on".
+C.auto=async a=>{const want=String(a[0]||'on').toLowerCase()!=='off';const p=await pulse();if(!!p.auto===want)return{msg:'Auto mode is already '+(want?'ON':'OFF')};
+  if(!want&&p.alertN>0&&p.foe<6&&p.hp<(p.max||100)*.6)return{msg:'NOT NOW: something is '+p.foe+' tiles away and your health is '+Math.round(p.hp)+'. Auto is fighting for you; turn it off once they are dealt with, or `flee`.'};
+  await press('f');const r=await during(.45);if(!want)S.autoOffT=Date.now();else S.autoOffT=0;return{msg:'Auto mode is now '+(r.p.auto?'ON':'OFF')+(r.why?': '+r.why:'')}};
+C.key=async a=>{if(String(a[0]).toLowerCase()==='f'&&Date.now()-(S.guardT||0)<20000){const p=await pulse();if(p.auto)return{msg:'Auto mode is ALREADY ON: the session switched it on a moment ago because something hostile came close. Use `auto off` if you really want it off.'}}
+  if(!keyDef(a[0]))return{msg:'unknown key "'+a[0]+'". Keys: i c b j l m f q r e 1 2 3 4 esc tab space enter'};await press(a[0]);const r=await during(clamp(num(a[1],.45),.2,5));
   // the bot switching Auto off is a decision: the guardian leaves it off for a while (unless the character is badly hurt), and the result says which way it went
   let auto='';if(String(a[0]).toLowerCase()==='f'&&r.p){auto=r.p.auto?' (Auto mode is now ON)':' (Auto mode is now OFF; it stays off for the next 45 seconds unless you are badly hurt, so fight with `attack`)';S.autoOffT=r.p.auto?0:Date.now()}
   return{msg:'pressed '+String(a[0]).toUpperCase()+auto+(r.why?': '+r.why:'')}};
@@ -220,7 +226,7 @@ C.notebook=async a=>{const t=a.join(' ').trim();if(!t)return{msg:fs.existsSync(N
 C.bug=async a=>{const sev=['minor','major','blocker'].includes(String(a[0]).toLowerCase())?a.shift().toLowerCase():'minor',t=a.join(' ').trim();if(t.length<12)return{msg:'bug needs: severity (minor|major|blocker), then a title, then " :: " and what you did, what you expected, what happened'};
   const[title,...rest]=t.split('::');const b=await fileBug('bot',sev,title.trim(),rest.join('::').trim());return{msg:`filed as bug ${b.id} with a picture, the save and your last moves attached`,free:true}};
 C.idea=async a=>{const t=a.join(' ').trim();if(t.length<8)return{msg:'idea needs some text'};const o={id:S.ideas.length+1,at:new Date().toISOString(),n:S.n,text:t,where:S.last&&S.last.zone?S.last.zone.name:null};S.ideas.push(o);jl('ideas.jsonl',o);return{msg:'idea '+o.id+' recorded',free:true}};
-const MOVES=new Set(['walk','goto','use','attack','dodge','flee','tile','dragtile']);
+const MOVES=new Set(['walk','goto','use','attack','dodge','flee','tile','dragtile']);   // (auto and key work with a sheet open too)
 const TIMELESS=new Set(['look','shot','note','notebook','bug','idea']);
 // writing while something is hitting you: in live pace the world does not wait, and bots died typing notes and bug reports in the middle of a tide
 const WRITING=new Set(['note','notebook','bug','idea']);
@@ -308,8 +314,10 @@ async function guardian(){
   if(PACE!=='live'||S.busy||S.paused||S.chromeDead||Date.now()-S.guardT<8000)return;
   try{const p=await pulse();if(p.mode!=='play'||p.dead||p.sheet||p.auto)return;const hurt=S._ghp!==undefined&&p.hp<S._ghp-1.5;S._ghp=p.hp;
     // badly hurt, away from home, and nothing left to heal with: staying is dying, so the session runs for the way out and says so
+    // badly hurt with medicine: heal first (the bot died at 25 health with bandages in its pack, waiting)
+    if(p.alertN>0&&p.foe<9&&p.hp<(p.max||100)*.35&&p.meds&&Date.now()-(S.healT||0)>2500){if(S.busy)return;S.healT=Date.now();await press('1');if(!p.auto){await press('f');S.autoOffT=0}S.guardMsg='WHILE YOU WERE DECIDING your health fell under a third: the session used medicine (key 1) and switched Auto on. If it keeps falling, `flee`.';return}
     if(p.alertN>0&&p.foe<9&&p.hp<(p.max||100)*.3&&!p.meds&&Date.now()-(S.fleeT||0)>12000){if(S.busy)return;S.fleeT=S.guardT=Date.now();const r=await exec('flee',[],'session');S.guardMsg='WHILE YOU WERE DECIDING your health fell under a third with no medicine left, so the session ran for it: '+((r&&r.text||'').split('\n')[0]||'').slice(0,200);return}
-    if((p.alertN>0&&p.foe<6.5)||hurt){if(S.busy)return;if(Date.now()-(S.autoOffT||0)<45000&&p.hp>=(p.max||100)*.4)return;S.guardT=Date.now();await press('f');S.guardMsg='WHILE YOU WERE DECIDING, something hostile closed in. The world does not wait, so the session pressed F: Auto mode is ON and the character is defending itself. Press F (`key f`) to take over, or leave it on and `wait`.';
+    if((p.alertN>0&&p.foe<6.5)||hurt){if(S.busy)return;if(Date.now()-(S.autoOffT||0)<45000&&p.hp>=(p.max||100)*.55)return;S.guardT=Date.now();await press('f');S.guardMsg='WHILE YOU WERE DECIDING, something hostile closed in. The world does not wait, so the session pressed F: Auto mode is ON and the character is defending itself. Press F (`key f`) to take over, or leave it on and `wait`.';
       const evt={n:S.n,at:new Date().toISOString(),who:'session',cmd:'guard',args:[],ms:0,result:'threat while idle: switched Auto on',zone:null};S.events.push(evt);jl('events.jsonl',evt)}}catch(e){}}
 
 // ---------------------------------------------------------------- HTTP: the watch page, the command API, the game itself for the bot browser

@@ -12,6 +12,7 @@ const TOOLS=[
   T('goto','Walk to a tile, or to the nearest thing with a name (e.g. "birch", "crate", "campfire"), finding the way round obstacles. Stops next to solid things, ready for `use`.',{target:str('A name from the "Around you" list, or "X Y" tile numbers.')},['target']),
   T('use','Press E: gather, search, open, use whatever is in reach (the line "In reach — E would: ..." says what). Gathering keeps going until the thing is used up.',{seconds:numb('Longest time to keep gathering. Default 10.')}),
   T('attack','Fight the nearest hostile thing: walks round walls and closes to the reach of the weapon in hand, then aims the mouse at it and holds the attack button. Nothing is attacked through a wall. By default only what has noticed you (or stands within a few steps) is fought, so you are not led into a pack that has not seen you.',{seconds:numb('0.3 to 12. Default 3.'),hunt:{type:'boolean',description:'Also go after the nearest enemy that has NOT noticed you. Needed to finish clearing a place; expect its neighbours to join in.'}}),
+  T('auto','Switch the game\'s Auto mode ON or OFF (by intent: it does nothing if it is already that way). In a fight Auto turns, swings, heals and falls back faster than you can. Prefer this to `key f`, which toggles.',{on:{type:'boolean',description:'true for on (default), false for off'}}),
   T('flee','Run for it. Switches Auto off, runs to the way out that is nearest and farthest from the enemy without stopping for blows, and leaves the place. Use it when health is under two fifths and the fight is not nearly won, when more come than you counted on, or when you have no medicine left. Living is worth more than any haul: the place usually stays on the map and you can come back stronger.',{}),
   T('dodge','Roll (Space), optionally in a direction. You cannot be hit during the roll.',{direction:str(DIR)}),
   T('sneak','Hold or release Shift: slower, and much harder for enemies to notice.',{on:{type:'boolean'}},['on']),
@@ -31,6 +32,7 @@ const call=async(name,a)=>{
   let cmd=name,args=[];
   if(name==='look'){if(a.full)args.push('full');if(a.picture)args.push('picture')}
   else if(name==='walk')args=[a.direction,a.seconds??''];else if(name==='goto')args=String(a.target).trim().split(/[\s,]+/);else if(name==='use')args=[a.seconds??''];else if(name==='attack')args=[a.seconds??3,a.hunt?'hunt':''];
+  else if(name==='auto')args=[a.on===false?'off':'on'];
   else if(name==='dodge')args=[a.direction??''];else if(name==='sneak')args=[a.on?'on':'off'];else if(name==='key')args=[a.key,a.seconds??''];else if(name==='tap')args=a.text?[a.text]:[a.n];
   else if(name==='tile')args=[a.x,a.y,a.side??''];else if(name==='dragtile')args=[a.x1,a.y1,a.x2,a.y2,a.side??''];else if(name==='click')args=[a.x,a.y,a.button??''];else if(name==='scroll')args=[a.amount??''];else if(name==='wait')args=[a.seconds??''];
   else if(name==='report_bug'){cmd='bug';args=[a.severity,a.title+' :: '+(a.details||'')]}else if(name==='suggest'){cmd='idea';args=[a.text]}else if(name==='note')args=[a.text];else if(name==='notebook')args=a.text?[a.text]:[];
