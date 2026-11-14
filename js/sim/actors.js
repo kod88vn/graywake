@@ -388,7 +388,7 @@ function autoWeapon(S){
   for(const slot of['w1','w2']){const e=S.p.eq[slot],w=e?ITEMS[e.id]:FIST;let v;
     if(w.t==='throw')v=0;else if(w.t==='gun')v=count(S,w.ammo)>0?1000+(w.dmg||1)*(w.pellets||1)/(w.spd||.5):0;else v=1+(w.dmg||1)/(w.spd||.5)*(1+(w.rng||1)*.2);
     // a weapon about to break is no choice at all while the other hand holds something sound
-    if(e&&w.dur&&e.d!==undefined&&e.d<w.dur*.08)v*=.2;
+    if(e&&w.dur&&e.d!==undefined&&e.d<w.dur*.15)v*=.2;   // (the same line as everywhere else: under 15% it is about to break)
     if(v>bs){bs=v;best=slot}}
   return best;
 }
@@ -424,7 +424,8 @@ function autoFight(Z,p,e,dt){
       if(F.rs){p.tgt=null;const d=pathDir(Z,p,F.rf);if(d)return d;const l=Math.hypot(F.rs.x-p.x,F.rs.y-p.y)||1;return[(F.rs.x-p.x)/l,(F.rs.y-p.y)/l]}}}
   if(S.p.hp<ds.maxHp*.45&&Z.time>=F.heal){F.heal=Z.time+2.5;const med=S.p.inv.some(it=>it&&(ITEMS[it.id].t==='med'?ITEMS[it.id].hp>0:ITEMS[it.id].t==='food'&&ITEMS[it.id].hp>=8));
     if(med)quickUse(S,'hp');else if(S.p.hp<ds.maxHp*.25&&!F.warn){F.warn=true;toast('Badly hurt and no medicine: auto is still fighting','bad');sfx('error')}}
-  if(!p.atk){const slot=autoWeapon(S);if(slot!==S.p.active){S.p.active=slot;emit('eq')}}
+  // a weapon the player swapped to by hand (Q) is left in hand for two game hours
+  if(!p.atk&&!(S.p.chose!==undefined&&S.t-S.p.chose<120)){const slot=autoWeapon(S);if(slot!==S.p.active){S.p.active=slot;emit('eq')}}
   const w=weaponDef(S),gun=w.t==='gun'&&count(S,w.ammo)>0,thrown=w.t==='throw',d=dist(p.x,p.y,e.x,e.y),see=los(Z,p.x,p.y,e.x,e.y),ang=Math.atan2(e.y-p.y,e.x-p.x);
   const hitR=(thrown?FIST.rng:w.rng)+e.r,reach=gun?Math.min(w.rng*.8,8):hitR-.15;
   p.tgt=e;

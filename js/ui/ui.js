@@ -132,7 +132,7 @@ function hot(k){
   else if(k==='world'){if(S.world)open('world');else toast(Net.url?(Net.state==='down'?'The world server is not answering':'Joining a world…'):'This game is not joined to a shared world','info')}
   else if(k==='build'){if(G.build)buildClose();else if(Z&&Z.home&&!S.tide.live)buildOpen();else toast(S.tide.live?'Not during a tide':'You can only build at home','info')}
   else if(G.mode!=='play'||!Z)return;
-  else if(k==='swap'){S.p.active=S.p.active==='w1'?'w2':'w1';bus.emitEq();sfx('equip');needHud=true}
+  else if(k==='swap'){S.p.active=S.p.active==='w1'?'w2':'w1';S.p.chose=S.t;bus.emitEq();sfx('equip');needHud=true}   // (auto mode leaves a weapon you chose alone for a while)
   else if(k==='auto'){G.auto=!G.auto;if(Z.pl){Z.pl.auto=null;Z.pl.fight=null}if(G.auto){const pl=autoPlan(Z);toast('Auto-gather on'+(pl.using.length?': using '+pl.using.join(', ').toLowerCase():': by hand only'),'info');if(pl.skipping.length)toast('Skipping '+pl.skipping.slice(0,3).join(', '),'bad')}else toast('Auto-gather off','info');needHud=true}
   else if(k==='rotate'){if(!G.build)return;
     // placing or carrying: turn the piece in hand. Otherwise turn the structure under the pointer where it stands.
