@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.10.42 — 2026-11-14
+
+- Anything of yours broken at the homestead says so as it breaks, in a tide or out of one (a raid, an animal): a wall piece that went between tides vanished without a word.
+
 ## 0.10.41 — 2026-11-14
 
 - A trade on the road (the trapper's hides for jerky and the like) waits until your pack has room for what you would get, instead of taking your side and leaving theirs on the ground.

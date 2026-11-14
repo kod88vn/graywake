@@ -1,6 +1,6 @@
 {
   "name": "graywake",
-  "version": "0.10.41",
+  "version": "0.10.42",
   "private": true,
   "description": "Graywake: a top-down 3D survival game for the browser. Build a homestead, scavenge the valley, hold the line against the tide. No build step, no purchases.",
   "type": "module",
