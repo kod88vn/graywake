@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.10.11 — 2026-11-14
+
+- **Fixed: in a tide, Auto mode walked out through the yard's door** to meet raiders gathering in the trap field outside, and was killed there (twice, the second time costing Haiku Two a tide). What stands on the far side of a wall or a door from Auto's post is now left to the wall. Tested with a walled yard and an enemy outside the door: Auto stays put. In the open the measured result is unchanged (tide 5, machete, no medicine: 6 of 16 both before and after).
+- A rain pool says it has run dry and when it refills.
+- A repair kit offers each worn piece, not only the most worn.
+
 ## 0.10.10 — 2026-11-14
 
 - **Arriving where the story sent you says where to look**: "The Transmitter Coil should be in a Locker to the north, inside one of the buildings".

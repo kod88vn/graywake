@@ -456,7 +456,9 @@ function autoStep(Z,p,dt){
   // (and in the last 45 minutes before one: auto mode stops gathering and keeps to where it was switched on, instead of wandering off to chop a tree outside the walls)
   const soon=Z.home&&!S.tide.live&&S.tide.at-S.t<45,tide=Z.home&&(S.tide.live||soon);if(tide){if(!p.post||p.post.n!==S.tide.n)p.post={x:p.x,y:p.y,n:S.tide.n}}else p.post=null;
   let foe=null;
-  if(tide){let bd=POST_REACH;for(const a of Z.actors){if(a.team!==1||a.dead||!a.alert||a.def.ai==='flee')continue;const d=dist(a.x,a.y,p.post.x,p.post.y)-a.r;if(d<bd){bd=d;foe=a}}if(!foe&&S.tide.live&&!S.tide.live.q.length)foe=autoFoe(Z,p,400)}
+  // (what is on the far side of a wall from the post is left to the wall: auto mode used to walk out through the yard's door to meet raiders gathering
+  // in the trap field, and died there twice)
+  if(tide){let bd=POST_REACH;for(const a of Z.actors){if(a.team!==1||a.dead||!a.alert||a.def.ai==='flee')continue;const d=dist(a.x,a.y,p.post.x,p.post.y)-a.r;if(d<bd&&!(Z.ed.length&&edgeCross(Z,p.post.x,p.post.y,a.x,a.y,false)>=0)){bd=d;foe=a}}if(!foe&&S.tide.live&&!S.tide.live.q.length)foe=autoFoe(Z,p,400)}   // (a door counts as a wall here)
   else foe=autoFoe(Z,p,0);
   if(foe)return autoFight(Z,p,foe,dt);
   if(p.fight){if(Z.time-p.fight.t<1.5&&S.p.active!==p.fight.slot){S.p.active=p.fight.slot;emit('eq')}p.fight=null;p.auto=null;toast(Z.home&&S.tide.live?'Auto: clear for now, holding this spot':'Auto: clear, back to gathering','info')}
