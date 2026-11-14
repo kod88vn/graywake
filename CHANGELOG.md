@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased
+## 0.10.17 — 2026-11-14
+
+- **Falling back at home keeps to your yard.** When you stand inside walls in a tide, Auto's falling back (and the bot's flee) heads for the spot you were holding, not out into the open, where faster raiders ran Haiku Two down and it lost tide 9. In the open nothing changes (tide 5, machete, no medicine, 32 runs: 9 before, 15 after, within the spread).
 
 - **A weapon you swap to with Q stays in hand** while Auto mode fights, for two game hours; Auto used to swap straight back. And Auto no longer draws a gun under 15% condition over a sound bow.
 

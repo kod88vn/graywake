@@ -401,11 +401,19 @@ function stowTarget(Z,p){
 }
 /** Where to fall back to: the reachable spot within a short run that is farthest from everything hostile (weighed against the length of the run).
  *  Used by auto mode when it is badly hurt, and by the bot's flee at home, where there is no edge to run off. Null if there is nothing to run from. */
+/** Is the post inside walls (a yard)? Worked out once per post: a flood from it that crosses no wall or door and does not reach the edge of the homestead. */
+function postEnclosed(Z,post){
+  if(post.enc!==undefined)return post.enc;const W=Z.w,H=Z.h,s=Math.floor(post.y)*W+Math.floor(post.x),seen=new Uint8Array(W*H),q=[s];seen[s]=1;let n=0;
+  while(q.length){const c=q.pop(),x=c%W,y=(c-x)/W;if(x<3||y<3||x>=W-3||y>=H-3||++n>900)return post.enc=false;
+    for(const[dx,dy,side]of[[1,0,1],[-1,0,3],[0,1,2],[0,-1,0]]){const nx=x+dx,ny=y+dy,j=ny*W+nx;if(seen[j])continue;if(Z.ed[edgeIdx(W,x,y,side)])continue;seen[j]=1;q.push(j)}}
+  return post.enc=true;
+}
 export function retreatSpot(Z,p){
   const foes=Z.actors.filter(a=>a.team===1&&!a.dead&&a.def.ai!=='flee'&&(a.alert||dist(a.x,a.y,p.x,p.y)<6)&&dist(a.x,a.y,p.x,p.y)<14);if(!foes.length)return null;
   const f=field(Z,Math.floor(p.x),Math.floor(p.y),true,30);let best=null,bs=-1e9;
   for(let k=0;k<32;k++){const ang=k/32*TAU;for(const r of[3,5,7,9]){const x=Math.floor(p.x+Math.cos(ang)*r),y=Math.floor(p.y+Math.sin(ang)*r);if(x<1||y<1||x>=Z.w-1||y>=Z.h-1)continue;const c=f[y*Z.w+x];if(!(c<30))continue;
-    let near=99;for(const a of foes){const d=dist(a.x,a.y,x+.5,y+.5)*(a.def.proj?.7:1);if(d<near)near=d}const s=near*1.6-c*.35;if(s>bs){bs=s;best={x:x+.5,y:y+.5,near:+near.toFixed(1)}}}}
+    // at home in a tide the walls are the safety: fall back towards your post, not out into the open where faster things run you down
+    let near=99;for(const a of foes){const d=dist(a.x,a.y,x+.5,y+.5)*(a.def.proj?.7:1);if(d<near)near=d}const home=Z.home&&p.post&&postEnclosed(Z,p.post)?dist(x+.5,y+.5,p.post.x,p.post.y)*1.4:0,s=near*1.6-c*.35-home;if(s>bs){bs=s;best={x:x+.5,y:y+.5,near:+near.toFixed(1)}}}}
   return best;
 }
 /** How far from its post auto mode goes to meet something during a tide: a doorway's width or two, not the far side of the clearing. */
