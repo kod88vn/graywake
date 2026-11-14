@@ -404,7 +404,8 @@ export function useItem(S,i){
 export function quickUse(S,need){
   let best=-1,score=0,risky=null;const p=S.p,ds=G.ds;
   S.p.inv.forEach((s,i)=>{if(!s)return;const it=ITEMS[s.id];if(it.t!=='food'&&it.t!=='med')return;let v=0;
-    if(need==='food')v=(it.food||0)-(it.risk?it.risk[0]*40:0);else if(need==='water'){if((it.water||0)<10)return;v=(it.water||0)-(it.risk?it.risk[0]*40:0);if(v<=0)risky=it.n}   // a drink, not a handful of berries; and nothing that is likely to make you ill
+    if(need==='food')v=(it.food||0)-(it.risk?it.risk[0]*40:0);else if(need==='water'){if((it.water||0)<10||(it.food||0)>(it.water||0)*2)return;   // a drink: not berries, and not a meal that happens to be moist (a Field Ration)
+      v=(it.water||0)-(it.risk?it.risk[0]*40:0);if(v<=0)risky=it.n}   // a drink, not a handful of berries; and nothing that is likely to make you ill
     else if(need==='hp'){if(it.t!=='med'&&!(it.hp>=8))return;const miss=ds.maxHp-p.hp;v=it.hp>0?Math.max(1,100-Math.abs(miss-it.hp)):0}
     else if(need==='tox')v=-(it.tox||0);
     if(v>score){score=v;best=i}});
