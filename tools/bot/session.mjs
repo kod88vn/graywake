@@ -145,7 +145,10 @@ C.use=async a=>{const before=await ev(`(()=>{const e=document.getElementById('pr
   const r=await during(.5);if(r.why)return{msg:`pressed E (${before||'nothing was in reach'}): ${r.why}`};
   if(r.p.act){const r2=await during(clamp(num(a[0],10),1,25),{each:p=>p.act?null:'done'});return{msg:`pressed E (${before}) and kept at it for ${(r2.secs+.5).toFixed(1)} s`+(r2.why&&r2.why!=='done'?', stopped: '+r2.why:'')}}
   return{msg:`pressed E (${before||'nothing was in reach, so nothing happened'})`}};
-C.attack=async a=>{const secs=clamp(num(a[0],3),.3,12),hunt=a.includes('hunt');let quiet=0,navT=-9,walked=false,hit=false,name=null,stuck=null,mark=null,markT=0,tid=0;
+C.attack=async a=>{
+  // a click in build mode places a piece, not a blow: leave build mode first (as a player would press Esc)
+  for(let k=0;k<2&&await ev('!!GW.G.build');k++){await press('esc');await sleep(120)}
+  const secs=clamp(num(a[0],3),.3,12),hunt=a.includes('hunt');let quiet=0,navT=-9,walked=false,hit=false,name=null,stuck=null,mark=null,markT=0,tid=0;
   // fight like a person: nothing is swung at through a wall. Walk round to a foe that is out of reach or out of sight, then aim and hold the button.
   const r=await during(secs,{fight:true,each:async(p,p0,t)=>{const f=await ev(`__bot.fight(${tid},${hunt})`);if(f)tid=f.id;
     if(!f){if(mouseDown)await mouseRelease();await steerKeys(0,0);return ++quiet>5?'nothing left to fight':null}quiet=0;name=name||f.name;
