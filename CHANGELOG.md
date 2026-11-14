@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.10.73 — 2026-11-14
+
+- **A plain wall no longer replaces a window.** Dragging a Stick Wall line over a row of windows turned them all back into stick walls without a word (0.10.65 let a wall swap back over a window). A window still goes into a plain wall; to undo one, remove it first.
+
 ## 0.10.72 — 2026-11-14
 
 - **A rival taking your lead while you are inside it now says so.** When someone opened a strongroom first while you were already in the place, the game said nothing: only the world feed mentioned it, and a bot searched a cleared Hardware Store without knowing. It now reads "Hollow Bridge opened the Hardware Store strongroom first. You are still inside, so what is in it is yours to take, but the hold goes to them."

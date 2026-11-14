@@ -460,7 +460,7 @@ safe('misc',()=>{
   T.ok(place(S,'window_stone',cx,cy,0)&&Zh.ed[edgeIdx(Zh.w,cx,cy,0)].k==='window_stone','a window goes into a plain wall');
   T.ok(los(Zh,...here(cx))===true,'you can see through a window');T.ok(edgeCross(Zh,...here(cx),true)>=0,'but you cannot walk through it, nor can they');
   T.ok(los(Zh,...here(cx+1))===false,'the wall beside it still blocks sight');T.ok(canPlace(S,'window_stone',cx,cy,0)&&true,'a second window on the same side is refused');
-  T.ok(place(S,'wall_stone',cx,cy,0)&&Zh.ed[edgeIdx(Zh.w,cx,cy,0)].k==='wall_stone','and a plain wall goes back over a window');
+  T.ok(!!canPlace(S,'wall_stone',cx,cy,0)&&!place(S,'wall_stone',cx,cy,0)&&Zh.ed[edgeIdx(Zh.w,cx,cy,0)].k==='window_stone','a plain wall does not replace a window (dragging one along a row would undo them all)');
   place(S,'door_plank',cx+2,cy,0);T.ok(!!canPlace(S,'window_plank',cx+2,cy,0),'a window cannot replace a door')}}
 T.info('level '+G.S.p.lvl+', day '+dayOf(G.S.t)+', kills '+(G.S.stats.kills||0)+', tides '+G.S.tide.n);
 process.exitCode=T.end()?1:0;

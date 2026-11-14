@@ -7,7 +7,7 @@ import {PERK,xpFor,MAX_LEVEL} from '../data/progress.js';
 import {clamp,rnd} from './util.js';
 import {sourcesOf} from '../data/sources.js';
 
-export const VERSION='0.10.72';
+export const VERSION='0.10.73';
 export const SAVE_V=2;
 export const HOME_W=46,HOME_H=46,EXIT_RING=2,NO_BUILD=4;
 export const MIN_PER_SEC=1.5;            // game minutes per real second: a day is 16 real minutes
@@ -338,8 +338,8 @@ function sealsIn(Z,i){
     for(const[dx,dy,side]of[[1,0,1],[-1,0,3],[0,1,2],[0,-1,0]]){const nx=x+dx,ny=y+dy,n=ny*W+nx;if(nx<0||ny<0||nx>=W||ny>=H||seen[n])continue;if(wallOn(edgeIdx(W,x,y,side)))continue;if(!open(n))continue;seen[n]=1;q.push(n)}}
   return true;
 }
-/** A window goes into a plain wall and a plain wall back over a window (not over a door): the old piece is taken out and half its worth comes back. */
-const swaps=(oldK,newK)=>{const a=OBJ[oldK],b=OBJ[newK];return!!(a&&b&&a.wall&&b.wall&&!a.door&&!b.door&&!!a.window!==!!b.window)};
+/** A window goes into a plain wall (not over a door, and not the other way round): the old piece is taken out and half its worth comes back. */
+const swaps=(oldK,newK)=>{const a=OBJ[oldK],b=OBJ[newK];return!!(a&&b&&a.wall&&b.wall&&!a.door&&!b.door&&!a.window&&b.window)};   /* one way only: dragging a wall along a row of windows replaced them all */
 export function canPlace(S,k,x,y,side=0){
   const Z=G.Z,d=OBJ[k];if(!Z||!Z.home)return'Only at home';if(!d||!d.cost)return'Cannot build that';
   if(!buildUnlocked(S,k))return d.bp?'Needs a schematic':'Needs level '+d.lv;
