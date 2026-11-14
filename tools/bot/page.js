@@ -134,7 +134,7 @@ B.observe=(full=false)=>{
 
 /** A cheap pulse while an action runs. */
 B.pulse=()=>{const S=G.S,Z=G.Z,p=Z&&Z.pl;let foe=99,alertN=0;if(Z&&p)for(const a of Z.actors){if(a.pl||a.dead||a.team!==1||a.def.ai==='flee'||!a.alert)continue;alertN++;const d=Math.hypot(a.x-p.x,a.y-p.y);if(d<foe)foe=d}
-  return{mode:G.mode,sheet:window.GW?GW.UI.panel:null,hp:S?S.p.hp:0,max:G.ds&&G.ds.maxHp||100,x:p?p.x:0,y:p?p.y:0,dead:!!(p&&p.dead),act:p&&p.act?p.act.type:null,atk:!!(p&&p.atk),foe:r1(foe),alertN,auto:!!G.auto,exit:!!(Z&&Z.exit),home:!!(Z&&Z.home),meds:S?S.p.inv.reduce((n,s)=>n+(s&&ITEMS[s.id].t==='med'&&ITEMS[s.id].hp>0?s.n:0),0):0,t:Z?Z.time:0,zone:Z?Z.id:null,fps:window.GW?GW.View.fps:0,msgs:B.msgs.length}};
+  return{mode:G.mode,sheet:window.GW?GW.UI.panel:null,hp:S?S.p.hp:0,max:G.ds&&G.ds.maxHp||100,x:p?p.x:0,y:p?p.y:0,dead:!!(p&&p.dead),act:p&&p.act?p.act.type:null,atk:!!(p&&p.atk),foe:r1(foe),alertN,auto:!!G.auto,exit:!!(Z&&Z.exit),home:!!(Z&&Z.home),meds:S?S.p.inv.reduce((n,s)=>n+(s&&ITEMS[s.id].t==='med'&&ITEMS[s.id].hp>0?s.n:0),0):0,t:Z?Z.time:0,zone:Z?Z.id:null,tide:!!(S&&S.tide&&S.tide.live),tideSoon:!!(S&&S.tide&&!S.tide.live&&S.tide.at-S.t<=60&&S.tide.at>S.t),fps:window.GW?GW.View.fps:0,msgs:B.msgs.length}};
 
 // ---- walking by keys: which of the eight ways to press to get to a tile (or next to it, when something solid stands on it)
 /** What stops a step in a direction from where the player stands: a wall on a tile edge, a solid thing, water, the edge of the place. For the walk command's message. */

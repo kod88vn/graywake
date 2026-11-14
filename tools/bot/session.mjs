@@ -112,6 +112,8 @@ async function during(secs,o={}){
     if(p.mode!==p0.mode){why='the screen changed ('+p.mode+')';break}
     if(p.sheet&&p.sheet!==p0.sheet){why='a sheet opened';break}
     if(p.zone!==p0.zone){why='you are somewhere else now';break}
+    if(p.tide&&!p0.tide){why='THE TIDE HAS STARTED';break}
+    if(p.tideSoon&&!p0.tideSoon){why='the tide is due within the hour';break}
     if(!o.fight&&p.hp<p0.hp-4){why='you are losing health ('+Math.round(p0.hp)+' → '+Math.round(p.hp)+')';break}
     if(!o.fight&&p.alertN>p0.alertN&&p.foe<8){why='something hostile has noticed you, '+p.foe+' tiles away';break}
     if(o.fight&&!o.flee&&p.hp<(p.max||100)*.4&&p.hp<p0.hp-1){why='HEALTH IS DOWN TO '+Math.round(p.hp)+' of '+Math.round(p.max||100)+': stop fighting. '+(p.meds?'Use medicine (`key 1`) and get clear, or `flee`.':'You have no medicine: `flee` now.');break}
