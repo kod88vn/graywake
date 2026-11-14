@@ -7,7 +7,7 @@ import {PERK,xpFor,MAX_LEVEL} from '../data/progress.js';
 import {clamp,rnd} from './util.js';
 import {sourcesOf} from '../data/sources.js';
 
-export const VERSION='0.10.53';
+export const VERSION='0.10.54';
 export const SAVE_V=2;
 export const HOME_W=46,HOME_H=46,EXIT_RING=2,NO_BUILD=4;
 export const MIN_PER_SEC=1.5;            // game minutes per real second: a day is 16 real minutes
@@ -361,7 +361,7 @@ export function moveObj(S,i,x,y,rot){
 export function canUpgrade(S,i,floor){
   const Z=G.Z;if(!Z||!Z.home)return'Only at home';const st=floor?null:structAt(Z,i),k=floor?Z.fl[i]:st&&st.k;if(!k)return'Nothing here';const d=OBJ[k];if(!d.up)return'Fully upgraded';
   if(!buildUnlocked(S,d.up))return OBJ[d.up].bp?'Needs a schematic':'Needs level '+OBJ[d.up].lv;
-  const miss=afford(S,buildCost(d.up));if(miss)return'Missing '+miss;return null;
+  const miss=afford(S,buildCost(d.up));if(miss)return d.n+' to '+OBJ[d.up].n+': missing '+miss;return null;
 }
 export function upgrade(S,i,floor){
   const why=canUpgrade(S,i,floor);if(why){toast(why,'bad');sfx('error');return false}

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.10.54 — 2026-11-14
+
+- An upgrade that cannot be paid for says which step it is ("Plank Wall to Stone Wall: missing Brick"): dragging over walls that were already plank asked for brick, and it read as if the Stick-to-Plank upgrade wanted brick.
+
 ## 0.10.53 — 2026-11-14
 
 - A full box says how to get more room: "No room in there: upgrade it to a Chest (20 slots, Build, Upgrade) or build another".
