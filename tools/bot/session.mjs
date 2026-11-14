@@ -98,6 +98,8 @@ async function click(x,y,button='left'){await mouseTo(x,y);await mousePress(butt
 async function releaseAll(){for(const code of[...held]){if(code==='ShiftLeft'&&sneak)continue;held.delete(code);const d=Object.values(KEYS).find(k=>k[1]===code)||[code.slice(-1).toLowerCase(),code,0];await gate();await send('Input.dispatchKeyEvent',{type:'keyUp',key:d[0],code,windowsVirtualKeyCode:d[2]}).catch(()=>{})}if(mouseDown)await mouseRelease().catch(()=>{})}
 const WAYS={n:[0,-1],ne:[1,-1],e:[1,0],se:[1,1],s:[0,1],sw:[-1,1],w:[-1,0],nw:[-1,-1],north:[0,-1],east:[1,0],south:[0,1],west:[-1,0],up:[0,-1],down:[0,1],left:[-1,0],right:[1,0]};
 async function steerKeys(dx,dy){const want=new Set();if(dx>.38)want.add('d');else if(dx<-.38)want.add('a');if(dy>.38)want.add('s');else if(dy<-.38)want.add('w');
+  // stopping releases all four whether or not the tool thinks they are down: a key left down by a lost event kept the character walking after a goto
+  if(!want.size){for(const k of['w','a','s','d']){const d=keyDef(k);if(!d)continue;held.delete(d[1]);await gate();await send('Input.dispatchKeyEvent',{type:'keyUp',key:d[0],code:d[1],windowsVirtualKeyCode:d[2]})}return}
   for(const k of['w','a','s','d'])if(want.has(k))await keyDown(k);else await keyUp(k)}
 
 // ---------------------------------------------------------------- letting time pass, and noticing what should cut an action short
@@ -124,13 +126,16 @@ const moved=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 // ---------------------------------------------------------------- commands
 const num=(v,d)=>{const n=parseFloat(v);return Number.isFinite(n)?n:d};
 const C={};
+// the character glides a little after the keys come up (the game moves with inertia): wait until it has stopped before saying where it is, or the next
+// look finds it somewhere else (a bot reported drifting after every walk)
+const settle=async()=>{let last=await ev('(()=>{const p=GW.G.Z&&GW.G.Z.pl;return p?[p.x,p.y]:null})()');for(let k=0;k<8&&last;k++){await sleep(70);const now=await ev('(()=>{const p=GW.G.Z&&GW.G.Z.pl;return p?[p.x,p.y]:null})()');if(!now)return;if(Math.hypot(now[0]-last[0],now[1]-last[1])<.015)return;last=now}};
 // English plurals for the names of things: Branches, Boxes, Bushes, Grass (not Grasss), Birches
 const plural=n=>{const w=n.split(' '),l=w.pop();let p;if(/grass$/i.test(l)||(/s$/i.test(l)&&!/ss$/i.test(l)))p=l;else if(/(ss|x|z|ch|sh)$/i.test(l))p=l+'es';else if(/[^aeiou]y$/i.test(l))p=l.slice(0,-1)+'ies';else p=l+'s';return[...w,p].join(' ')};
 C.look=async a=>({msg:'',full:a.includes('full')});
 C.walk=async a=>{const way=WAYS[String(a[0]||'').toLowerCase()];if(!way)return{msg:'walk needs a direction: n ne e se s sw w nw (n is up the screen), then seconds'};const secs=clamp(num(a[1],1.5),.2,8);
   await steerKeys(way[0],way[1]);let mark=null,markT=0;
   const r=await during(secs,{each:(p,p0,t)=>{if(!mark){mark=p;markT=t}else if(t-markT>.9){if(moved(p,mark)<.25)return'blocked: something is in the way';mark=p;markT=t}}});
-  await steerKeys(0,0);
+  await steerKeys(0,0);await settle();
   // say what is in the way, and that goto finds the way round: three reports read a wall as being stuck on nothing
   let why=r.why||'';if(/^blocked/.test(why)){const w=await ev(`__bot.whyBlocked(${way[0]},${way[1]})`).catch(()=>'');why='blocked by '+(w||'something in the way')+'. `walk` only goes in a straight line; `goto` a tile or a named thing finds the way round'}
   return{msg:`walked ${String(a[0]).toUpperCase()} ${moved(r.p,r.p0).toFixed(1)} tiles`+(why?' and stopped: '+why:'')}};
@@ -141,7 +146,7 @@ C.goto=async a=>{let tx,ty,name;if(a.length>=2&&Number.isFinite(parseFloat(a[0])
   let face=null;
   const r=await during(22,{each:async(p,p0,t)=>{const s=await ev('__bot.steer()');if(s.done){end=s.done;face=s.face;return s.done}await steerKeys(s.dx/Math.max(.01,Math.hypot(s.dx,s.dy)),s.dy/Math.max(.01,Math.hypot(s.dx,s.dy)));
     if(!mark){mark=p;markT=t}else if(t-markT>1.2){if(moved(p,mark)<.25){end='stuck';return'stuck: not getting any closer'}mark=p;markT=t}}});
-  await steerKeys(0,0);
+  await steerKeys(0,0);await settle();
   // end facing the thing walked to, with a nudge of the keys, so that E means it and not a neighbour
   if(end==='arrived'&&face){const l=Math.max(.01,Math.hypot(face[0],face[1]));await steerKeys(face[0]/l,face[1]/l);await sleep(70);await steerKeys(0,0);await sleep(60)}
   return{msg:end==='arrived'?`walked to ${name}`:`heading for ${name}, stopped after ${moved(r.p,r.p0).toFixed(1)} tiles: ${r.why||'ran out of time, call goto again'}`}};
