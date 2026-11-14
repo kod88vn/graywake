@@ -388,7 +388,11 @@ G.hooks.rescue=()=>{Community.candidate(G.S,'was freed by you');addXp(G.S,120)};
 export function setJob(S,id,job){
   const sv=S.surv.find(s=>s.id===id),J=JOBS[job];if(!sv||!J)return false;
   if(J.needs&&!hasBuilt(S,o=>o.id===J.needs||o.special===J.needs||o.station===J.needs)){toast('Build '+(OBJ[J.needs]?OBJ[J.needs].n.toLowerCase():'the station')+' first','bad');return false}
-  sv.job=job;sfx('ui_tap');return true;
+  // a trade runner given a job at home comes off the route to do it (the job was set while the route went on, so the ledger said guard and the
+  // camp log said not: a guard on the road holds no post in a tide)
+  if(job!=='idle'){const rid=Community.routeOf(S,sv.id);if(rid){Community.closeRoute(S,rid);toast(sv.n+' comes off the trade route to work as your '+J.n.toLowerCase(),'info')}}
+  if(sv.job===job){toast(sv.n+' is already your '+J.n.toLowerCase(),'info');return true}
+  sv.job=job;sfx('ui_tap');toast(sv.n+' is now your '+J.n.toLowerCase(),'good');return true;
 }
 function pile(S,id,n){S.home.pile[id]=(S.home.pile[id]||0)+n}
 /** What your people brought in goes into the storage boxes first (where crafting and the people's meals draw from), then into the pack; whatever fits nowhere stays in the pile and is said. */

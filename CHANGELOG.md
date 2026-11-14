@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.10.50 — 2026-11-14
+
+- Giving a trade runner a job brings them off the route to do it, and says so; every job tap now says what it did ("Yusuf is now your guard", or "already your guard"). A runner could be set to guard while still on the road, so the ledger said guard and nobody held the post.
+
 ## 0.10.49 — 2026-11-14
 
 - A radio lead's card says what its threat was worked out for ("Rated for: baseball bat and machete, 61 armour, 33 medicine in your pack"), and that medicine left in your storage boxes does not count. Putting medicine away between two looks raised the threat from 2 to 4 skulls with no visible reason.
