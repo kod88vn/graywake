@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.10.39 — 2026-11-14
+
+- On the map, tapping where places are drawn on top of each other steps to the next one on each tap, so the one underneath can be picked.
+- A place easy for your level says "Easy for your level", not "Well within reach", which read as a distance beside "6h 42m on foot · needs a bicycle".
+
 ## 0.10.38 — 2026-11-14
 
 - The toxin warnings say where the cures come from: Herbal Tea from the campfire, Charcoal Tablets and Antitoxin from a Herbalist Table.

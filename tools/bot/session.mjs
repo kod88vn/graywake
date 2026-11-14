@@ -210,7 +210,10 @@ C.tap=async a=>{let n=parseInt(a[0]);
   // a place on the map that sits under the info card or off the edge: drag the map, as a person would, until the pin is in the open
   for(let k=0;k<3&&t.spot&&(t.covered||t.x<40||t.x>W-40||t.y<70||t.y>H-40);k++){const dx=clamp(W/2-t.x,-360,360),dy=clamp(H*.36-t.y,-260,260);await mouseTo(W/2,H*.4);await mousePress();for(let i=1;i<=8;i++){await mouseTo(W/2+dx*i/8,H*.4+dy*i/8);await sleep(30)}await mouseRelease();await sleep(200);t=await ev(`__bot.target(${n})`)||t}
   await sleep(120);const t2=await ev(`__bot.target(${n})`)||t;
-  await click(clamp(t2.x,2,W-2),clamp(t2.y,2,H-2));const r=await during(.5);return{msg:`clicked "${t.label}"`+(t.disabled?' (it is greyed out)':'')+(r.why?': '+r.why:'')}};
+  await click(clamp(t2.x,2,W-2),clamp(t2.y,2,H-2));
+  // places drawn on top of each other: the game steps to the next one under the finger on each tap, so tap again until the one asked for is chosen
+  if(t.spot){const want=t.spot.name||t.label.replace(/^place on the map:\s*/,'').replace(/\s*\(RADIO LEAD\)$/,'');for(let k=0;k<4&&(await ev('__bot.mapSel()'))!==want;k++){await sleep(150);await click(clamp(t2.x,2,W-2),clamp(t2.y,2,H-2))}}
+  const r=await during(.5);return{msg:`clicked "${t.label}"`+(t.disabled?' (it is greyed out)':'')+(r.why?': '+r.why:'')}};
 C.click=async a=>{const x=num(a[0],-1),y=num(a[1],-1);if(x<0||y<0||x>W||y>H)return{msg:`click needs page pixels inside ${W}×${H}`};await click(x,y,a[2]==='right'?'right':'left');const r=await during(.45);return{msg:`clicked at ${x}, ${y}`+(r.why?': '+r.why:'')}};
 const SIDE={n:[0,-.42],e:[.42,0],s:[0,.42],w:[-.42,0]};
 // how much stands at home, so a build click can say whether anything was actually placed or removed

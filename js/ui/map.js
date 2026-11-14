@@ -20,8 +20,11 @@ function init(){
   c=$('mapc');x=c.getContext('2d');
   c.addEventListener('pointerdown',e=>{drag={x:e.clientX,y:e.clientY,ox,oy};moved=0;c.setPointerCapture(e.pointerId)});
   c.addEventListener('pointermove',e=>{if(!drag)return;const dx=e.clientX-drag.x,dy=e.clientY-drag.y;moved=Math.max(moved,Math.abs(dx)+Math.abs(dy));ox=drag.ox+dx;oy=drag.oy+dy;clampPan();draw()});
-  c.addEventListener('pointerup',e=>{if(drag&&moved<8){const r=c.getBoundingClientRect(),mx=(e.clientX-r.left-ox)/scale,my=(e.clientY-r.top-oy)/scale;let best=null,bd=30/Math.max(.6,scale);
-      for(const n of nodes()){const d=Math.hypot(n.x-mx,n.y-my);if(d<bd){bd=d;best=n.id}}if(best!==null){sel=best;G.ev.push(['sfx','ui_tap']);info();draw()}}drag=null});
+  c.addEventListener('pointerup',e=>{if(drag&&moved<8){const r=c.getBoundingClientRect(),mx=(e.clientX-r.left-ox)/scale,my=(e.clientY-r.top-oy)/scale;const R=30/Math.max(.6,scale);
+      // every place under the finger, nearest first; tapping the same spot again steps to the next one, so a place drawn under another can still be picked
+      const hit=nodes().map(n=>({id:n.id,d:Math.hypot(n.x-mx,n.y-my)})).filter(h=>h.d<R).sort((a,b)=>a.d-b.d);let best=hit.length?hit[0].id:null;
+      if(hit.length>1){const k=hit.findIndex(h=>h.id===sel);if(k>=0)best=hit[(k+1)%hit.length].id}
+      if(best!==null){sel=best;G.ev.push(['sfx','ui_tap']);info();draw()}}drag=null});
   $('mapinfo').addEventListener('click',e=>{const el=e.target.closest('[data-a]');if(!el||el.disabled)return;if(el.dataset.a==='go')go(sel)});
   $('maptop').addEventListener('click',e=>{const el=e.target.closest('[data-h]');if(el)bus.UI.hot?bus.UI.open({inv:'inv',craft:'craft',journal:'journal',menu:'menu'}[el.dataset.h]):0});
 }
@@ -43,7 +46,7 @@ function info(){
   const site=S.sites.find(s=>s.id===sel),l=site?null:LOC[sel];if(!site&&!l){el.innerHTML='';return}
   const here=sel===S.pos,why=World.canVisit(S,sel),ti=World.travelInfo(S,sel),reg=REGIONS[site?site.reg:l.reg],lvl=site?site.lvl:World.locLevel(S,l),def=site?SITES[site.site]:l;
   const LI=site?World.leadInfo(S,site):null;
-  const gap=lvl-S.p.lvl,danger=LI?`<span class="${LI.skulls>=4?'danger':LI.skulls===3?'amb':'okc'}">${LI.word}</span>`:sel==='home'?'':gap>8?'<span class="danger">Far beyond you</span>':gap>3?'<span class="danger">Dangerous</span>':gap>-3?'<span class="amb">A fair fight</span>':'<span class="okc">Well within reach</span>';
+  const gap=lvl-S.p.lvl,danger=LI?`<span class="${LI.skulls>=4?'danger':LI.skulls===3?'amb':'okc'}">${LI.word}</span>`:sel==='home'?'':gap>8?'<span class="danger">Far beyond you</span>':gap>3?'<span class="danger">Dangerous</span>':gap>-3?'<span class="amb">A fair fight</span>':'<span class="okc">Easy for your level</span>';
   const tg=[];if(LI)tg.push('RADIO LEAD','Threat '+LI.skulls+' of 5: '+LI.word,'Held by '+LI.who,'Strongroom: '+LI.prize);if(sel!=='home')tg.push('Level '+lvl);if(def.boss&&!def.bossChance)tg.push('Boss: '+ENEMIES[def.boss].n);if(reg.cold||def.cold)tg.push('Freezing: wear fur');if(def.tox||reg.tox)tg.push('Toxic air: mask or suit');if(reg.heat)tg.push('Heat: bring water');if(def.dark)tg.push('Dark: bring a lantern');
   if(site)tg.push('Gone in '+fmtMin(site.until-S.t));if(site&&site.bag&&site.bag.some(Boolean))tg.push('Your pack is here');const mem=l&&S.loc[l.id];if(mem&&mem.bag&&mem.bag.some(Boolean))tg.push('Your pack is here');if(mem&&mem.n)tg.push('Visited '+mem.n+'×');if(l&&l.endless)tg.push('Depth '+S.depth);
   // going out and coming straight back takes two trips: say so when the tide would be at home first

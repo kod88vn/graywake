@@ -62,6 +62,7 @@ function elements(full){
   if(name==='map')for(const s of MapScreen.spots()){B.els.push({spot:s});out.push({n:B.els.length,label:'place on the map: '+s.name+(s.lead?' (RADIO LEAD)':''),flags:[s.here?'you are here':'',s.sel?'selected':''].filter(Boolean)})}
   return[name,out]}
 /** The number of the one clickable thing whose label contains this text (case does not matter), 0 if none, -1 if several do. */
+B.mapSel=()=>{const s=MapScreen.spots().find(s=>s.sel);return s?s.name:null};
 B.byText=q=>{q=String(q).toLowerCase().trim();const hit=[];q=q.replace(/^place on the map:\s*/,'').replace(/\s*\(radio lead\)\s*$/,'');B.els.forEach((el,i)=>{const l=(el.spot?el.spot.name:el.opt?'choose '+el.sel.options[el.i].textContent.trim()+' — for '+((el.sel.closest('.rec')||{}).querySelector?((el.sel.closest('.rec').querySelector('b')||{}).textContent||''):''):label(el)).toLowerCase();if(l.includes(q))hit.push([i+1,l])});const exact=hit.filter(h=>h[1]===q||h[1].startsWith(q+' '));return hit.length===1?hit[0][0]:exact.length===1?exact[0][0]:hit.length?-1:0};
 /** Where to click for numbered element n (scrolling it into view first), or null. */
 B.target=n=>{const el=B.els[n-1];if(!el)return null;
