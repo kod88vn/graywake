@@ -6,6 +6,7 @@ import {PROPS} from './props.js';
 import {rigFor,playerRig,setWeapon,pose,disposeRig} from './rigs.js';
 import {groundTex,cloudTex,glowTex,rippleTex,CLUTTER_BY_BIOME,clutterGeo,windMaterial,setWind} from './scenery.js';
 import {OBJ,GROUND,G as GT} from '../data/objects.js';
+import {ENEMIES} from '../data/enemies.js';
 import {BIOMES} from '../data/world.js';
 import {VEHICLES} from '../data/recipes.js';
 import {WEATHER} from '../data/events.js';
@@ -265,7 +266,7 @@ function syncActors(dt){
   const S=G.S;frame++;let bars=0;const camQ=cam.quaternion;
   for(const a of Z.actors){
     let r=rigs.get(a.id);
-    if(!r){r=a.pl?playerRig(S.p.eq):rigFor(a.def,a.sv||a.id);r.wkey=null;r.root.rotation.y=Math.PI/2-a.a;rigs.set(a.id,r);scene.add(r.root)}
+    if(!r){r=a.pl?playerRig(S.p.eq):rigFor(a.sv&&ENEMIES.captive?ENEMIES.captive:a.def,a.sv||a.id);/* one of your own people looks like themselves whatever they are doing, a tide's bow included */r.wkey=null;r.root.rotation.y=Math.PI/2-a.a;rigs.set(a.id,r);scene.add(r.root)}
     r.seen=frame;r.root.position.set(a.x,0,a.y);
     let ty=Math.PI/2-a.a,dy=ty-r.root.rotation.y;dy=((dy+Math.PI)%(Math.PI*2)+Math.PI*2)%(Math.PI*2)-Math.PI;r.root.rotation.y+=dy*Math.min(1,dt*16);
     if(a.mv>3.2&&!a.dead&&dt>0){r.dustT=(r.dustT||0)-dt;if(r.dustT<=0){r.dustT=.2;burst(a.x,.06,a.y,1,PAL.dust,.5,.6,.45,.1,1)}}
@@ -277,7 +278,7 @@ function syncActors(dt){
     }else{
       const d=a.def,w=['wind','windS','cast','cwind','fuse'].includes(a.st)?clamp(1-a.t/(a.st==='cast'?a.T||1:a.st==='fuse'?.65:d.wind||.5),0.01,1):0;
       // the homestead's people at work: the tool of their job in hand, and the working motion while they are at it (a slower, steadier rhythm than a swing)
-      if(a.sv){const tool=a.work==='mech'?'wrench':a.work==='farm'?'pick':null;if(r.wkey!==tool){setWeapon(r,tool);r.wkey=tool}}
+      if(a.sv){const tool=a.def.ai==='guard'?'bow':a.work==='mech'?'wrench':a.work==='farm'?'pick':null;if(r.wkey!==tool){setWeapon(r,tool);r.wkey=tool}}
       const workAct=a.work&&a.work!=='rest'&&a.mv<.3?((time*(a.work==='cook'||a.work==='medic'?.38:.5)+(a.id||0)*.37)%1)*.5:0;
       pose(r,{dt,t:time,mv:a.mv,atk:-1,wind:w,act:workAct,sleep:a.work==='sleep'&&a.mv<.3,gun:d.proj&&a.alert&&r.type==='human'?1:0,recoil:d.proj&&a.atkT>0?1:0,strike:!d.proj&&a.atkT>0,charge:a.st==='charge',stun:a.stunT>0,dead:a.dead,deadT:a.deadT,flash:a.flash,vis:a.vis});
       if(!a.dead&&bars<95&&(a.hp<a.mhp||a.boss||d.boss)&&a.vis>.5){const w0=d.boss?1.6:.7,f=clamp(a.hp/a.mhp,0,1),hy=r.h+.35;

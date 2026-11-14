@@ -1,6 +1,11 @@
 # Changelog
 
-## 0.10.51 — 2026-11-14
+## 0.10.52 — 2026-11-14
+
+- **Your people defend the homestead properly.** In a tide your survivors take up bows, and now they shoot over your own walls and doors: from inside a closed yard they could not see, let alone hit, what was battering it, so they stood idle until the walls broke. Measured with the player standing still at tide 10 in a walled yard, three survivors now kill twice as many attackers (17 to 23 against 4 to 12) and the yard loses fewer pieces (8 to 10 against 12 to 19).
+- **They look like themselves while they fight.** Each survivor keeps their own face, hair and clothes in a tide, with a bow in hand, instead of turning into a generic green archer you could not tell from the community fighters.
+- **A tide that has stalled ends.** Once every wave is in, if nothing has been hurt or killed for 40 seconds, the last attackers fall back and the tide is held. Spitters standing off outside the walls could keep a tide hanging for good, which is also what drew Auto out of the yard to hunt them.
+
 
 - Auto keeps the weapon you chose by hand only while it can still do something: a gun out of ammunition or a broken blade goes back to Auto's choice at once. It clicked an empty revolver through a whole fight because you had picked it.
 

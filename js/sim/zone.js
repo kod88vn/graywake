@@ -296,10 +296,10 @@ export function edgeBetween(Z,x0,y0,x1,y1){const W=Z.w,e=y1<y0?(y0*W+x0)*2:y1>y0
 /** Does any wall touch the corner shared by two diagonal cells? (Nothing cuts a corner a wall ends on.) */
 function cornerWalled(Z,x0,y0,x1,y1){const W=Z.w,cx=Math.max(x0,x1),cy=Math.max(y0,y1),ed=Z.ed;return!!(ed[(cy*W+cx-1)*2]||ed[(cy*W+cx)*2]||ed[((cy-1)*W+cx)*2+1]||ed[(cy*W+cx)*2+1])}
 /** Does a wall stand between two points? Low cover (barricades, furniture) does not block sight or shots. */
-export function los(Z,x0,y0,x1,y1){
+export function los(Z,x0,y0,x1,y1,overWalls=false){
   const dx=x1-x0,dy=y1-y0,d=Math.hypot(dx,dy),n=Math.ceil(d*3);if(n<1)return true;
   for(let i=1;i<n;i++){const x=x0+dx*i/n,y=y0+dy*i/n,tx=Math.floor(x),ty=Math.floor(y);if(tx<0||ty<0||tx>=Z.w||ty>=Z.h)return false;const o=Z.obj[ty*Z.w+tx];if(o){const k=OBJ[o.k];if(k.solid===1&&!k.low)return false}}
-  return edgeCross(Z,x0,y0,x1,y1)<0;
+  return overWalls||edgeCross(Z,x0,y0,x1,y1)<0;
 }
 /** What a projectile hits at (x,y): tile index of a blocking object, or -1. */
 export function shotBlock(Z,x,y){
