@@ -290,7 +290,7 @@ PANELS.recycler={title:'Recycler',live:true,open(){rsel=null},render(i){const s=
   act(a,d){const s=S();if(a==='rs')rsel=s.p.inv[+d.i]?+d.i:null;else if(a==='rec'&&rsel!=null){World.recycle(s,rsel);if(!s.p.inv[rsel])rsel=null}}};
 PANELS.repair={title:'Mending bench',live:true,render(){const s=S(),rows=[];
     for(const[k,l]of EQ){const e=s.p.eq[k];if(e&&World.mendCost(e))rows.push([e,'eq:'+k,l])}s.p.inv.forEach((x,i)=>{if(x&&World.mendCost(x))rows.push([x,'inv:'+i,'pack'])});
-    return rows.length?`<div class="list">${rows.map(([e,ref,l])=>`<div class="rec">${img(e.id)}<div><b>${esc(ITEMS[e.id].n)}</b> <small>${l} · ${Math.round(e.d/ITEMS[e.id].dur*100)}%</small>${chips(World.mendCost(e))}</div>${btn('Mend','mend',`data-ref="${ref}"`,'go')}</div>`).join('')}</div>`:'<div class="card"><p>Nothing you carry is worn.</p></div>'},
+    return rows.length?`<div class="list">${rows.map(([e,ref,l])=>`<div class="rec">${img(e.id)}<div><b>${esc(ITEMS[e.id].n)}</b> <small>${l} · ${Math.round(e.d/ITEMS[e.id].dur*100)}%</small>${chips(World.mendCost(e))}${(()=>{const c=World.mendCost(e);return Object.keys(c).filter(k=>count(s,k,true)<c[k]).map(k=>`<small style="display:block;color:var(--dim)">To get ${esc(ITEMS[k].n)}: ${esc(sourcesOf(k,2)||'nothing known')}</small>`).join('')})()}</div>${btn('Mend','mend',`data-ref="${ref}"`,'go')}</div>`).join('')}</div>`:'<div class="card"><p>Nothing you carry is worn.</p></div>'},
   act(a,d){if(a==='mend'){const s=S(),[w,k]=d.ref.split(':');World.mend(s,w==='eq'?s.p.eq[k]:s.p.inv[+k])}}};
 for(const k of['kennel','maptable','guard','beacon','tower','scarecrow'])PANELS[k]=PANELS.info;
 

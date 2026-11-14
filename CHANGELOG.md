@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.10.60 — 2026-11-14
+
+- The Mending Bench says where each missing ingredient comes from under every repair ("To get Ballistic Weave: made at a Sewing Table from Canvas and Plastic and more · dropped by Riot Husk, Gray Knight"). The list showed only what a repair needed, and worn gear looked unrestorable.
+
 ## 0.10.59 — 2026-11-14
 
 - **You cannot cut your own furniture off.** Placing something solid that would leave a workbench, fire, box or bed with no free side you can walk to from outside the yard (through its door) is refused: "That would cut the Workbench off: you could not walk to it". A bed, a campfire and two boxes had split a yard in two, and the workbench could not be reached from the corner by the bedroll.
