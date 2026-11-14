@@ -182,6 +182,13 @@ function buildPointer(type,x,y,down){
     if(type==='move'&&down&&B.run){const r=B.run,cx=r.horiz?tx:r.line,cy=r.horiz?r.line:ty,sd=r.horiz?0:3,key=cx+'_'+cy;if(key!==B.last&&cx>=0&&cy>=0&&cx<Z.w&&cy<Z.h){B.last=key;if(canPlace(S,B.kind,cx,cy,sd)===null&&place(S,B.kind,cx,cy,sd)){B.just=tx+'_'+ty+'_'+B.side;renderBuild()}}}
     return}
   // painting by dragging is for placing and clearing; moving and turning act once per tap
+  // a drag that upgrades, repairs or clears keeps to what it started on: upgrading a line of stick walls upgraded the chest it crossed too, and a
+  // plank piece in the line went on to stone (0.10.35). Upgrade keeps to the one kind; repair and clearing keep to walls, or to things that stand on a tile.
+  if(type==='down'){B.last=-1;const T=buildTarget(tx,ty);B.dragK=T.o?T.o.k:(G.Z.fl[i]||null);B.dragEdge=!!T.edge;B.dragSide=B.side}
+  // (along a wall the pointer wanders from one side of a cell to another: the drag keeps to the side it began on)
+  if(type==='move'&&down&&B.dragEdge&&(B.tool==='upgrade'||B.tool==='repair'||B.tool==='remove')){B.side=B.dragSide;B.near=0}
+  if(type==='move'&&down&&(B.tool==='upgrade'||B.tool==='repair'||B.tool==='remove')&&i!==B.last){const T=buildTarget(tx,ty),k=T.o?T.o.k:(G.Z.fl[i]||null);
+    if(!k||(B.tool==='upgrade'?k!==B.dragK:!!T.edge!==B.dragEdge)){B.last=i;return}}
   if((type==='down'||(type==='move'&&down&&B.tool!=='move'&&B.tool!=='turn'))&&i!==B.last){B.last=i;buildApply(tx,ty)}
 }
 function buildFrame(){
