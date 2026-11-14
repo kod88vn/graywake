@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.10.78 — 2026-11-14
+
+- **Two tide clocks could disagree by an hour.** Opening the map left a copy of its tide line in the page with the same name as the one at the top of the screen, and that copy went stale as the game moved on (1h 46m against a true 1h 43m a few seconds later; after a long trip, an hour out). The map's line now has its own name, so there is only ever one tide clock.
+
 ## 0.10.77 — 2026-11-14
 
 - **Someone leaving over low morale goes into the community log**, with the morale and what raises it ("Juno has had enough and leaves: morale is 2"). It was a passing toast, so a survivor who joined could be gone with nothing in the log but the line saying she joined.

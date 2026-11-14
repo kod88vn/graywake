@@ -39,7 +39,7 @@ function open(){
 function top(){
   const S=G.S,T=S.tide,left=T.at-S.t,k=TIDE_KINDS.find(k=>k.id===T.kind);
   const b=(h,gl,tip)=>`<button class="ib" data-h="${h}" title="${tip}">${gimg(gl)}</button>`;
-  $('maptop').innerHTML=`<div style="display:grid;gap:4px"><div class="t h" style="background:rgba(14,16,11,.8);border:1px solid var(--line);padding:2px 12px;font-size:15px">Day ${dayOf(S.t)} · ${fmtTime(S.t)}</div><div id="tide" class="${left<12*60?'soon':''}">TIDE ${T.n+1} IN ${fmtMin(left).toUpperCase()}${T.warned?' · '+k.n.toUpperCase()+' · '+DIRS[T.dir].toUpperCase():''}</div></div><div id="btns">${b('inv','backpack_open','Pack')}${b('craft','wrench','Craft by hand')}${b('journal','book','Journal')}${b('menu','gear','Menu')}</div>`;
+  $('maptop').innerHTML=`<div style="display:grid;gap:4px"><div class="t h" style="background:rgba(14,16,11,.8);border:1px solid var(--line);padding:2px 12px;font-size:15px">Day ${dayOf(S.t)} · ${fmtTime(S.t)}</div><div id="maptide" class="${left<12*60?'soon':''}">TIDE ${T.n+1} IN ${fmtMin(left).toUpperCase()}${T.warned?' · '+k.n.toUpperCase()+' · '+DIRS[T.dir].toUpperCase():''}</div></div><div id="btns">${b('inv','backpack_open','Pack')}${b('craft','wrench','Craft by hand')}${b('journal','book','Journal')}${b('menu','gear','Menu')}</div>`;
 }
 function info(){
   const S=G.S,el=$('mapinfo');if(sel==null){el.innerHTML='';return}
