@@ -52,8 +52,11 @@ export function goHome(arriving=true){
 }
 export function locLevel(S,l){return l.endless?l.lvl+S.depth*2:l.lvl}
 /** Why the player cannot go somewhere, or null. */
+const fmtM=m0=>{const m=Math.round(m0);return m>=60?Math.floor(m/60)+'h'+(m%60?' '+m%60+'m':''):Math.max(1,m)+' min'};
 export function canVisit(S,id){
-  const site=S.sites.find(s=>s.id===id);if(site)return REGIONS[site.reg].veh>S.veh?'Needs a '+VEHICLES[REGIONS[site.reg].veh].n.toLowerCase():null;
+  const site=S.sites.find(s=>s.id===id);if(site){if(REGIONS[site.reg].veh>S.veh)return'Needs a '+VEHICLES[REGIONS[site.reg].veh].n.toLowerCase();
+    // a place that will be gone before the road gets you there is not offered (a bot spent two hours walking to one)
+    if(S.pos!==id&&site.until<Infinity){const ti=travelInfo(S,id);if(S.t+ti.min>site.until)return'Gone before you could get there ('+fmtM(ti.min)+' on the road, '+fmtM(Math.max(0,site.until-S.t))+' left)'}return null}
   if(id==='home')return null;const l=LOC[id];if(!l)return'Unknown';
   if(REGIONS[l.reg].veh>S.veh)return'Needs a '+VEHICLES[REGIONS[l.reg].veh].n.toLowerCase();
   if(l.flag&&!S.flags[l.flag])return'The way is not open yet';

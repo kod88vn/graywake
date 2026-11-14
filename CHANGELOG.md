@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.10.45 — 2026-11-14
+
+- The map will not send you to a radio lead that will be gone before you get there: Travel is greyed out with "Gone before you could get there (10h 39m on the road, 10h 19m left)".
+
 ## 0.10.44 — 2026-11-14
 
 - Using a repair kit from the pack says what it mended and by how much ("Riot Helmet repaired: 72% → 100% (1 kit left)"): kits went to the most worn piece without a word, and looked wasted.
