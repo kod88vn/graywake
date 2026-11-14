@@ -1,6 +1,9 @@
 # Changelog
 
-## Unreleased
+## 0.10.8 — 2026-11-13
+
+- **Fixed: the Radio Mast quest could not be finished early.** It needs a battery and says the Route 9 fuel stop has one, but batteries only turned up in the second region and beyond. Abandoned cars anywhere can now hold one.
+- **Wear best no longer swaps worn clothes for weaker fresh ones.** Clothes give their full armour until they fall apart, so a pair of leather gloves at 6% stays on over hand wraps; only a weapon about to break counts for less.
 
 - **You cannot shut yourself in.** Placing something solid that would leave you no way on foot out of the homestead is refused ("That would shut you in"); a door counts as a way out. A bot boxed itself into a corner of its yard with a torch and a storage box.
 - Worlds are never named after a region of the map, and the map card names the world you are in.
