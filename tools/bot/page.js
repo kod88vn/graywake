@@ -6,7 +6,7 @@ import {RECIPE_LIST} from '../js/data/recipes.js';
 import {JOBS} from '../js/data/progress.js';
 import {OBJ} from '../js/data/objects.js';
 import {ITEMS} from '../js/data/items.js';
-import {interactInfo,retreatSpot} from '../js/sim/actors.js';
+import {interactInfo,retreatSpot,homeAnchor,inYard} from '../js/sim/actors.js';
 import {field,pathAim,walkClear,los,edgeCross,atExit} from '../js/sim/zone.js';
 import {MapScreen} from '../js/ui/map.js';
 
@@ -151,6 +151,8 @@ B.whyBlocked=(dx,dy)=>{const Z=G.Z;if(!Z||!Z.pl)return'';const p=Z.pl,l=Math.hyp
 /** Where to run to: the way out of this place that is nearest by foot and farthest from whatever is hostile. Null at home (there is nowhere further to run). */
 B.fleeTo=()=>{const Z=G.Z;if(!Z||!Z.pl)return null;
   // at home there is no edge to run off (and no leaving during a tide): run to the spot farthest from them instead
+  // outside your own walls with enemies about, run for the yard (running to the spot farthest from them took a bot out into the tide's own side)
+  if(Z.home&&!inYard(Z,Z.pl.x,Z.pl.y)){const a=homeAnchor(Z,Z.pl);if(a&&inYard(Z,a.x,a.y))return{x:Math.floor(a.x),y:Math.floor(a.y),home:true,yard:true}}
   if(Z.home){const s=retreatSpot(Z,Z.pl);return s?{x:Math.floor(s.x),y:Math.floor(s.y),home:true,near:s.near}:null}const p=Z.pl,f=field(Z,Math.floor(p.x),Math.floor(p.y),true,400),foes=Z.actors.filter(a=>a.team===1&&!a.dead&&a.def.ai!=='flee');let best=null,bs=1e9;
   for(let y=0;y<Z.h;y++)for(let x=0;x<Z.w;x++){if(!atExit(Z,x,y))continue;const d=f[y*Z.w+x];if(!(d<400))continue;let near=12;for(const a of foes)near=Math.min(near,Math.hypot(a.x-x-.5,a.y-y-.5));const s=d-near*1.2;if(s<bs){bs=s;best={x,y,d:r1(d)}}}
   return best};

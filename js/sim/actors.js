@@ -420,6 +420,18 @@ function postEnclosed(Z,post){
     for(const[dx,dy,side]of[[1,0,1],[-1,0,3],[0,1,2],[0,-1,0]]){const nx=x+dx,ny=y+dy,j=ny*W+nx;if(seen[j])continue;if(Z.ed[edgeIdx(W,x,y,side)])continue;seen[j]=1;q.push(j)}}
   return post.enc=true;
 }
+/** Is this spot inside a closed yard? */
+export function inYard(Z,x,y){return Z.ed.length>0&&postEnclosed(Z,{x,y})}
+/** The nearest place inside the yard to stand: next to a bed, fire or box, preferring the inside of walls, by the way the player would walk. Null if
+ *  there is nothing of the kind. Auto mode holds this in a tide when it was out gathering as the tide came (it held the spot it was gathering at,
+ *  13 tiles outside, 0.10.61), and flee runs for it when you are outside your walls. */
+export function homeAnchor(Z,p){
+  if(!Z.home)return null;const W=Z.w,f=field(Z,Math.floor(p.x),Math.floor(p.y),true,300);let best=null,bs=1e9;
+  for(let i=0;i<Z.obj.length;i++){const o=Z.obj[i],d=o&&OBJ[o.k];if(!d||!(d.bed||d.station==='campfire'||d.store))continue;const ox=i%W,oy=(i-ox)/W;
+    for(const[dx,dy]of[[1,0],[-1,0],[0,1],[0,-1]]){const x=ox+dx,y=oy+dy,j=y*W+x;if(x<1||y<1||x>=W-1||y>=Z.h-1)continue;const q=Z.obj[j];if(q&&OBJ[q.k]&&OBJ[q.k].solid===1)continue;
+      const c=f[j];if(!(c<300))continue;const sc=c-(inYard(Z,x+.5,y+.5)?80:0);if(sc<bs){bs=sc;best={x:x+.5,y:y+.5}}}}
+  return best;
+}
 export function retreatSpot(Z,p){
   const foes=Z.actors.filter(a=>a.team===1&&!a.dead&&a.def.ai!=='flee'&&(a.alert||dist(a.x,a.y,p.x,p.y)<6)&&dist(a.x,a.y,p.x,p.y)<14);if(!foes.length)return null;
   const f=field(Z,Math.floor(p.x),Math.floor(p.y),true,30);let best=null,bs=-1e9;
@@ -481,7 +493,7 @@ function autoStep(Z,p,dt){
   // any sense. It fights what comes within a few steps of the post and goes no further; it used to hold the middle of the map and walk out of a yard
   // built anywhere else, straight into the tide (0.10.1). Once the last wave is in, it goes and finds the stragglers so the tide can end.
   // (and in the last 45 minutes before one: auto mode stops gathering and keeps to where it was switched on, instead of wandering off to chop a tree outside the walls)
-  const soon=Z.home&&!S.tide.live&&S.tide.at-S.t<45,tide=Z.home&&(S.tide.live||soon);if(tide){if(!p.post||p.post.n!==S.tide.n)p.post={x:p.x,y:p.y,n:S.tide.n}}else p.post=null;
+  const soon=Z.home&&!S.tide.live&&S.tide.at-S.t<45,tide=Z.home&&(S.tide.live||soon);if(tide){if(!p.post||p.post.n!==S.tide.n){const a=homeAnchor(Z,p);p.post=a&&dist(p.x,p.y,a.x,a.y)>7?{x:a.x,y:a.y,n:S.tide.n}:{x:p.x,y:p.y,n:S.tide.n}}}else p.post=null;   /* (the post is where you stand, unless that is well away from home) */
   let foe=null;
   // (what is on the far side of a wall from the post is left to the wall: auto mode used to walk out through the yard's door to meet raiders gathering
   // in the trap field, and died there twice)

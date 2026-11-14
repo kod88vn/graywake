@@ -298,6 +298,10 @@ safe('sleep death save',()=>{
   give(S,'log',5);S.p.hp=1;G.Z.pl.dead=false;const e=spawnActor(G.Z,'brute',G.Z.pl.x+.6,G.Z.pl.y,20);e.alert=true;e.st='chase';run(8);
   T.ok(G.Z.pl.dead,'the player can die');World.respawn();T.ok(G.Z&&G.Z.home&&!G.Z.pl.dead&&S.p.hp>0,'respawn at home');T.ok(count(S,'log')===0,'pack is dropped on death');
   T.ok(G.Z.obj.some(o=>o&&o.k==='deathbag'),'dropped pack can be recovered');
+  // dying where every tile around is taken (a thicket, a trap field) must not lose the pack: it goes on the nearest empty tile
+  {const Zc=G.Z,w=Zc.w;Zc.pl.x=3.5;Zc.pl.y=40.5;for(let y=36;y<=44;y++)for(let x=1;x<=8;x++)Zc.obj[y*w+x]={k:(x+y)%2?'tree_pine':'spikes',r:0,v:0,hp:60};
+    for(let i=0;i<Zc.obj.length;i++)if(Zc.obj[i]&&Zc.obj[i].k==='deathbag')Zc.obj[i]=null;give(S,'bandage',5);Zc.pl.dead=true;S.p.hp=0;World.respawn();
+    T.ok(G.Z.obj.some(o=>o&&o.k==='deathbag'&&o.inv.some(s=>s&&s.id==='bandage'&&s.n===5)),'a pack dropped in a thicket still lands on the ground, not nowhere')}
   const str=World.serialize();T.ok(str.length>500,'save serialises ('+Math.round(str.length/1024)+' KB)');
   const S2=World.deserialize(str);T.ok(S2.p.lvl===S.p.lvl&&S2.home.obj.filter(Boolean).length===S.home.obj.filter(Boolean).length,'save round-trips level and base');
   // a save from before walls moved to the cell edges: a closed 5×5 ring of wall cells with a door in its south side, and a loose run of three

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.10.61 — 2026-11-14
+
+- **A pack dropped by a death at home is never lost.** The bag was only put down if the tile nearest you was empty, and otherwise the whole pack vanished without a word (a death among trees and traps lost one for good). It now goes on the nearest empty tile, and as a last resort the items are dropped loose.
+- **Auto walks home before a tide.** In the last 45 minutes before one, Auto used to hold the spot where you happened to be, so if it was out chopping trees it held a post thirteen tiles outside and met the tide there. If you are well away from home it now holds a spot inside your yard and walks back: measured with Auto on 24 minutes before a tide and the player 14 tiles out, it was 14 to 15 tiles out when the tide began and is now inside the yard every time (8 runs each).
+- **The bot's flee runs for the yard** when it is outside its walls at home. It ran to the spot farthest from the enemy, which took one out onto the tide's own side of the map.
+
 ## 0.10.60 — 2026-11-14
 
 - The Mending Bench says where each missing ingredient comes from under every repair ("To get Ballistic Weave: made at a Sewing Table from Canvas and Plastic and more · dropped by Riot Husk, Gray Knight"). The list showed only what a repair needed, and worn gear looked unrestorable.

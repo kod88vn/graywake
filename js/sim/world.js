@@ -335,7 +335,7 @@ export function exile(S){
   S.p.bed=null;S.p.hp=Math.max(S.p.hp,derive(S).maxHp*.6);S.p.food=Math.max(S.p.food,50);S.p.water=Math.max(S.p.water,50);
   G.Z=null;G.pending=null;genHome(S);scheduleTide(S,true);S.nextEv=S.t+600;S.pos='home';goHome(false);
   if(bag.length&&G.Z&&G.Z.home){const Z=G.Z,left=[];for(const s of bag){const n=addTo(S.p.inv,slotCount(S),s.id,s.n,s.d);if(n>0)left.push({id:s.id,n,d:s.d})}
-    if(left.length){const[x,y]=freeNear(Z,Z.pl.x,Z.pl.y,3),i=Math.floor(y)*Z.w+Math.floor(x);if(!Z.obj[i]){Z.obj[i]={k:'deathbag',r:0,v:0,inv:left};Z.touch&&Z.touch(i)}}
+    if(left.length)placeBag(Z,Z.pl.x,Z.pl.y,left);
     toast('You carried your dropped pack over the pass'+(left.length?': what did not fit lies beside you':''),'good')}
   emit('save');
 }
@@ -658,11 +658,19 @@ export function sleep(i){
   sfx('sleep');emit('ui','wake',dayOf(S.t));emit('save');return true;
 }
 G.hooks.die=()=>{const S=G.S;stat('deaths');S.deeds.deaths++;G.auto=false;emit('ui','death',{where:G.Z?G.Z.name:'',day:dayOf(S.t)})};
+/** Put a pack of items on the ground at home as a bag, on the nearest tile with nothing on it (water and the edge excepted); if there is no such tile
+ *  within ten steps the items are dropped loose. The pack was once lost for good when the tile nearest the player had a tree or a trap on it. */
+function placeBag(Z,x,y,items){
+  const W=Z.w,H=Z.h,cx=Math.floor(x),cy=Math.floor(y),free=(tx,ty)=>tx>=1&&ty>=1&&tx<W-1&&ty<H-1&&!Z.obj[ty*W+tx]&&Z.g[ty*W+tx]!==6;
+  for(let r=0;r<=10;r++)for(let dy=-r;dy<=r;dy++)for(let dx=-r;dx<=r;dx++){if(Math.max(Math.abs(dx),Math.abs(dy))!==r)continue;const tx=cx+dx,ty=cy+dy;
+    if(free(tx,ty)){Z.obj[ty*W+tx]={k:'deathbag',r:0,v:0,inv:items};Z.touch&&Z.touch(ty*W+tx);return true}}
+  dropAt(Z,x,y,items);return false;
+}
 /** After the death screen: lose the pack where you fell, wake at home next morning. */
 export function respawn(){
   const S=G.S,Z=G.Z,items=S.p.inv.filter(Boolean),day=Math.floor(S.t/1440),wake=(hourOf(S.t)>=6?day+1:day)*1440+7*60;
   if(Z){
-    if(Z.home){if(S.tide.live){raidBase(S,.3,true);endTide(S,Z,false)}if(items.length){const[x,y]=freeNear(Z,Z.pl.x,Z.pl.y,3),i=Math.floor(y)*Z.w+Math.floor(x);if(!Z.obj[i])Z.obj[i]={k:'deathbag',r:0,v:0,inv:items}}}
+    if(Z.home){if(S.tide.live){raidBase(S,.3,true);endTide(S,Z,false)}if(items.length)placeBag(Z,Z.pl.x,Z.pl.y,items)}
     else if(LOC[Z.id]){const m=S.loc[Z.id]=S.loc[Z.id]||{n:1};m.bag=items;m.cool=0}
     else if(Z.site){const st=S.sites.find(s=>s.id===Z.site);if(st){st.bag=(st.bag||[]).concat(items);st.until=Math.max(st.until,wake+18*60)}}
     // brought down on the road: the spot goes on the map, halfway to where they were going, and the pack waits there two days
