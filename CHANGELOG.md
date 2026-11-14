@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.10.26 — 2026-11-14
+
+- **The end of a tide says what it broke.** Besides the count, the sheet now names each piece lost ("Broken: 3 × Plank Wall, Plank Door"), so a door that went in the night is not found missing later.
+
 ## 0.10.25 — 2026-11-14
 
 - The Camp ledger's stores say what they are not counting and why ("Not counted: Mushroom ×7, Berries ×11. They eat only a proper meal…"): boxes full of berries showed "food ×0" with no reason given.
