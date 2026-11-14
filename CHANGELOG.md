@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.10.27 — 2026-11-14
+
+- Times round to the minute before they are written, so the tide clock no longer reads "1h 60m".
+- An empty snare or rain catcher beside a workbench no longer takes the E key from it: it only had "nothing yet" to say.
+
 ## 0.10.26 — 2026-11-14
 
 - **The end of a tide says what it broke.** Besides the count, the sheet now names each piece lost ("Broken: 3 × Plank Wall, Plank Door"), so a door that went in the night is not found missing later.

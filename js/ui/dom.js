@@ -10,7 +10,8 @@ export const img=id=>`<img src="${iconURL(id)}" alt="">`;
 export const gimg=(glyph,col,col2)=>`<img src="${iconFor(glyph,col,col2)}" alt="">`;
 /** Filled in by ui.js so panels can call back without a circular import. */
 export const bus={};
-export const fmtMin=m=>m>=1440?Math.floor(m/1440)+'d '+Math.floor(m%1440/60)+'h':m>=60?Math.floor(m/60)+'h '+(Math.round(m%60)?Math.round(m%60)+'m':''):Math.max(1,Math.round(m))+' min';
+// rounded to the minute first, so 119.7 minutes reads 2h, not 1h 60m
+export const fmtMin=m0=>{const m=Math.round(m0);return m>=1440?Math.floor(m/1440)+'d '+Math.floor(m%1440/60)+'h':m>=60?Math.floor(m/60)+'h'+(m%60?' '+m%60+'m':''):Math.max(1,m)+' min'};
 /** An inventory slot button. s = {id,n,d} or null. attrs = extra attributes string. */
 export function slot(s,attrs='',cls=''){
   if(!s)return`<button class="sl ${cls}" ${attrs}></button>`;const it=ITEMS[s.id];let x=img(s.id);
