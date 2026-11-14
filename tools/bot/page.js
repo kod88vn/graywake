@@ -95,7 +95,10 @@ function around(full){
   let yours=null;if(Z.home&&G.build){const rows={},cols={};for(let e=0;e<Z.ed.length;e++){const w=Z.ed[e];if(!w||!OBJ[w.k]||!OBJ[w.k].cost)continue;const t=e>>1,x=t%W,y=(t-x)/W;if(e&1)(cols[x]=cols[x]||[]).push(y);else(rows[y]=rows[y]||[]).push(x)}
     const runs=a=>{a.sort((p,q)=>p-q);const out=[];let s=a[0],l=a[0];for(let i=1;i<=a.length;i++){if(a[i]===l+1){l=a[i];continue}out.push(s===l?''+s:s+'-'+l);s=l=a[i]}return out.join(',')};
     yours=[...Object.keys(rows).map(y=>`north side of row y=${y}: x ${runs(rows[y])}`),...Object.keys(cols).map(x=>`west side of column x=${x}: y ${runs(cols[x])}`)].slice(0,24)}
-  return{things:list,foes:foes.slice(0,12),others:others.slice(0,8),drops,walls,doorways:doorways.slice(0,6),yours}}
+  // the buildings of this place, near and far: 'around you' only reaches a few steps, and a bot searched a Ranger Station's yard and reported it had no buildings
+  const blds=Z.home?[]:(Z.blds||[]).map(b=>{const cx=b.x0+b.w/2,cy=b.y0+b.h/2,dd=Math.hypot(cx-p.x,cy-p.y);let n=0;for(let y=b.y0;y<b.y0+b.h;y++)for(let x=b.x0;x<b.x0+b.w;x++){const o=Z.obj[y*W+x];if(o&&OBJ[o.k]&&OBJ[o.k].loot&&!o.empty)n++}
+    return{x0:b.x0,y0:b.y0,x1:b.x0+b.w-1,y1:b.y0+b.h-1,dist:Math.round(dd),dir:compass(cx-p.x,cy-p.y),door:(b.doors||[])[0]||null,loot:n}}).sort((a,b)=>a.dist-b.dist);
+  return{things:list,foes:foes.slice(0,12),others:others.slice(0,8),drops,walls,doorways:doorways.slice(0,6),yours,blds}}
 
 B.observe=(full=false)=>{
   const S=G.S,Z=G.Z,o={mode:G.mode,version:window.GW&&GW.VERSION,hold:!!G.hold,paused:!!G.paused,screen:[innerWidth,innerHeight]};

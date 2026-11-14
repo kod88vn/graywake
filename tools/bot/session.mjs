@@ -282,6 +282,7 @@ function describe(o){
     if(o.drops&&o.drops.length)L.push('Loose on the ground: '+o.drops.map(d=>`${d.what||'loot'} ${d.dist} ${d.dir} at (${d.x}, ${d.y})`).join(' | '));
     if(o.things&&o.things.length){L.push('Around you (tile x,y; N is up the screen). One line per kind of thing: the NEAREST one, and how many more of that kind are about:');for(const t of o.things)L.push(`  ${t.name} — ${t.dist} tiles ${t.dir} at (${t.x}, ${t.y})${t.act?' — '+t.act:''}${t.yours?' (you built it)':''}${t.n>1?` [${t.n-1} more ${t.n>2?plural(t.name):t.name} elsewhere in this place]`:''}`)}
     else L.push('Nothing to use, search or gather within ten tiles.');
+    if(o.blds&&o.blds.length)L.push(`Buildings in this place (${o.blds.length}): `+o.blds.map(b=>`${b.dist} tiles ${b.dir}, tiles (${b.x0},${b.y0}) to (${b.x1},${b.y1})${b.door?`, door at (${b.door[0]}, ${b.door[1]})`:''}${b.loot?`, ${b.loot} thing${b.loot>1?'s':''} to search inside`:', searched'}`).join('; '));
     if(o.doorways&&o.doorways.length)L.push((o.zone.home?'Your doors: ':'Doorways into buildings: ')+o.doorways.map(d=>`${d.dist} tiles ${d.dir}, between (${d.side==='N'?d.x+', '+(d.y-1):(d.x-1)+', '+d.y}) and (${d.x}, ${d.y})`).join(' | '));
     if(o.yours&&o.yours.length)L.push('Where your wall and door pieces stand (a piece on the south side of a cell is listed as the north side of the cell below it, east as the west side of the next column): '+o.yours.join(' · '));
     if(o.walls)L.push(`Wall and door pieces you have standing in the whole homestead (not only what is on screen): ${o.walls}.`)}
