@@ -154,3 +154,7 @@ The game is a private artifact at `https://claude.ai/artifact/NM8HYatScUazqswpDn
 - **The bots** read text more than pictures and react in seconds, not milliseconds, so they find logic and interface faults, not faults of art, sound or feel.
 
 The game sells nothing and has no dependencies beyond the vendored three.js (MIT licence).
+
+## Licence
+
+MIT, see `LICENSE`. three.js in `vendor/` is MIT-licensed by its own authors.
